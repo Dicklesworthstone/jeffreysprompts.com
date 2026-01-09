@@ -1177,6 +1177,10 @@ import chalk from "chalk";
 import { prompts, getPrompt, type Prompt } from "./apps/web/src/lib/prompts/registry";
 import { generateSkillMd } from "./apps/web/src/lib/export/skills";
 
+// Read version from package.json at compile time (Bun inlines this)
+import packageJson from "./package.json";
+const VERSION = packageJson.version;
+
 // Parse command-line arguments
 interface Flags {
   json: boolean;
@@ -1488,11 +1492,19 @@ COMMANDS:
   search <query>          Fuzzy search prompts
     --json                Output as JSON
 
+  suggest <task>          Semantic suggestion (NEW)
+    --limit <n>           Number of suggestions (default: 3)
+    --json                Output as JSON
+
   show <id>               Show full prompt details
     --raw                 Output just the prompt text
     --json                Output as JSON
 
   copy <id>               Copy prompt to clipboard
+
+  export <id>...          Export prompts to files (NEW)
+    --format <fmt>        "skill" (default) or "md"
+    --all                 Export all prompts
 
   install <id>...         Install as Claude Code skills
     --all                 Install all prompts
@@ -1508,6 +1520,20 @@ COMMANDS:
 
   update                  Update all installed skills
 
+  bundles                 List prompt bundles (NEW)
+    --json                Output as JSON
+
+  bundle show <id>        Show bundle details (NEW)
+    --json                Output as JSON
+
+  categories              List all categories (NEW)
+    --json                Output as JSON
+
+  tags                    List all tags with counts (NEW)
+    --json                Output as JSON
+
+  about                   About + ecosystem info (NEW)
+
   i, interactive          Interactive browser (fzf-style)
 
   help                    Show this help message
@@ -1519,8 +1545,11 @@ GLOBAL OPTIONS:
 EXAMPLES:
   jfp list --category ideation
   jfp search "brainstorm"
+  jfp suggest "update docs after changes"
   jfp show idea-wizard --raw | pbcopy
+  jfp export idea-wizard --format md
   jfp install --all
+  jfp bundles
   results=$(jfp search "idea" --json)
 
 DOCS: https://jeffreysprompts.com
@@ -1667,6 +1696,116 @@ async function updateCommand(flags: Flags) {
   }
 }
 
+// jfp categories — List all categories
+async function categoriesCommand(flags: Flags) {
+  const categories = [...new Set(prompts.map((p) => p.category))].sort();
+
+  if (flags.json) {
+    console.log(JSON.stringify({
+      count: categories.length,
+      categories: categories.map((c) => ({
+        name: c,
+        count: prompts.filter((p) => p.category === c).length,
+      })),
+    }, null, 2));
+    return;
+  }
+
+  console.log(chalk.bold("Categories:\n"));
+  for (const category of categories) {
+    const count = prompts.filter((p) => p.category === category).length;
+    console.log(`  ${chalk.cyan(category.padEnd(20))} ${chalk.dim(`(${count} prompts)`)}`);
+  }
+}
+
+// jfp tags — List all tags with counts
+async function tagsCommand(flags: Flags) {
+  const tagCounts = new Map<string, number>();
+  for (const prompt of prompts) {
+    for (const tag of prompt.tags) {
+      tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
+    }
+  }
+
+  const sortedTags = [...tagCounts.entries()].sort((a, b) => b[1] - a[1]);
+
+  if (flags.json) {
+    console.log(JSON.stringify({
+      count: sortedTags.length,
+      tags: sortedTags.map(([tag, count]) => ({ tag, count })),
+    }, null, 2));
+    return;
+  }
+
+  console.log(chalk.bold("Tags (by usage):\n"));
+  for (const [tag, count] of sortedTags) {
+    console.log(`  ${chalk.cyan(tag.padEnd(25))} ${chalk.dim(`(${count})`)}`);
+  }
+}
+
+// jfp bundles — List all bundles
+async function bundlesCommand(flags: Flags) {
+  // Import bundles from the bundles module
+  const { bundles } = await import("./apps/web/src/lib/prompts/bundles");
+
+  if (flags.json) {
+    console.log(JSON.stringify({
+      count: bundles.length,
+      bundles: bundles.map((b) => ({
+        id: b.id,
+        title: b.title,
+        description: b.description,
+        promptCount: b.promptIds.length,
+      })),
+    }, null, 2));
+    return;
+  }
+
+  console.log(chalk.bold("Bundles:\n"));
+  for (const bundle of bundles) {
+    console.log(`  ${chalk.cyan(bundle.id.padEnd(25))} ${bundle.title}`);
+    console.log(`  ${" ".repeat(25)} ${chalk.dim(`${bundle.promptIds.length} prompts`)}`);
+    console.log();
+  }
+  console.log(chalk.dim(`Use 'jfp bundle show <id>' for details.`));
+}
+
+// jfp bundle show <id> — Show bundle details
+async function bundleShowCommand(id: string, flags: Flags) {
+  if (!id) {
+    console.error(chalk.red("Usage: jfp bundle show <bundle-id>"));
+    process.exit(2);
+  }
+
+  const { getBundle, bundles } = await import("./apps/web/src/lib/prompts/bundles");
+  const bundle = getBundle(id);
+
+  if (!bundle) {
+    console.error(chalk.red(`Bundle not found: ${id}`));
+    console.error(chalk.dim(`Available: ${bundles.map((b) => b.id).join(", ")}`));
+    process.exit(1);
+  }
+
+  if (flags.json) {
+    console.log(JSON.stringify(bundle, null, 2));
+    return;
+  }
+
+  console.log(chalk.bold(`# ${bundle.title}\n`));
+  console.log(bundle.description);
+  console.log();
+  console.log(chalk.bold("Prompts:"));
+  for (const promptId of bundle.promptIds) {
+    const prompt = getPrompt(promptId);
+    console.log(`  - ${chalk.cyan(promptId)}: ${prompt?.title ?? "Unknown"}`);
+  }
+  console.log();
+  console.log(chalk.bold("Workflow:"));
+  console.log(bundle.workflow);
+  console.log();
+  console.log(chalk.dim(`Install: jfp install ${bundle.promptIds.join(" ")}`));
+}
+
 // Quick-start help (no args)
 function showQuickStart() {
   console.log(`jfp — Jeffrey's Prompts CLI
@@ -1674,6 +1813,7 @@ function showQuickStart() {
 QUICK START:
   jfp list                    List all prompts
   jfp search "idea"           Fuzzy search
+  jfp suggest "update docs"   Semantic suggestion
   jfp show idea-wizard        View full prompt
   jfp install idea-wizard     Install as Claude Code skill
 
@@ -1681,6 +1821,8 @@ ADD --json TO ANY COMMAND FOR MACHINE-READABLE OUTPUT
 
 EXPLORE:
   jfp i                       Interactive browser (fzf-style)
+  jfp bundles                 Curated prompt collections
+  jfp about                   Ecosystem info
 
 MORE: jfp help | Docs: jeffreysprompts.com`);
 }
@@ -1700,11 +1842,17 @@ async function main() {
     case "search":
       await searchCommand(positional[0] ?? "", flags);
       break;
+    case "suggest":
+      await suggestCommand(positional[0] ?? "", flags);
+      break;
     case "show":
       await showCommand(positional[0] ?? "", flags);
       break;
     case "copy":
       await copyCommand(positional[0] ?? "", flags);
+      break;
+    case "export":
+      await exportCommand(positional, flags);
       break;
     case "install":
       await installCommand(positional, flags);
@@ -1718,6 +1866,26 @@ async function main() {
     case "update":
       await updateCommand(flags);
       break;
+    case "bundles":
+      await bundlesCommand(flags);
+      break;
+    case "bundle":
+      // jfp bundle show <id>
+      if (positional[0] === "show") {
+        await bundleShowCommand(positional[1] ?? "", flags);
+      } else {
+        await bundlesCommand(flags);
+      }
+      break;
+    case "categories":
+      await categoriesCommand(flags);
+      break;
+    case "tags":
+      await tagsCommand(flags);
+      break;
+    case "about":
+      showAbout();
+      break;
     case "i":
     case "interactive":
       await interactiveCommand();
@@ -1727,7 +1895,7 @@ async function main() {
       break;
     case "--version":
     case "-v":
-      console.log("jfp v1.0.0");
+      console.log(`jfp v${VERSION}`);
       break;
     default:
       console.error(chalk.red(`Unknown command: ${command}`));
