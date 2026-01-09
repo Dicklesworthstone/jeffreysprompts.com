@@ -1506,6 +1506,116 @@ export async function GET() {
 }
 ```
 
+**API endpoint for CLI installer script:**
+
+```typescript
+// apps/web/src/app/install-cli.sh/route.ts
+
+import { NextResponse } from "next/server";
+
+const RELEASES_BASE = "https://github.com/Dicklesworthstone/jeffreysprompts.com/releases/latest/download";
+
+export async function GET() {
+  const script = `#!/bin/bash
+# JeffreysPrompts CLI Installer
+# Usage: curl -fsSL https://jeffreysprompts.com/install-cli.sh | bash
+
+set -e
+
+echo "Installing jfp CLI..."
+
+# Detect platform
+OS="$(uname -s)"
+ARCH="$(uname -m)"
+
+case "\$OS" in
+  Linux)  PLATFORM="linux" ;;
+  Darwin) PLATFORM="darwin" ;;
+  *)      echo "Unsupported OS: \$OS"; exit 1 ;;
+esac
+
+case "\$ARCH" in
+  x86_64)  ARCH="x64" ;;
+  aarch64) ARCH="arm64" ;;
+  arm64)   ARCH="arm64" ;;
+  *)       echo "Unsupported architecture: \$ARCH"; exit 1 ;;
+esac
+
+BINARY="jfp-\$PLATFORM-\$ARCH"
+URL="${RELEASES_BASE}/\$BINARY"
+
+# Determine install location
+if [ -d "\$HOME/.local/bin" ]; then
+  INSTALL_DIR="\$HOME/.local/bin"
+elif [ -d "/usr/local/bin" ] && [ -w "/usr/local/bin" ]; then
+  INSTALL_DIR="/usr/local/bin"
+else
+  INSTALL_DIR="\$HOME/.local/bin"
+  mkdir -p "\$INSTALL_DIR"
+fi
+
+echo "Downloading \$BINARY..."
+curl -fsSL "\$URL" -o "\$INSTALL_DIR/jfp"
+chmod +x "\$INSTALL_DIR/jfp"
+
+echo ""
+echo "✓ jfp installed to \$INSTALL_DIR/jfp"
+echo ""
+echo "Quick start:"
+echo "  jfp list              # List all prompts"
+echo "  jfp search \\"idea\\"    # Fuzzy search"
+echo "  jfp install --all    # Install as Claude Code skills"
+echo ""
+
+# Check if in PATH
+if ! command -v jfp &> /dev/null; then
+  echo "Note: Add \$INSTALL_DIR to your PATH:"
+  echo "  export PATH=\\"\$INSTALL_DIR:\\\$PATH\\""
+fi
+`;
+
+  return new Response(script, {
+    headers: {
+      "Content-Type": "text/x-shellscript",
+      "Content-Disposition": 'attachment; filename="install-jfp.sh"',
+    },
+  });
+}
+```
+
+**CLI binary release strategy:**
+
+CLI binaries are distributed via GitHub Releases. The build process creates binaries for:
+- `jfp-linux-x64` — Linux x86_64
+- `jfp-linux-arm64` — Linux ARM64
+- `jfp-darwin-x64` — macOS Intel
+- `jfp-darwin-arm64` — macOS Apple Silicon
+- `jfp-windows-x64.exe` — Windows x86_64
+
+```bash
+# Build script for releases (scripts/build-releases.sh)
+#!/bin/bash
+set -e
+
+VERSION=${1:-"dev"}
+OUTDIR="dist/releases"
+mkdir -p "$OUTDIR"
+
+# Build for each target
+for target in bun-linux-x64 bun-linux-arm64 bun-darwin-x64 bun-darwin-arm64 bun-windows-x64; do
+  platform=${target#bun-}
+  outfile="$OUTDIR/jfp-$platform"
+  [[ "$target" == *windows* ]] && outfile="$outfile.exe"
+
+  echo "Building $outfile..."
+  bun build --compile --target=$target ./jfp.ts --outfile "$outfile"
+done
+
+echo "Done! Binaries in $OUTDIR"
+```
+
+The `/releases/` URLs in the README point to GitHub Releases, not the web app itself.
+
 ---
 
 ## Part 4: Claude Skill for Formatting New Prompts
@@ -1817,7 +1927,9 @@ jeffreysprompts.com/
 │       │   │   ├── page.tsx              # Main page (hero + search + grid)
 │       │   │   ├── globals.css           # Design system (copied from brennerbot)
 │       │   │   ├── install.sh/
-│       │   │   │   └── route.ts          # Shell script for bulk install
+│       │   │   │   └── route.ts          # Shell script for skills bulk install
+│       │   │   ├── install-cli.sh/
+│       │   │   │   └── route.ts          # Shell script for CLI binary install
 │       │   │   ├── how_it_was_made/
 │       │   │   │   └── page.tsx          # Meta-story: building the site in a day
 │       │   │   └── api/
@@ -1856,6 +1968,9 @@ jeffreysprompts.com/
 │       │   │   └── transcript/           # "How It Was Made" page components
 │       │   │       ├── timeline.tsx      # Session timeline visualization
 │       │   │       ├── message-detail.tsx # Full message with tool calls
+│       │   │       ├── message-content.tsx # Markdown/code rendering
+│       │   │       ├── timeline-skeleton.tsx # Loading skeleton
+│       │   │       ├── insight-card.tsx  # Annotation highlight cards
 │       │   │       └── stats-dashboard.tsx # Session statistics
 │       │   │
 │       │   ├── lib/
@@ -1894,7 +2009,8 @@ jeffreysprompts.com/
 │           └── favicon.ico
 │
 └── scripts/
-    ├── build-cli.sh                      # Build jfp binaries
+    ├── build-cli.sh                      # Build jfp binary (current platform)
+    ├── build-releases.sh                 # Build jfp for all platforms
     ├── validate-prompts.ts               # Type-check registry
     ├── extract-transcript.ts             # Extract session via cass
     └── process-transcript.ts             # Process JSONL → JSON
@@ -3162,6 +3278,250 @@ function calculateStats(messages: TranscriptMessage[]) {
     tokensUsed: estimateTokens(messages),
   };
 }
+
+// Helper functions for processing
+function extractContent(msg: any): string {
+  if (typeof msg.content === "string") return msg.content;
+  if (Array.isArray(msg.content)) {
+    return msg.content
+      .filter((c: any) => c.type === "text")
+      .map((c: any) => c.text)
+      .join("\n");
+  }
+  return "";
+}
+
+function extractToolCalls(msg: any): ToolCall[] {
+  if (!msg.content || !Array.isArray(msg.content)) return [];
+  return msg.content
+    .filter((c: any) => c.type === "tool_use")
+    .map((c: any, i: number) => ({
+      id: c.id || `tool-${i}`,
+      name: c.name,
+      input: c.input,
+      output: "", // Filled in from tool_result messages
+      success: true,
+    }));
+}
+
+function extractThinking(msg: any): string | undefined {
+  if (!msg.content || !Array.isArray(msg.content)) return undefined;
+  const thinking = msg.content.find((c: any) => c.type === "thinking");
+  return thinking?.thinking;
+}
+
+function calculateDuration(messages: TranscriptMessage[]): string {
+  if (messages.length < 2) return "0m";
+  const start = new Date(messages[0].timestamp).getTime();
+  const end = new Date(messages[messages.length - 1].timestamp).getTime();
+  const minutes = Math.round((end - start) / 60000);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return `${hours}h ${mins}m`;
+}
+
+function countUniqueFilesEdited(messages: TranscriptMessage[]): number {
+  const files = new Set<string>();
+  for (const msg of messages) {
+    for (const tool of msg.toolCalls ?? []) {
+      if (["Edit", "Write"].includes(tool.name) && tool.input.file_path) {
+        files.add(tool.input.file_path as string);
+      }
+    }
+  }
+  return files.size;
+}
+
+function countLinesWritten(messages: TranscriptMessage[]): number {
+  let lines = 0;
+  for (const msg of messages) {
+    for (const tool of msg.toolCalls ?? []) {
+      if (tool.name === "Write" && tool.input.content) {
+        lines += (tool.input.content as string).split("\n").length;
+      }
+      if (tool.name === "Edit" && tool.input.new_string) {
+        lines += (tool.input.new_string as string).split("\n").length;
+      }
+    }
+  }
+  return lines;
+}
+
+function estimateTokens(messages: TranscriptMessage[]): number {
+  // Rough estimate: 4 characters per token
+  let chars = 0;
+  for (const msg of messages) {
+    chars += msg.content.length;
+    chars += msg.thinking?.length ?? 0;
+    for (const tool of msg.toolCalls ?? []) {
+      chars += JSON.stringify(tool.input).length;
+      chars += tool.output.length;
+    }
+  }
+  return Math.round(chars / 4);
+}
+```
+
+```typescript
+// apps/web/src/lib/transcript/utils.ts
+
+export function formatTime(timestamp: string): string {
+  return new Date(timestamp).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+export function formatDuration(start: string, end: string): string {
+  const startMs = new Date(start).getTime();
+  const endMs = new Date(end).getTime();
+  const minutes = Math.round((endMs - startMs) / 60000);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return `${hours}h ${mins}m`;
+}
+
+export function detectLanguage(content: string): string {
+  // Simple heuristics for syntax highlighting
+  if (content.startsWith("{") || content.startsWith("[")) return "json";
+  if (content.includes("function ") || content.includes("const ")) return "typescript";
+  if (content.includes("def ") || content.includes("import ")) return "python";
+  if (content.startsWith("#!") || content.includes("#!/bin/bash")) return "bash";
+  if (content.includes("<") && content.includes(">")) return "html";
+  return "text";
+}
+```
+
+```typescript
+// apps/web/src/lib/transcript/data.ts
+
+import transcriptData from "@/data/transcript.json";
+
+export async function getTranscriptData(): Promise<string> {
+  // In production, this returns the pre-processed JSON
+  // For static export, the transcript.json is generated at build time
+  return JSON.stringify(transcriptData);
+}
+```
+
+```tsx
+// apps/web/src/components/transcript/message-content.tsx
+// Renders markdown-like content with code blocks
+
+"use client";
+
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { detectLanguage } from "@/lib/transcript/utils";
+
+interface MessageContentProps {
+  content: string;
+}
+
+export function MessageContent({ content }: MessageContentProps) {
+  // Split content into text and code blocks
+  const parts = content.split(/(```[\s\S]*?```)/g);
+
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (part.startsWith("```")) {
+          // Extract language and code
+          const match = part.match(/```(\w+)?\n?([\s\S]*?)```/);
+          const lang = match?.[1] || detectLanguage(match?.[2] || "");
+          const code = match?.[2] || part.slice(3, -3);
+
+          return (
+            <SyntaxHighlighter
+              key={i}
+              language={lang}
+              style={oneDark}
+              customStyle={{ fontSize: "13px", borderRadius: "8px", margin: "1em 0" }}
+            >
+              {code.trim()}
+            </SyntaxHighlighter>
+          );
+        }
+
+        // Regular text - render with basic formatting
+        return (
+          <div key={i} className="whitespace-pre-wrap">
+            {part}
+          </div>
+        );
+      })}
+    </>
+  );
+}
+```
+
+```tsx
+// apps/web/src/components/transcript/timeline-skeleton.tsx
+
+export function TimelineSkeleton() {
+  return (
+    <div className="space-y-8 animate-pulse">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="flex gap-4">
+          <div className="size-8 rounded-full bg-muted" />
+          <div className="flex-1 space-y-2">
+            <div className="h-4 w-1/3 bg-muted rounded" />
+            <div className="h-3 w-2/3 bg-muted rounded" />
+            <div className="space-y-1">
+              {[1, 2].map((j) => (
+                <div key={j} className="h-16 bg-muted/50 rounded-lg" />
+              ))}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+```tsx
+// apps/web/src/components/transcript/insight-card.tsx
+
+import { Brain, Lightbulb, CheckCircle, AlertTriangle } from "lucide-react";
+import { type TranscriptHighlight } from "@/lib/transcript/types";
+import { cn } from "@/lib/utils";
+
+interface InsightCardProps {
+  highlight: TranscriptHighlight;
+}
+
+export function InsightCard({ highlight }: InsightCardProps) {
+  const icons = {
+    key_decision: Brain,
+    interesting_prompt: Lightbulb,
+    clever_solution: CheckCircle,
+    lesson_learned: AlertTriangle,
+  };
+
+  const colors = {
+    key_decision: "text-blue-500 bg-blue-500/10 border-blue-500/20",
+    interesting_prompt: "text-amber-500 bg-amber-500/10 border-amber-500/20",
+    clever_solution: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
+    lesson_learned: "text-purple-500 bg-purple-500/10 border-purple-500/20",
+  };
+
+  const Icon = icons[highlight.type];
+
+  return (
+    <div className={cn("p-4 rounded-xl border", colors[highlight.type])}>
+      <div className="flex items-center gap-2 mb-2">
+        <Icon className="size-5" />
+        <span className="font-medium capitalize">
+          {highlight.type.replace("_", " ")}
+        </span>
+      </div>
+      <p className="text-foreground">{highlight.annotation}</p>
+    </div>
+  );
+}
 ```
 
 ### 10.5 Visual Presentation Components
@@ -3275,7 +3635,7 @@ Full message display with syntax highlighting:
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, ChevronRight, Copy, Code, FileText, Brain } from "lucide-react";
+import { ChevronDown, ChevronRight, Code, FileText, Brain, Terminal, Search } from "lucide-react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { type TranscriptMessage } from "@/lib/transcript/types";
@@ -3686,7 +4046,7 @@ export default async function HowItWasMadePage() {
         </p>
         <div className="flex items-center justify-center gap-4">
           <a href="/" className="...">Browse Prompts</a>
-          <a href="/api/install.sh" className="...">Install All Skills</a>
+          <a href="/install.sh" className="...">Install All Skills</a>
         </div>
       </section>
     </main>

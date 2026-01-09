@@ -210,12 +210,12 @@ curl -fsSL https://jeffreysprompts.com/install-cli.sh | bash
 **Manual install:**
 
 ```bash
-# Download for your platform
+# Download for your platform from GitHub Releases
 # Linux x64
-curl -L https://jeffreysprompts.com/releases/jfp-linux-x64 -o ~/.local/bin/jfp
+curl -L https://github.com/Dicklesworthstone/jeffreysprompts.com/releases/latest/download/jfp-linux-x64 -o ~/.local/bin/jfp
 
 # macOS ARM
-curl -L https://jeffreysprompts.com/releases/jfp-darwin-arm64 -o ~/.local/bin/jfp
+curl -L https://github.com/Dicklesworthstone/jeffreysprompts.com/releases/latest/download/jfp-darwin-arm64 -o ~/.local/bin/jfp
 
 # Make executable
 chmod +x ~/.local/bin/jfp

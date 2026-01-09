@@ -105,6 +105,7 @@ JeffreysPrompts.com is a **prompts showcase and distribution platform** with a c
 jeffreysprompts.com/
 ├── README.md
 ├── AGENTS.md
+├── PLAN_TO_MAKE_JEFFREYSPROMPTS_WEBAPP_AND_CLI_TOOL.md
 ├── jfp.ts                        # CLI entrypoint (Bun-compiled)
 ├── jfp.test.ts                   # CLI tests
 ├── package.json                  # Root monorepo config
@@ -117,14 +118,25 @@ jeffreysprompts.com/
 ├── apps/
 │   └── web/                      # Next.js 16.x (App Router) + React 19
 │       ├── src/app/              # App Router pages
+│       │   ├── how_it_was_made/  # Meta-story page
+│       │   ├── install.sh/       # Skills install script endpoint
+│       │   ├── install-cli.sh/   # CLI install script endpoint
+│       │   └── api/              # API routes
 │       ├── src/components/       # UI components
+│       │   └── transcript/       # Making-of page components
 │       ├── src/lib/
 │       │   ├── prompts/          # TypeScript-native prompt definitions
 │       │   │   ├── types.ts      # Prompt interfaces
 │       │   │   └── registry.ts   # All prompts (single source of truth)
-│       │   └── export/           # Skills/markdown export functions
+│       │   ├── search/           # MiniSearch engine
+│       │   ├── export/           # Skills/markdown export functions
+│       │   └── transcript/       # Session transcript processing
+│       ├── src/data/             # Static data (transcript, annotations)
 │       └── package.json
 └── scripts/                      # Build/deploy scripts
+    ├── build-cli.sh
+    ├── build-releases.sh
+    └── extract-transcript.ts
 ```
 
 ---
