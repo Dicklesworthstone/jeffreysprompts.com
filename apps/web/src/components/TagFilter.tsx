@@ -80,8 +80,8 @@ export function TagFilter({
               aria-pressed={isSelected}
               onClick={() => handleToggle(tag)}
               className={cn(
-                "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold",
-                "transition-all hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "inline-flex items-center rounded-full px-3 py-2 min-h-[44px] text-xs font-semibold",
+                "transition-all hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring touch-manipulation",
                 isSelected
                   ? "bg-indigo-600 hover:bg-indigo-700 text-white"
                   : "border border-input bg-background hover:bg-indigo-50 dark:hover:bg-indigo-900/30"

@@ -40,8 +40,8 @@ export function CategoryFilter({
         aria-pressed={selected === null}
         onClick={() => handleSelect(null)}
         className={cn(
-          "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold",
-          "transition-all hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "inline-flex items-center rounded-full px-3 py-2 min-h-[44px] text-xs font-semibold",
+          "transition-all hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring touch-manipulation",
           selected === null
             ? "bg-indigo-600 hover:bg-indigo-700 text-white"
             : "border border-input bg-background hover:bg-indigo-50 dark:hover:bg-indigo-900/30"
@@ -62,8 +62,8 @@ export function CategoryFilter({
           aria-pressed={selected === category}
           onClick={() => handleSelect(category)}
           className={cn(
-            "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize",
-            "transition-all hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "inline-flex items-center rounded-full px-3 py-2 min-h-[44px] text-xs font-semibold capitalize",
+            "transition-all hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring touch-manipulation",
             selected === category
               ? "bg-indigo-600 hover:bg-indigo-700 text-white"
               : "border border-input bg-background hover:bg-indigo-50 dark:hover:bg-indigo-900/30"
