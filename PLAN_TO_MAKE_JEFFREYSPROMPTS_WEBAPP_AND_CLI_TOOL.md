@@ -1380,6 +1380,7 @@ interface Flags {
   vars?: Record<string, string>;
   category?: string;
   tag?: string;
+  featured?: boolean;
   raw: boolean;
   limit?: number;
   bundle?: string;
@@ -1447,6 +1448,24 @@ async function readStdin(maxBytes = 200000): Promise<string> {
   return `${text.slice(0, maxBytes)}\n\n[Context truncated to ${maxBytes} bytes]`;
 }
 
+function normalizeVars(prompt: Prompt, vars: Record<string, string>): Record<string, string> {
+  const out = { ...vars };
+  for (const variable of prompt.variables ?? []) {
+    if (variable.type === "file" && out[variable.name]) {
+      if (existsSync(out[variable.name])) {
+        out[variable.name] = readContextFile(out[variable.name], 200000);
+      }
+    }
+  }
+  return out;
+}
+
+function loadConfig(): Partial<JfpConfig> {
+  const path = join(homedir(), ".config", "jfp", "config.json");
+  if (!existsSync(path)) return {};
+  return JSON.parse(readFileSync(path, "utf-8"));
+}
+
 function formatRegistryStatus(status: { version: string; updatedAt?: string; cachedAt?: string }) {
   return [
     `Registry version: ${status.version}`,
@@ -1503,7 +1522,8 @@ function printCompletion(shell: string) {
 function updateSkillsManifest(skillsDir: string, registry: Prompt[]) {
   if (!existsSync(skillsDir)) return;
   const manifestPath = join(skillsDir, "manifest.json");
-  const entries = registry.map((p) => ({
+  const installed = registry.filter((p) => existsSync(join(skillsDir, p.id, "SKILL.md")));
+  const entries = installed.map((p) => ({
     promptId: p.id,
     version: p.version,
     updatedAt: p.updatedAt ?? p.created,
@@ -1546,6 +1566,9 @@ async function listCommand(flags: Flags) {
   }
   if (flags.tag) {
     result = result.filter((p) => p.tags.includes(flags.tag!));
+  }
+  if (flags.featured) {
+    result = result.filter((p) => p.featured);
   }
 
   if (flags.json) {
@@ -1668,7 +1691,7 @@ async function copyCommand(id: string, flags: Flags) {
     process.exit(1);
   }
 
-  const baseVars = flags.vars ?? {};
+  const baseVars = normalizeVars(prompt, flags.vars ?? {});
   const filledVars = flags.fill
     ? { ...baseVars, ...(await promptForVars(prompt, baseVars)) }
     : baseVars;
@@ -1714,7 +1737,7 @@ async function renderCommand(id: string, flags: Flags) {
     process.exit(1);
   }
 
-  const vars = flags.vars ?? {};
+  const vars = normalizeVars(prompt, flags.vars ?? {});
   const missingRequired = (prompt.variables ?? []).filter((v) => v.required && !vars[v.name]);
   if (missingRequired.length && !flags.fill) {
     console.error(chalk.yellow(`Missing required vars: ${missingRequired.map((v) => v.name).join(", ")} (use --fill)`));
@@ -1821,6 +1844,7 @@ COMMANDS:
   list                    List all prompts
     --category <cat>      Filter by category
     --tag <tag>           Filter by tag
+    --featured            Only featured prompts
     --json                Output as JSON
     --pretty              Pretty-print JSON
 
@@ -2231,14 +2255,14 @@ async function bundleShowCommand(id: string, flags: Flags) {
   console.log(chalk.dim(`Install: jfp install ${bundle.promptIds.join(" ")}`));
 }
 
-// Quick-start help (no args)
-function showQuickStart() {
+// Quick-start help (no args) — simple version (full version in Part 6.2)
+function showQuickStartSimple() {
   console.log(`jfp — Jeffrey's Prompts CLI
 
 QUICK START:
   jfp list                    List all prompts
   jfp search "idea"           BM25 search
-  jfp suggest "update docs"   Semantic suggestion
+  jfp suggest "update docs"   Suggest prompts for a task
   jfp show idea-wizard        View full prompt
   jfp install idea-wizard     Install as Claude Code skill
 
@@ -2253,11 +2277,12 @@ MORE: jfp help | Docs: jeffreysprompts.com`);
 }
 
 // Command registration (cac)
-cli.command("", "quick start").action(showQuickStart);
+cli.command("", "quick start").action(showQuickStart); // see Part 6.2
 
 cli.command("list", "list all prompts")
   .option("--category <cat>", "filter by category")
   .option("--tag <tag>", "filter by tag")
+  .option("--featured", "only featured prompts")
   .action((opts) => listCommand({ ...opts, json: cli.options.json, pretty: cli.options.pretty }));
 
 cli.command("search <query>", "search prompts")
@@ -3527,7 +3552,8 @@ jfp --help
 ### 6.2 Quick-Start Mode (No Args)
 
 ```typescript
-function showQuickStart() {
+async function showQuickStart() {
+  const registry = await loadRegistry();
   const box = boxen(
     `
 ${chalk.bold.cyan("⚡ Jeffrey's Prompts CLI")} ${chalk.dim(`v${VERSION}`)}
@@ -3536,7 +3562,7 @@ ${chalk.dim("Curated prompts for agentic coding")}
 
 ${chalk.bold("QUICK START")}
 
-  ${chalk.cyan("jfp list")}              List all ${prompts.length} prompts
+  ${chalk.cyan("jfp list")}              List all ${registry.length} prompts
   ${chalk.cyan("jfp search")} ${chalk.dim("<query>")}    Search prompts
   ${chalk.cyan("jfp show")} ${chalk.dim("<id>")}        View full prompt
   ${chalk.cyan("jfp suggest")} ${chalk.dim("<task>")}   Suggest prompts for a task
@@ -3771,10 +3797,11 @@ Prompts are content, and content changes faster than binaries. The CLI should lo
 
 export async function loadRegistry(): Promise<Prompt[]> {
   const embedded = prompts; // bundled snapshot
-  const cachePath = join(homedir(), ".config", "jfp", "registry.json");
+  const config = loadConfig();
+  const cachePath = config.registryCachePath ?? join(homedir(), ".config", "jfp", "registry.json");
   const metaPath = join(homedir(), ".config", "jfp", "registry.meta.json");
-  const localDir = join(homedir(), ".config", "jfp", "local");
-  const registryUrl = "https://jeffreysprompts.com/registry.json";
+  const localDir = config.localPromptsDir ?? join(homedir(), ".config", "jfp", "local");
+  const registryUrl = config.registryUrl ?? "https://jeffreysprompts.com/registry.json";
 
   const cached = existsSync(cachePath)
     ? JSON.parse(readFileSync(cachePath, "utf-8"))
@@ -3827,7 +3854,8 @@ async function refreshRegistry({
   const payload = await res.json();
 
   // Optional manifest verification
-  const manifestRes = await fetch("https://jeffreysprompts.com/registry.manifest.json");
+  const manifestUrl = registryUrl.replace("registry.json", "registry.manifest.json");
+  const manifestRes = await fetch(manifestUrl);
   if (manifestRes.ok) {
     const manifest = await manifestRes.json();
     const hash = createHash("sha256").update(JSON.stringify(payload)).digest("hex");
@@ -3854,7 +3882,7 @@ CLI commands:
 
 For extra trust, publish a small manifest alongside the registry payload:
 
-- `public/registry.manifest.json` (or `/api/prompts?manifest=1`)
+- `public/registry.manifest.json`
 - Fields: `{ version, updatedAt, sha256 }`
 
 The CLI verifies the checksum **before** writing cache:
