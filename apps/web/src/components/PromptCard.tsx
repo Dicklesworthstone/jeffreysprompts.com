@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { useBasket } from "@/hooks/use-basket";
+import { trackEvent } from "@/lib/analytics";
 import type { Prompt, PromptDifficulty } from "@jeffreysprompts/core/prompts/types";
 
 interface PromptCardProps {
@@ -61,6 +62,7 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
         await navigator.clipboard.writeText(prompt.content);
         setCopied(true);
         success("Copied prompt", prompt.title, 3000);
+        trackEvent("prompt_copy", { id: prompt.id, source: "card" });
         onCopy?.(prompt);
         setTimeout(() => setCopied(false), 2000);
       } catch {

@@ -115,7 +115,6 @@ function HomeContent() {
   const handlePromptCopy = useCallback((prompt: Prompt) => {
     // TODO: Show toast notification
     console.log("Copied prompt:", prompt.id);
-    trackEvent("prompt_copy", { id: prompt.id, source: "grid" });
   }, []);
 
   const handleRefresh = useCallback(() => {
