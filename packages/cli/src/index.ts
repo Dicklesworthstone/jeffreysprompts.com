@@ -22,6 +22,7 @@ import {
   aboutCommand,
 } from "./commands/utilities";
 import { helpCommand } from "./commands/help";
+import { serveCommand } from "./commands/serve";
 
 export const cli = cac("jfp");
 
@@ -154,6 +155,11 @@ cli
   .command("about", "About JeffreysPrompts CLI")
   .option("--json", "Output JSON")
   .action(aboutCommand);
+
+cli
+  .command("serve", "Start MCP server for agent-native access")
+  .option("--config", "Show Claude Desktop config snippet")
+  .action(serveCommand);
 
 cli
   .command("help", "Show comprehensive documentation")

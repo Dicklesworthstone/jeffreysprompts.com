@@ -1,0 +1,268 @@
+/**
+ * jfp serve - MCP server mode
+ *
+ * Exposes JeffreysPrompts via Model Context Protocol (MCP) for agent-native access.
+ *
+ * Resources:
+ *   prompt://<id> - Returns the rendered prompt content
+ *
+ * Tools:
+ *   search_prompts - Search prompts by query, category, tags
+ *   render_prompt - Render a prompt with variables and context
+ *
+ * Usage:
+ *   jfp serve              # Start MCP server on stdio
+ *   jfp serve --help       # Show Claude Desktop config snippet
+ */
+
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import {
+  CallToolRequestSchema,
+  ListResourcesRequestSchema,
+  ListToolsRequestSchema,
+  ReadResourceRequestSchema,
+} from "@modelcontextprotocol/sdk/types.js";
+import { prompts, getPrompt } from "@jeffreysprompts/core/prompts";
+import { searchPrompts } from "@jeffreysprompts/core/search";
+import { renderPrompt } from "@jeffreysprompts/core/template";
+import chalk from "chalk";
+
+interface ServeOptions {
+  config?: boolean;
+}
+
+/**
+ * Print Claude Desktop configuration snippet
+ */
+function printConfigSnippet(): void {
+  const config = {
+    mcpServers: {
+      jeffreysprompts: {
+        command: "jfp",
+        args: ["serve"],
+      },
+    },
+  };
+
+  console.log(chalk.bold.cyan("\nClaude Desktop Configuration\n"));
+  console.log(chalk.dim("Add this to your Claude Desktop config:"));
+  console.log(chalk.dim("~/.config/claude/claude_desktop_config.json (Linux)"));
+  console.log(chalk.dim("~/Library/Application Support/Claude/claude_desktop_config.json (macOS)\n"));
+  console.log(JSON.stringify(config, null, 2));
+  console.log();
+  console.log(chalk.dim("After adding, restart Claude Desktop to load the MCP server."));
+  console.log();
+}
+
+/**
+ * Start the MCP server
+ */
+export async function serveCommand(options: ServeOptions): Promise<void> {
+  if (options.config) {
+    printConfigSnippet();
+    return;
+  }
+
+  const server = new Server(
+    {
+      name: "jeffreysprompts",
+      version: "1.0.0",
+    },
+    {
+      capabilities: {
+        resources: {},
+        tools: {},
+      },
+    }
+  );
+
+  // List available resources (all prompts)
+  server.setRequestHandler(ListResourcesRequestSchema, async () => {
+    return {
+      resources: prompts.map((prompt) => ({
+        uri: `prompt://${prompt.id}`,
+        name: prompt.title,
+        description: prompt.description,
+        mimeType: "text/plain",
+      })),
+    };
+  });
+
+  // Read a specific prompt resource
+  server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+    const uri = request.params.uri;
+
+    if (!uri.startsWith("prompt://")) {
+      throw new Error(`Unknown resource URI scheme: ${uri}`);
+    }
+
+    const id = uri.replace("prompt://", "");
+    const prompt = getPrompt(id);
+
+    if (!prompt) {
+      throw new Error(`Prompt not found: ${id}`);
+    }
+
+    return {
+      contents: [
+        {
+          uri,
+          mimeType: "text/plain",
+          text: prompt.content,
+        },
+      ],
+    };
+  });
+
+  // List available tools
+  server.setRequestHandler(ListToolsRequestSchema, async () => {
+    return {
+      tools: [
+        {
+          name: "search_prompts",
+          description:
+            "Search JeffreysPrompts library by query, category, or tags. Returns matching prompts with relevance scores.",
+          inputSchema: {
+            type: "object" as const,
+            properties: {
+              query: {
+                type: "string",
+                description: "Search query (natural language description of what you need)",
+              },
+              category: {
+                type: "string",
+                description: "Filter by category (ideation, documentation, automation, etc.)",
+              },
+              tags: {
+                type: "array",
+                items: { type: "string" },
+                description: "Filter by tags",
+              },
+              limit: {
+                type: "number",
+                description: "Maximum results to return (default: 5)",
+              },
+            },
+          },
+        },
+        {
+          name: "render_prompt",
+          description:
+            "Render a prompt with variable substitution and optional context. Returns the fully rendered prompt text.",
+          inputSchema: {
+            type: "object" as const,
+            properties: {
+              id: {
+                type: "string",
+                description: "Prompt ID to render",
+              },
+              variables: {
+                type: "object",
+                description: "Variable values to substitute (e.g., {project_name: 'my-app'})",
+              },
+              context: {
+                type: "string",
+                description: "Additional context to append to the prompt",
+              },
+            },
+            required: ["id"],
+          },
+        },
+      ],
+    };
+  });
+
+  // Handle tool calls
+  server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    const { name, arguments: args } = request.params;
+
+    if (name === "search_prompts") {
+      const query = (args?.query as string) || "";
+      const category = args?.category as string | undefined;
+      const tags = args?.tags as string[] | undefined;
+      const limit = (args?.limit as number) || 5;
+
+      // Get all prompts and filter
+      let results = searchPrompts(query || "", { limit: 50 });
+
+      // Filter by category if specified
+      if (category) {
+        results = results.filter((r) => r.prompt.category === category);
+      }
+
+      // Filter by tags if specified
+      if (tags && tags.length > 0) {
+        results = results.filter((r) =>
+          tags.some((tag) => r.prompt.tags.includes(tag))
+        );
+      }
+
+      // Limit results
+      results = results.slice(0, limit);
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              {
+                results: results.map((r) => ({
+                  id: r.prompt.id,
+                  title: r.prompt.title,
+                  description: r.prompt.description,
+                  category: r.prompt.category,
+                  tags: r.prompt.tags,
+                  score: Math.round(r.score * 100) / 100,
+                })),
+                total: results.length,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    if (name === "render_prompt") {
+      const id = args?.id as string;
+      const variables = (args?.variables as Record<string, string>) || {};
+      const context = args?.context as string | undefined;
+
+      if (!id) {
+        return {
+          content: [{ type: "text", text: "Error: id is required" }],
+          isError: true,
+        };
+      }
+
+      const prompt = getPrompt(id);
+      if (!prompt) {
+        return {
+          content: [{ type: "text", text: `Error: Prompt not found: ${id}` }],
+          isError: true,
+        };
+      }
+
+      let rendered = renderPrompt(prompt, variables);
+
+      if (context) {
+        rendered += "\n\n---\n\n**Context:**\n" + context;
+      }
+
+      return {
+        content: [{ type: "text", text: rendered }],
+      };
+    }
+
+    return {
+      content: [{ type: "text", text: `Unknown tool: ${name}` }],
+      isError: true,
+    };
+  });
+
+  // Connect to stdio transport and run
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+}
