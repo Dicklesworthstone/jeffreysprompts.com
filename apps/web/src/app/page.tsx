@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useMemo, useCallback, useState } from "react";
+import { AlertTriangle } from "lucide-react";
 import { prompts, categories, tags } from "@jeffreysprompts/core/prompts/registry";
 import { searchPrompts } from "@jeffreysprompts/core/search/engine";
 import { Hero } from "@/components/Hero";
@@ -8,8 +9,27 @@ import { PromptGrid } from "@/components/PromptGrid";
 import { CategoryFilter } from "@/components/CategoryFilter";
 import { TagFilter } from "@/components/TagFilter";
 import { PromptDetailModal } from "@/components/PromptDetailModal";
+import { Button } from "@/components/ui/button";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { useFilterState } from "@/hooks/useFilterState";
 import type { Prompt, PromptCategory } from "@jeffreysprompts/core/prompts/types";
+
+function PromptGridFallback({ onRefresh }: { onRefresh: () => void }) {
+  return (
+    <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-6 text-center">
+      <div className="flex items-center justify-center gap-2 text-destructive mb-2">
+        <AlertTriangle className="h-5 w-5" />
+        <span className="font-medium">Something went wrong loading prompts.</span>
+      </div>
+      <p className="text-sm text-muted-foreground mb-4">
+        Try refreshing the page to reload the prompt list.
+      </p>
+      <Button variant="outline" size="sm" onClick={onRefresh}>
+        Refresh
+      </Button>
+    </div>
+  );
+}
 
 function HomeContent() {
   const { filters, setQuery, setCategory, setTags, clearFilters, hasActiveFilters } =
@@ -83,6 +103,12 @@ function HomeContent() {
     console.log("Copied prompt:", prompt.id);
   }, []);
 
+  const handleRefresh = useCallback(() => {
+    if (typeof window !== "undefined") {
+      window.location.reload();
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       {/* Hero Section */}
@@ -150,11 +176,13 @@ function HomeContent() {
         </div>
 
         {/* Prompt Grid */}
-        <PromptGrid
-          prompts={filteredPrompts}
-          onPromptClick={handlePromptClick}
-          onPromptCopy={handlePromptCopy}
-        />
+        <ErrorBoundary fallback={<PromptGridFallback onRefresh={handleRefresh} />}>
+          <PromptGrid
+            prompts={filteredPrompts}
+            onPromptClick={handlePromptClick}
+            onPromptCopy={handlePromptCopy}
+          />
+        </ErrorBoundary>
       </main>
 
       {/* Footer */}
