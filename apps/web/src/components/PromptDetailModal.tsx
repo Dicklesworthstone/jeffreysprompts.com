@@ -205,34 +205,34 @@ export function PromptDetailModal({
   const modalContent = (
     <div className="space-y-6">
       {/* Header info */}
-      <div className="space-y-3">
+      <div className="space-y-4">
         <div className="flex items-center gap-2 flex-wrap">
-          <Badge variant="outline" className="capitalize">
+          <Badge variant="outline" className="capitalize text-xs font-medium px-2.5 py-0.5 bg-zinc-50 dark:bg-zinc-800/50">
             {prompt.category}
           </Badge>
           {prompt.featured && (
-            <Badge className="gap-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20">
+            <Badge className="gap-1.5 text-xs bg-gradient-to-r from-amber-500/15 to-orange-500/15 text-amber-600 dark:text-amber-400 border-amber-400/30 dark:border-amber-500/30">
               <Sparkles className="w-3 h-3" />
               Featured
             </Badge>
           )}
           {prompt.estimatedTokens && (
-            <span className="text-xs text-muted-foreground">
+            <span className="text-[11px] text-muted-foreground/70 font-medium">
               ~{prompt.estimatedTokens} tokens
             </span>
           )}
         </div>
 
-        <p className="text-sm text-muted-foreground">{prompt.description}</p>
+        <p className="text-sm text-muted-foreground leading-relaxed">{prompt.description}</p>
 
         {/* Tags */}
         <div className="flex flex-wrap gap-1.5">
           {prompt.tags.map((tag) => (
             <span
               key={tag}
-              className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full"
+              className="text-[11px] text-zinc-500 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800/70 px-2 py-0.5 rounded-md font-medium"
             >
-              #{tag}
+              {tag}
             </span>
           ))}
         </div>
@@ -240,15 +240,18 @@ export function PromptDetailModal({
 
       {/* Variable inputs */}
       {promptVariables.length > 0 && (
-        <div className="space-y-4 p-4 bg-muted/30 rounded-lg border border-border/50">
-          <h4 className="text-sm font-medium text-foreground">Variables</h4>
+        <div className="space-y-4 p-4 bg-gradient-to-b from-indigo-50/50 to-transparent dark:from-indigo-950/20 dark:to-transparent rounded-xl border border-indigo-100/50 dark:border-indigo-900/30">
+          <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+            Variables
+          </h4>
           <div className="grid gap-4 sm:grid-cols-2">
             {promptVariables.map((variable) => (
               <div key={variable.name} className="space-y-1.5">
-                <Label htmlFor={`var-${variable.name}`} className="text-xs">
+                <Label htmlFor={`var-${variable.name}`} className="text-xs font-medium text-muted-foreground">
                   {variable.label}
                   {variable.required && (
-                    <span className="text-destructive ml-1">*</span>
+                    <span className="text-rose-500 ml-1">*</span>
                   )}
                 </Label>
                 {variable.type === "multiline" ? (
@@ -257,7 +260,7 @@ export function PromptDetailModal({
                     value={variableValues[variable.name] ?? variable.default ?? ""}
                     onChange={(e) => updateVariable(variable.name, e.target.value)}
                     placeholder={getVariablePlaceholder(variable.name, variable.type)}
-                    className="h-20 text-sm"
+                    className="h-20 text-sm bg-white dark:bg-zinc-900/50"
                   />
                 ) : (
                   <Input
@@ -265,11 +268,11 @@ export function PromptDetailModal({
                     value={variableValues[variable.name] ?? variable.default ?? ""}
                     onChange={(e) => updateVariable(variable.name, e.target.value)}
                     placeholder={getVariablePlaceholder(variable.name, variable.type)}
-                    className="text-sm"
+                    className="text-sm bg-white dark:bg-zinc-900/50"
                   />
                 )}
                 {variable.description && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-[11px] text-muted-foreground/70">
                     {variable.description}
                   </p>
                 )}
@@ -281,47 +284,61 @@ export function PromptDetailModal({
 
       {/* Context textarea */}
       <div className="space-y-2">
-        <Label htmlFor="context" className="text-sm font-medium">
-          Additional Context (optional)
+        <Label htmlFor="context" className="text-sm font-medium text-foreground">
+          Additional Context <span className="text-muted-foreground/60 font-normal">(optional)</span>
         </Label>
         <Textarea
           id="context"
           value={context}
           onChange={(e) => setContext(e.target.value)}
           placeholder="Paste code, file contents, or other context here..."
-          className="h-24 text-sm font-mono"
+          className="h-24 text-sm font-mono bg-zinc-50 dark:bg-zinc-900/50"
         />
       </div>
 
       {/* Prompt content preview */}
       <div className="space-y-2">
-        <Label className="text-sm font-medium">Rendered Prompt</Label>
-        <div className="relative">
-          <pre className="p-4 bg-muted/50 rounded-lg text-sm font-mono whitespace-pre-wrap break-words max-h-64 overflow-y-auto border border-border/50">
+        <Label className="text-sm font-medium text-foreground">Rendered Prompt</Label>
+        <div className="relative rounded-xl overflow-hidden border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50 dark:bg-zinc-900/50">
+          <pre className="p-4 text-sm font-mono whitespace-pre-wrap break-words max-h-64 overflow-y-auto text-zinc-700 dark:text-zinc-300 leading-relaxed">
             {renderedContent}
           </pre>
+          {/* Fade overlay at bottom */}
+          <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-zinc-50 dark:from-zinc-900/50 to-transparent pointer-events-none" />
         </div>
       </div>
 
       {/* When to use / Tips */}
       {((prompt.whenToUse?.length ?? 0) > 0 || (prompt.tips?.length ?? 0) > 0) && (
-        <div className="grid gap-4 sm:grid-cols-2 text-sm">
+        <div className="grid gap-6 sm:grid-cols-2 text-sm">
           {(prompt.whenToUse?.length ?? 0) > 0 && (
-            <div className="space-y-2">
-              <h4 className="font-medium">When to Use</h4>
-              <ul className="list-disc list-inside text-muted-foreground space-y-1">
+            <div className="space-y-3">
+              <h4 className="font-semibold text-foreground flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                When to Use
+              </h4>
+              <ul className="text-muted-foreground space-y-2">
                 {prompt.whenToUse?.map((item, i) => (
-                  <li key={i}>{item}</li>
+                  <li key={i} className="flex items-start gap-2">
+                    <span className="text-emerald-500 mt-1">•</span>
+                    <span>{item}</span>
+                  </li>
                 ))}
               </ul>
             </div>
           )}
           {(prompt.tips?.length ?? 0) > 0 && (
-            <div className="space-y-2">
-              <h4 className="font-medium">Tips</h4>
-              <ul className="list-disc list-inside text-muted-foreground space-y-1">
+            <div className="space-y-3">
+              <h4 className="font-semibold text-foreground flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                Tips
+              </h4>
+              <ul className="text-muted-foreground space-y-2">
                 {prompt.tips?.map((item, i) => (
-                  <li key={i}>{item}</li>
+                  <li key={i} className="flex items-start gap-2">
+                    <span className="text-amber-500 mt-1">•</span>
+                    <span>{item}</span>
+                  </li>
                 ))}
               </ul>
             </div>
@@ -330,11 +347,17 @@ export function PromptDetailModal({
       )}
 
       {/* Action buttons */}
-      <div className="flex flex-wrap gap-2 pt-2">
-        <Button onClick={handleCopy} className="flex-1 sm:flex-none">
+      <div className="flex flex-wrap gap-2 pt-4 border-t border-border/50">
+        <Button
+          onClick={handleCopy}
+          className={cn(
+            "flex-1 sm:flex-none font-medium",
+            copied && "bg-emerald-600 hover:bg-emerald-700"
+          )}
+        >
           {copied ? (
             <>
-              <Check className="w-4 h-4 mr-2 text-green-500" />
+              <Check className="w-4 h-4 mr-2" />
               Copied
             </>
           ) : (
@@ -347,7 +370,7 @@ export function PromptDetailModal({
         <Button
           variant="outline"
           onClick={handleInstall}
-          className="flex-1 sm:flex-none"
+          className="flex-1 sm:flex-none font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800"
         >
           <Terminal className="w-4 h-4 mr-2" />
           Install as Skill
@@ -355,7 +378,7 @@ export function PromptDetailModal({
         <Button
           variant="outline"
           onClick={handleDownload}
-          className="flex-1 sm:flex-none"
+          className="flex-1 sm:flex-none font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800"
         >
           <Download className="w-4 h-4 mr-2" />
           Download
