@@ -100,7 +100,7 @@ export function processTranscript(
  * Parse a single JSONL entry into a TranscriptMessage.
  */
 function parseEntry(entry: RawEntry, index: number): TranscriptMessage | null {
-  // Determine message type, mapping "user" to "user" for consistency
+  // Determine message type from entry.type or nested message.role
   let type: TranscriptMessage["type"] = "assistant";
   if (entry.type === "human" || entry.type === "user") {
     type = "user";
@@ -156,9 +156,9 @@ function parseEntry(entry: RawEntry, index: number): TranscriptMessage | null {
     return null;
   }
 
-  // Handle standalone thinking from entry
+  // Handle standalone thinking from entry (append, don't overwrite)
   if (entry.thinking) {
-    thinking = entry.thinking;
+    thinking = thinking ? `${thinking}\n${entry.thinking}` : entry.thinking;
   }
 
   return {
@@ -187,8 +187,6 @@ function detectSections(messages: TranscriptMessage[]): TranscriptSection[] {
     return sections;
   }
 
-  // Track current section state
-  let currentSection: Partial<TranscriptSection> | null = null;
   let sectionIndex = 0;
 
   const addSection = (
@@ -325,7 +323,7 @@ function detectSections(messages: TranscriptMessage[]): TranscriptSection[] {
     i++;
   }
 
-  // Sort sections by start index and merge overlaps
+  // Sort sections by start index for chronological ordering
   sections.sort((a, b) => a.startIndex - b.startIndex);
 
   return sections;

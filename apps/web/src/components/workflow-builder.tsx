@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { prompts, getPrompt } from "@jeffreysprompts/core/prompts";
 import type { Prompt } from "@jeffreysprompts/core/prompts";
-import type { WorkflowStep, Workflow } from "@jeffreysprompts/core/prompts";
+import type { Workflow } from "@jeffreysprompts/core/prompts";
 
 interface WorkflowBuilderProps {
   className?: string;
