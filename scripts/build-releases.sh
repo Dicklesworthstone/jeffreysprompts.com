@@ -70,8 +70,37 @@ echo ""
 
 # Generate checksums
 echo -e "${BLUE}Generating checksums...${NC}"
-CHECKSUM_FILE="$OUTPUT_DIR/checksums.sha256"
-(cd "$OUTPUT_DIR" && sha256sum jfp-* > checksums.sha256 2>/dev/null || shasum -a 256 jfp-* > checksums.sha256)
+CHECKSUM_FILE="$OUTPUT_DIR/SHA256SUMS.txt"
+
+hash_file() {
+  local file="$1"
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$file" | awk '{print $1}'
+    return 0
+  fi
+  if command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$file" | awk '{print $1}'
+    return 0
+  fi
+  echo "No SHA256 tool available (sha256sum/shasum)." >&2
+  return 1
+}
+
+> "$CHECKSUM_FILE"
+
+for file in "$OUTPUT_DIR"/jfp-*; do
+  if [[ ! -f "$file" ]]; then
+    continue
+  fi
+  if [[ "$file" == *.sha256 ]]; then
+    continue
+  fi
+  hash="$(hash_file "$file")" || exit 1
+  base="$(basename "$file")"
+  printf "%s  %s\n" "$hash" "$base" >> "$CHECKSUM_FILE"
+  printf "%s\n" "$hash" > "${file}.sha256"
+done
+
 echo -e "${GREEN}✓ Generated $CHECKSUM_FILE${NC}"
 
 # Show summary
