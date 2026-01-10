@@ -4,6 +4,7 @@ import { Sparkles, Twitter, Github, ExternalLink } from "lucide-react";
 const quickLinks = [
   { href: "/", label: "Browse Prompts" },
   { href: "/bundles", label: "Bundles" },
+  { href: "/contribute", label: "Contribute" },
   { href: "/how_it_was_made", label: "How It Was Made" },
 ];
 

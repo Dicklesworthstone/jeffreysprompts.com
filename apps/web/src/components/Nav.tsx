@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 const navLinks = [
   { href: "/", label: "Prompts" },
   { href: "/bundles", label: "Bundles" },
+  { href: "/contribute", label: "Contribute" },
   { href: "/workflows", label: "Workflows" },
   { href: "/how_it_was_made", label: "How It Was Made" },
 ];
