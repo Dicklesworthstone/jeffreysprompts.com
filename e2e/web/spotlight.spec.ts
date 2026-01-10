@@ -102,6 +102,8 @@ test.describe("SpotlightSearch", () => {
     await page.keyboard.press("Meta+k");
 
     const dialog = page.getByRole("dialog", { name: /search prompts/i });
+    await expect(dialog).toBeVisible();
+
     const searchInput = dialog.getByRole("combobox");
     // Search for "wizard" which we know returns at least one result
     await searchInput.fill("wizard");
@@ -129,6 +131,8 @@ test.describe("SpotlightSearch", () => {
     await page.keyboard.press("Meta+k");
 
     const dialog = page.getByRole("dialog", { name: /search prompts/i });
+    await expect(dialog).toBeVisible();
+
     const searchInput = dialog.getByRole("combobox");
     await searchInput.fill("idea wizard");
 
@@ -147,6 +151,8 @@ test.describe("SpotlightSearch", () => {
     await page.keyboard.press("Meta+k");
 
     const dialog = page.getByRole("dialog", { name: /search prompts/i });
+    await expect(dialog).toBeVisible();
+
     const searchInput = dialog.getByRole("combobox");
     await searchInput.fill("xyznonexistent123456789");
 
@@ -165,6 +171,8 @@ test.describe("SpotlightSearch", () => {
     await page.keyboard.press("Meta+k");
 
     const dialog = page.getByRole("dialog", { name: /search prompts/i });
+    await expect(dialog).toBeVisible();
+
     const searchInput = dialog.getByRole("combobox");
     await searchInput.fill("wizard");
 
