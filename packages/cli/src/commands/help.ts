@@ -72,6 +72,7 @@ function getHelpData() {
         { name: "open <id>", description: "Open prompt in browser", options: [] },
         { name: "doctor", description: "Check environment for issues", options: ["--json"] },
         { name: "about", description: "About this tool", options: ["--json"] },
+        { name: "completion", description: "Generate shell completion script", options: ["--shell"] },
         { name: "i / interactive", description: "Interactive fzf-style picker", options: [] },
       ],
     },
@@ -80,6 +81,7 @@ function getHelpData() {
       { command: "jfp search 'readme documentation'", description: "Search for documentation prompts" },
       { command: "jfp show idea-wizard --raw", description: "Show raw prompt content" },
       { command: "jfp install idea-wizard readme-reviser", description: "Install multiple prompts as skills" },
+      { command: "jfp completion --shell zsh", description: "Generate zsh completion script" },
       { command: "jfp render my-prompt --VAR=value", description: "Render prompt with variable substitution" },
       { command: "jfp list --json | jq '.[] | .id'", description: "Get all prompt IDs with jq" },
       { command: "jfp suggest 'write a readme' --json", description: "Get prompt suggestions in JSON" },
@@ -151,6 +153,7 @@ JeffreysPrompts CLI v${version}
   sections.push(formatCommand("open <id>", "Open prompt in browser"));
   sections.push(formatCommand("doctor", "Check environment for issues"));
   sections.push(formatCommand("about", "About this tool"));
+  sections.push(formatCommand("completion", "Generate shell completion script"));
   sections.push(formatCommand("i, interactive", "Interactive fzf-style picker"));
   sections.push("");
 
@@ -159,6 +162,7 @@ JeffreysPrompts CLI v${version}
   sections.push(formatExample("jfp list --category ideation --json", "List ideation prompts as JSON"));
   sections.push(formatExample("jfp search 'readme' --limit 5", "Search with limit"));
   sections.push(formatExample("jfp install idea-wizard readme-reviser", "Install multiple prompts"));
+  sections.push(formatExample("jfp completion --shell zsh", "Generate zsh completion script"));
   sections.push(formatExample("jfp render my-prompt --VAR=value", "Render with variables"));
   sections.push(formatExample("jfp copy idea-wizard --fill", "Copy with interactive variable fill"));
   sections.push(formatExample("jfp list --json | jq '.[] | .id'", "Pipe JSON to jq"));
