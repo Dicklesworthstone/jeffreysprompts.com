@@ -17,6 +17,7 @@
     "@inquirer/prompts": "^7.2.0"
   },
   "devDependencies": {
+    "bun-types": "^1.3.5",
     "typescript": "^5.7.0"
   }
 }
