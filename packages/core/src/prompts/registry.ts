@@ -123,7 +123,8 @@ export const tags = (() => {
     }
   }
   return [...tagCounts.entries()]
-    .sort((a, b) => b[1] - a[1])
+    // Sort by count descending, then alphabetically for stable ordering
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
     .map(([tag]) => tag);
 })();
 

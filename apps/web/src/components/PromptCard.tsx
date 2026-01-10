@@ -93,20 +93,21 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, scale: 0.97 }}
+      animate={{ opacity: 1, scale: 1 }}
       transition={{
-        duration: 0.3,
-        delay: index * 0.05,
+        duration: 0.25,
+        delay: Math.min(index * 0.03, 0.15), // Cap delay to avoid slow loads
         ease: [0.25, 0.1, 0.25, 1],
       }}
-      whileHover={{ y: -4, transition: { duration: 0.2 } }}
     >
       <Card
         className={cn(
           "group relative flex flex-col h-full cursor-pointer",
-          "hover:shadow-xl hover:shadow-indigo-500/10 hover:border-indigo-300 dark:hover:border-indigo-700",
-          "transition-all duration-200 ease-out",
+          // Smooth shadow transition on hover - no translation, just elevation
+          "hover:shadow-xl hover:shadow-indigo-500/8 hover:border-indigo-300/80 dark:hover:border-indigo-600/60",
+          // GPU-accelerated transitions for smoothness
+          "transition-[box-shadow,border-color] duration-200 ease-out",
           "bg-white dark:bg-zinc-900/50",
           inBasket && "ring-2 ring-indigo-500 ring-offset-2 dark:ring-offset-zinc-900"
         )}

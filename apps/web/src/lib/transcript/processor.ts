@@ -266,7 +266,8 @@ function detectSections(messages: TranscriptMessage[]): TranscriptSection[] {
           "Implementation",
           `Code changes across ${editCount} edits`,
           startIdx,
-          Math.min(endIdx - 1, messages.length - 1),
+          // Ensure endIndex >= startIndex (defensive bounds check)
+          Math.max(startIdx, Math.min(endIdx - 1, messages.length - 1)),
           ["code", "implementation"]
         );
 
@@ -303,7 +304,8 @@ function detectSections(messages: TranscriptMessage[]): TranscriptSection[] {
           "Exploration",
           "Codebase exploration and research",
           startIdx,
-          Math.min(endIdx - 1, messages.length - 1),
+          // Ensure endIndex >= startIndex (defensive bounds check)
+          Math.max(startIdx, Math.min(endIdx - 1, messages.length - 1)),
           ["exploration", "research"]
         );
 
@@ -358,15 +360,17 @@ function calculateStats(messages: TranscriptMessage[]): TranscriptStats {
 
         // Track files edited
         if (tc.name === "Edit" || tc.name === "Write" || tc.name === "MultiEdit") {
-          const filePath = tc.input?.file_path as string;
+          // Type-safe extraction (input values could be objects, not strings)
+          const filePath = typeof tc.input?.file_path === "string" ? tc.input.file_path : "";
           if (filePath) {
             filesEdited.add(filePath);
           }
 
           // Estimate lines written from new content
-          const newString = tc.input?.new_string as string;
-          const content = tc.input?.content as string;
-          const textContent = newString || content || "";
+          // Type-safe: verify values are actually strings before calling split()
+          const newString = typeof tc.input?.new_string === "string" ? tc.input.new_string : "";
+          const content = typeof tc.input?.content === "string" ? tc.input.content : "";
+          const textContent = newString || content;
           if (textContent) {
             linesWritten += textContent.split("\n").length;
           }

@@ -3,9 +3,10 @@
 /**
  * Dialog Component
  *
- * A polished, accessible modal dialog with world-class UX:
- * - Smooth spring-based animations
- * - Backdrop blur with elegant overlay
+ * World-class modal dialog with Stripe-level polish:
+ * - Buttery smooth CSS animations (GPU-accelerated)
+ * - Pure scale + opacity transforms (no weird translational movement)
+ * - Elegant backdrop blur with smooth fade
  * - Touch-friendly close button (44px target)
  * - Multiple size variants
  * - Keyboard navigation support
@@ -49,7 +50,7 @@ const DialogPortal = DialogPrimitive.Portal
 const DialogClose = DialogPrimitive.Close
 
 // ============================================================================
-// Overlay
+// Overlay - Elegant backdrop with smooth fade
 // ============================================================================
 
 const DialogOverlay = React.forwardRef<
@@ -61,12 +62,12 @@ const DialogOverlay = React.forwardRef<
     data-slot="dialog-overlay"
     className={cn(
       "fixed inset-0 z-50",
-      // Elegant backdrop with blur
-      "bg-black/60 backdrop-blur-sm",
-      // Smooth fade animation
+      // Elegant backdrop with subtle blur
+      "bg-black/50 backdrop-blur-[6px]",
+      // Smooth fade animation - no jank
       "data-[state=open]:animate-in data-[state=closed]:animate-out",
       "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-      "duration-200",
+      "duration-200 ease-out",
       className
     )}
     {...props}
@@ -75,24 +76,24 @@ const DialogOverlay = React.forwardRef<
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 
 // ============================================================================
-// Content Variants
+// Content Variants (sizing)
 // ============================================================================
 
 const dialogContentVariants = cva(
   [
-    // Base positioning
-    "fixed left-[50%] top-[50%] z-50 translate-x-[-50%] translate-y-[-50%]",
+    // Base positioning - centered with transform (no animation on transform)
+    "fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2",
     // Layout
     "grid w-full gap-4 p-6",
-    // Styling
-    "border bg-card text-card-foreground shadow-2xl",
-    // Animation
-    "duration-300",
+    // Styling - refined shadow and border
+    "border border-border/40 bg-card text-card-foreground",
+    "shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25),0_0_0_1px_rgba(0,0,0,0.05)]",
+    // Smooth scale + opacity animation only (NO translate animation)
     "data-[state=open]:animate-in data-[state=closed]:animate-out",
     "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-    "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
-    "data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%]",
-    "data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]",
+    "data-[state=closed]:zoom-out-[0.96] data-[state=open]:zoom-in-[0.96]",
+    // Timing - quick and snappy
+    "duration-200 ease-out",
     // Focus styling
     "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
   ].join(" "),
@@ -103,7 +104,6 @@ const dialogContentVariants = cva(
         default: "max-w-lg rounded-xl sm:rounded-2xl",
         lg: "max-w-2xl rounded-xl sm:rounded-2xl",
         xl: "max-w-4xl rounded-xl sm:rounded-2xl",
-        // Full screen on mobile, large modal on desktop
         full: [
           "max-w-full h-full sm:max-w-4xl sm:h-auto sm:max-h-[90vh]",
           "rounded-none sm:rounded-2xl",
@@ -154,12 +154,12 @@ const DialogContent = React.forwardRef<
             // Styling
             "rounded-full flex items-center justify-center",
             "text-muted-foreground",
-            // Transitions
-            "transition-all duration-150",
+            // Smooth micro-interaction
+            "transition-[background-color,color,transform] duration-150 ease-out",
             // Hover state
             "hover:bg-muted hover:text-foreground",
-            // Active/pressed state
-            "active:scale-95 active:bg-muted/80",
+            // Active/pressed state - satisfying click feedback
+            "active:scale-[0.92] active:bg-muted/80",
             // Focus state
             "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
             // Disabled state

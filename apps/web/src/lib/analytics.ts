@@ -16,7 +16,8 @@ function getDoNotTrack(): boolean {
     nav.doNotTrack ||
     nav.msDoNotTrack ||
     (window as Window & { doNotTrack?: string }).doNotTrack;
-  return dnt === "1" || dnt === "yes";
+  // W3C spec allows "1", "yes", or "true" for DNT enabled
+  return dnt === "1" || dnt === "yes" || dnt === "true";
 }
 
 function sanitizeProps(props?: AnalyticsProps): AnalyticsProps | undefined {

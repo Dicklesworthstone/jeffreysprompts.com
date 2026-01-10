@@ -13,11 +13,13 @@ export const MAX_FILE_VAR_SIZE = 102400;
 /**
  * Parse --VAR=value args from raw argv (since cac doesn't handle dynamic flags well)
  * Only matches uppercase variable names like --MY_VAR=value
+ * Pattern must match template variables: {{VAR_NAME}} where first char is A-Z, not underscore
  */
 export function parseVariables(args: string[]): Record<string, string> {
   const vars: Record<string, string> = {};
   for (const arg of args) {
-    const match = arg.match(/^--([A-Z_][A-Z0-9_]*)=(.*)$/);
+    // First char must be A-Z (not underscore) to match template extraction pattern
+    const match = arg.match(/^--([A-Z][A-Z0-9_]*)=(.*)$/);
     if (match) {
       vars[match[1]] = match[2];
     }
