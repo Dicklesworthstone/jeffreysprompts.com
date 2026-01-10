@@ -268,6 +268,9 @@ export async function semanticRerank(
     return baseline;
   }
 
+  // Normalize BM25 scores to [0, 1] range for fair combination with cosine similarity
+  const maxBm25Score = Math.max(...toRerank.map((r) => r.score), 1);
+
   // Calculate semantic scores for top N
   const rerankedScores = await Promise.all(
     toRerank.map(async (result) => {
@@ -281,10 +284,13 @@ export async function semanticRerank(
 
       const semanticScore = cosineSimilarity(queryEmbedding, docEmbedding);
 
-      // Combine BM25 score with semantic score
+      // Normalize BM25 score to [0, 1] range
+      const normalizedBm25 = result.score / maxBm25Score;
+
+      // Combine normalized BM25 score with semantic score
       // BM25 provides recall, semantic provides precision
       // Weight: 40% BM25, 60% semantic (semantic is the refinement stage)
-      const combinedScore = result.score * 0.4 + semanticScore * 0.6;
+      const combinedScore = normalizedBm25 * 0.4 + semanticScore * 0.6;
 
       return {
         ...result,
@@ -319,13 +325,19 @@ export function semanticRerankHash(
 
   const queryEmbedding = hashEmbedding(query);
 
+  // Normalize BM25 scores to [0, 1] range for fair combination with cosine similarity
+  const maxBm25Score = Math.max(...toRerank.map((r) => r.score), 1);
+
   const rerankedScores = toRerank.map((result) => {
     const text = result.text || result.id;
     const docEmbedding = hashEmbedding(text);
     const semanticScore = cosineSimilarity(queryEmbedding, docEmbedding);
 
+    // Normalize BM25 score to [0, 1] range
+    const normalizedBm25 = result.score / maxBm25Score;
+
     // Same weighting as full semantic rerank
-    const combinedScore = result.score * 0.4 + semanticScore * 0.6;
+    const combinedScore = normalizedBm25 * 0.4 + semanticScore * 0.6;
 
     return {
       ...result,

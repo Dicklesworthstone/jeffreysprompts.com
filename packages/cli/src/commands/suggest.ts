@@ -46,7 +46,7 @@ export function suggestCommand(task: string, options: SuggestOptions) {
   if (shouldOutputJson(options)) {
     const output: SuggestOutput = {
       task,
-      suggestions: results.map((r) => formatSuggestion(r)),
+      suggestions: results.map((r) => formatSuggestion(r, task)),
       total: results.length,
     };
     console.log(JSON.stringify(output, null, 2));
@@ -200,7 +200,7 @@ function generateTip(
 /**
  * Format a suggestion for JSON output
  */
-function formatSuggestion(result: SearchResult): SuggestOutput["suggestions"][0] {
+function formatSuggestion(result: SearchResult, task: string): SuggestOutput["suggestions"][0] {
   return {
     id: result.prompt.id,
     title: result.prompt.title,
@@ -208,6 +208,6 @@ function formatSuggestion(result: SearchResult): SuggestOutput["suggestions"][0]
     category: result.prompt.category,
     relevance: Math.round(result.score * 100) / 100,
     matchedFields: result.matchedFields,
-    tip: generateTip(result.prompt, "", result.matchedFields),
+    tip: generateTip(result.prompt, task, result.matchedFields),
   };
 }
