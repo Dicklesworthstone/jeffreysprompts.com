@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { prompts, getPrompt } from "@jeffreysprompts/core/prompts";
@@ -65,6 +66,7 @@ export function WorkflowBuilder({ className, onExport }: WorkflowBuilderProps) {
 
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const { success, error } = useToast();
 
   // Filter prompts by search query
   const searchResults = useMemo(() => {
@@ -132,7 +134,7 @@ export function WorkflowBuilder({ className, onExport }: WorkflowBuilderProps) {
   );
 
   // Export workflow
-  const handleExport = useCallback(() => {
+  const handleExport = useCallback(async () => {
     if (draft.steps.length === 0) return;
 
     const workflow: Workflow = {
@@ -151,8 +153,13 @@ export function WorkflowBuilder({ className, onExport }: WorkflowBuilderProps) {
 
     // Generate markdown for clipboard
     const markdown = generateWorkflowMarkdown(workflow);
-    navigator.clipboard.writeText(markdown);
-  }, [draft, onExport]);
+    try {
+      await navigator.clipboard.writeText(markdown);
+      success("Copied workflow", `${draft.steps.length} steps copied to clipboard`);
+    } catch {
+      error("Failed to copy", "Please try copying manually");
+    }
+  }, [draft, onExport, success, error]);
 
   // Clear and start fresh
   const handleClear = useCallback(() => {
