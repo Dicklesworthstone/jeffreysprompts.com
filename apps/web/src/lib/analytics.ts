@@ -11,7 +11,11 @@ export type AnalyticsProps = Record<string, string | number | boolean | null | u
 
 function getDoNotTrack(): boolean {
   if (typeof navigator === "undefined") return false;
-  const dnt = navigator.doNotTrack || (window as Window & { doNotTrack?: string }).doNotTrack;
+  const nav = navigator as Navigator & { msDoNotTrack?: string };
+  const dnt =
+    nav.doNotTrack ||
+    nav.msDoNotTrack ||
+    (window as Window & { doNotTrack?: string }).doNotTrack;
   return dnt === "1" || dnt === "yes";
 }
 
