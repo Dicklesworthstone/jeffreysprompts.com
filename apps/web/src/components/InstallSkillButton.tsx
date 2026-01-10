@@ -17,11 +17,19 @@ interface InstallSkillButtonProps {
   project?: boolean;
 }
 
+// Safe prompt ID pattern (kebab-case: lowercase letters, numbers, hyphens)
+const SAFE_PROMPT_ID = /^[a-z0-9-]+$/;
+
 /**
  * Generate a shell command to install a single skill via HEREDOC
  * Creates: mkdir + cat HEREDOC > SKILL.md
  */
 function generateInstallCommand(prompt: Prompt, project: boolean): string {
+  // Validate prompt ID to prevent shell injection
+  if (!SAFE_PROMPT_ID.test(prompt.id)) {
+    throw new Error(`Invalid prompt ID: ${prompt.id}`);
+  }
+
   const skillContent = generateSkillMd(prompt);
   const baseDir = project
     ? ".claude/skills"
