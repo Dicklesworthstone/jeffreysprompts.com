@@ -32,7 +32,8 @@ export async function renderCommand(id: string, options: RenderOptions) {
   const variables = parseVariables(process.argv);
   
   let context = "";
-  const maxContext = parseInt(options.maxContext || "204800", 10);
+  const parsedMax = Number.parseInt(options.maxContext || "204800", 10);
+  const maxContext = Number.isFinite(parsedMax) ? parsedMax : 204800;
 
   if (options.stdin) {
     const chunks: Buffer[] = [];
@@ -59,7 +60,7 @@ export async function renderCommand(id: string, options: RenderOptions) {
   if (context) {
     rendered += "\n\n---\n\n## Context\n\n" + context;
     if (truncated) {
-      rendered += `\n\n[Context truncated to ${maxContext} bytes]`
+      rendered += `\n\n[Context truncated to ${maxContext} bytes]`;
     }
   }
 

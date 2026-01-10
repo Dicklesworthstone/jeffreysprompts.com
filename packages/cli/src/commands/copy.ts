@@ -39,20 +39,21 @@ export async function copyCommand(id: string, options: CopyOptions) {
   } else {
     // Linux check
     try {
-        const hasWlCopy = await new Promise(r => {
-             const check = spawn("which", ["wl-copy"]);
-             check.on("close", (code) => r(code === 0));
-        });
-        
-        if (hasWlCopy) {
-            cmd = "wl-copy";
-        } else {
-            cmd = "xclip";
-            args = ["-selection", "clipboard"];
-        }
-    } catch {
+      const hasWlCopy = await new Promise<boolean>((resolve) => {
+        const check = spawn("which", ["wl-copy"]);
+        check.on("close", (code) => resolve(code === 0));
+        check.on("error", () => resolve(false));
+      });
+
+      if (hasWlCopy) {
+        cmd = "wl-copy";
+      } else {
         cmd = "xclip";
         args = ["-selection", "clipboard"];
+      }
+    } catch {
+      cmd = "xclip";
+      args = ["-selection", "clipboard"];
     }
   }
 

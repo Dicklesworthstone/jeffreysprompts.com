@@ -8,6 +8,7 @@ import {
   removeManifestEntry,
   findManifestEntry,
 } from "../lib/manifest";
+import { isSafeSkillId, resolveSafeChildPath } from "../lib/utils";
 
 interface UninstallOptions {
   project?: boolean;
@@ -23,6 +24,15 @@ export function uninstallCommand(ids: string[], options: UninstallOptions) {
   if (ids.length === 0) {
     console.error(chalk.red("Error: No skill IDs specified"));
     process.exit(1);
+  }
+
+  for (const id of ids) {
+    if (!isSafeSkillId(id)) {
+      console.error(
+        chalk.red(`Error: Invalid skill ID "${id}". Use kebab-case (a-z, 0-9, -).`)
+      );
+      process.exit(2);
+    }
   }
 
   // In non-interactive mode, require --confirm
@@ -42,7 +52,14 @@ export function uninstallCommand(ids: string[], options: UninstallOptions) {
   const failed: string[] = [];
 
   for (const id of ids) {
-    const skillDir = join(targetRoot, id);
+    let skillDir: string;
+    try {
+      skillDir = resolveSafeChildPath(targetRoot, id);
+    } catch (error) {
+      console.error(chalk.red((error as Error).message));
+      failed.push(id);
+      continue;
+    }
 
     // Check if skill exists in manifest or on disk
     const manifestEntry = manifest ? findManifestEntry(manifest, id) : null;

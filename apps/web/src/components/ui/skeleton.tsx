@@ -1,6 +1,8 @@
+import type { HTMLAttributes } from "react"
+
 import { cn } from "@/lib/utils"
 
-interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
+interface SkeletonProps extends HTMLAttributes<HTMLDivElement> {
   /** Use the sweep variant for a more premium shimmer effect */
   variant?: "default" | "sweep" | "pulse"
 }
@@ -28,7 +30,7 @@ function SkeletonText({
   className,
   lines = 3,
   ...props
-}: React.HTMLAttributes<HTMLDivElement> & { lines?: number }) {
+}: HTMLAttributes<HTMLDivElement> & { lines?: number }) {
   return (
     <div className={cn("space-y-2", className)} {...props}>
       {Array.from({ length: lines }).map((_, i) => (
@@ -47,7 +49,7 @@ function SkeletonText({
 function SkeletonCard({
   className,
   ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
+}: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       className={cn(
@@ -72,7 +74,7 @@ function SkeletonAvatar({
   className,
   size = "md",
   ...props
-}: React.HTMLAttributes<HTMLDivElement> & {
+}: HTMLAttributes<HTMLDivElement> & {
   size?: "sm" | "md" | "lg"
 }) {
   const sizeClasses = {
@@ -97,7 +99,7 @@ function SkeletonButton({
   className,
   size = "default",
   ...props
-}: React.HTMLAttributes<HTMLDivElement> & {
+}: HTMLAttributes<HTMLDivElement> & {
   size?: "sm" | "default" | "lg"
 }) {
   const sizeClasses = {
@@ -121,7 +123,7 @@ function SkeletonButton({
 function SkeletonInput({
   className,
   ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
+}: HTMLAttributes<HTMLDivElement>) {
   return (
     <div className={cn("space-y-2", className)} {...props}>
       <Skeleton className="h-4 w-20" />
