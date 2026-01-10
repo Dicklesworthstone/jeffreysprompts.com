@@ -6,4 +6,4 @@
  */
 
 export { TestLogger, type LogLevel, type LogEntry, type TestLoggerOptions } from "./logger";
-export { spawnCli, type SpawnResult, type SpawnOptions } from "./spawn";
+export { spawnCli, spawnJfp, type SpawnResult, type SpawnOptions } from "./spawn";

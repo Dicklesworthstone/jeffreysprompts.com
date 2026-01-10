@@ -64,16 +64,18 @@ export async function spawnCli(options: SpawnOptions): Promise<SpawnResult> {
   const startTime = Date.now();
   let timedOut = false;
 
-  // Create AbortController for timeout
-  const controller = new AbortController();
+  // Track the process for timeout cleanup
+  let proc: ReturnType<typeof spawn> | undefined;
   const timeoutId = setTimeout(() => {
     timedOut = true;
-    controller.abort();
+    if (proc) {
+      proc.kill();
+    }
     logger?.error(`Command timed out after ${timeout}ms`);
   }, timeout);
 
   try {
-    const proc = spawn({
+    proc = spawn({
       cmd,
       cwd,
       env: { ...process.env, ...env },
