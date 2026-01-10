@@ -2,8 +2,17 @@ import { existsSync, mkdirSync, writeFileSync } from "fs";
 import { join, resolve } from "path";
 import { homedir } from "os";
 import { getPrompt, prompts } from "@jeffreysprompts/core/prompts";
-import { generateSkillMd } from "@jeffreysprompts/core/export/skills";
+import { generateSkillMd, computeSkillHash } from "@jeffreysprompts/core/export";
 import chalk from "chalk";
+import {
+  readManifest,
+  writeManifest,
+  createEmptyManifest,
+  upsertManifestEntry,
+  checkSkillModification,
+} from "../lib/manifest";
+import type { SkillManifestEntry } from "@jeffreysprompts/core/export";
+import { shouldOutputJson } from "../lib/utils";
 
 interface InstallOptions {
   project?: boolean;
@@ -27,7 +36,11 @@ export function installCommand(ids: string[], options: InstallOptions) {
     process.exit(1);
   }
 
+  // Load existing manifest or create a new one
+  let manifest = readManifest(targetRoot) ?? createEmptyManifest();
+
   const installed: string[] = [];
+  const skipped: string[] = [];
   const failed: string[] = [];
 
   for (const id of ids) {
@@ -35,6 +48,20 @@ export function installCommand(ids: string[], options: InstallOptions) {
     if (!prompt) {
       console.warn(chalk.yellow(`Warning: Prompt '${id}' not found. Skipping.`));
       failed.push(id);
+      continue;
+    }
+
+    // Check if this skill has been modified by the user
+    const modCheck = checkSkillModification(targetRoot, prompt.id, manifest);
+
+    if (!modCheck.canOverwrite && !options.force) {
+      // User has modified this skill - skip unless --force is used
+      if (!shouldOutputJson(options)) {
+        console.log(
+          `${chalk.yellow("⚠")} Skipping ${chalk.bold(prompt.id)} - user modifications detected. Use ${chalk.cyan("--force")} to overwrite.`
+        );
+      }
+      skipped.push(id);
       continue;
     }
 
@@ -47,14 +74,22 @@ export function installCommand(ids: string[], options: InstallOptions) {
         mkdirSync(skillDir, { recursive: true });
       }
 
-      // Check if file exists (unless force is used)
-      // Actually, standard behavior is overwrite for 'install', maybe 'update' is different.
-      // README implies 'install' works for updates too.
-
       writeFileSync(skillPath, skillContent);
+
+      // Update manifest with the new entry
+      const hash = computeSkillHash(skillContent);
+      const entry: SkillManifestEntry = {
+        id: prompt.id,
+        kind: "prompt",
+        version: prompt.version ?? "1.0.0",
+        hash,
+        updatedAt: new Date().toISOString(),
+      };
+      manifest = upsertManifestEntry(manifest, entry);
+
       installed.push(id);
 
-      if (!options.json) {
+      if (!shouldOutputJson(options)) {
         console.log(
           `${chalk.green("✓")} Installed ${chalk.bold(prompt.id)} to ${chalk.dim(skillPath)}`
         );
@@ -65,12 +100,18 @@ export function installCommand(ids: string[], options: InstallOptions) {
     }
   }
 
-  if (options.json) {
+  // Write updated manifest
+  if (installed.length > 0) {
+    writeManifest(targetRoot, manifest);
+  }
+
+  if (shouldOutputJson(options)) {
     console.log(
       JSON.stringify(
         {
-          success: true,
+          success: failed.length === 0,
           installed,
+          skipped,
           failed,
           targetDir: targetRoot,
         },
@@ -83,6 +124,9 @@ export function installCommand(ids: string[], options: InstallOptions) {
     if (installed.length > 0) {
       console.log(chalk.green(`Successfully installed ${installed.length} skill(s).`));
       console.log(chalk.dim("Restart Claude Code or run /refresh to see new skills."));
+    }
+    if (skipped.length > 0) {
+      console.log(chalk.yellow(`Skipped ${skipped.length} skill(s) with user modifications.`));
     }
     if (failed.length > 0) {
       console.log(chalk.yellow(`Failed to install ${failed.length} skill(s).`));
