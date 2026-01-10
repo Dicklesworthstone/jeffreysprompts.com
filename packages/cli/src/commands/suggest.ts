@@ -1,10 +1,11 @@
-import { searchPrompts, type SearchResult } from "@jeffreysprompts/core/search";
+import { searchPrompts, semanticRerank, type SearchResult, type RankedResult } from "@jeffreysprompts/core/search";
 import chalk from "chalk";
 import { shouldOutputJson } from "../lib/utils";
 
 interface SuggestOptions {
   json?: boolean;
   limit?: number;
+  semantic?: boolean;
 }
 
 interface SuggestOutput {
@@ -25,10 +26,12 @@ interface SuggestOutput {
  * jfp suggest <task> - Suggest prompts for a task
  *
  * Uses BM25 search to find relevant prompts for a task description.
+ * With --semantic flag, applies MiniLM reranking for better semantic matching.
+ * Falls back to hash-based embeddings if the model is unavailable.
  * Returns scored results with explanations of why they match.
  */
-export function suggestCommand(task: string, options: SuggestOptions) {
-  const limit = options.limit || 5;
+export async function suggestCommand(task: string, options: SuggestOptions) {
+  const limit = options.limit || 3;
 
   if (!task.trim()) {
     if (shouldOutputJson(options)) {
@@ -40,8 +43,48 @@ export function suggestCommand(task: string, options: SuggestOptions) {
     process.exit(1);
   }
 
-  // Search using BM25
-  const results = searchPrompts(task, { limit });
+  // Search using BM25 - get more results if semantic reranking will be applied
+  const searchLimit = options.semantic ? Math.max(limit * 3, 10) : limit;
+  let results = searchPrompts(task, { limit: searchLimit });
+
+  // Apply semantic reranking if requested
+  if (options.semantic && results.length > 0) {
+    if (!shouldOutputJson(options)) {
+      console.log(chalk.dim("Applying semantic reranking..."));
+    }
+
+    // Convert to RankedResult format for semantic rerank
+    const rankedResults: RankedResult[] = results.map((r) => ({
+      id: r.prompt.id,
+      score: r.score,
+      text: `${r.prompt.title} ${r.prompt.description} ${r.prompt.tags.join(" ")}`,
+    }));
+
+    // Apply semantic reranking with hash fallback
+    const reranked = await semanticRerank(task, rankedResults, {
+      topN: searchLimit,
+      fallback: "hash",
+    });
+
+    // Map back to SearchResult format, maintaining the reranked order
+    const rerankedIds = reranked.map((r) => r.id);
+    const resultById = new Map(results.map((r) => [r.prompt.id, r]));
+
+    results = rerankedIds
+      .map((id, idx) => {
+        const original = resultById.get(id);
+        if (!original) return null;
+        return {
+          ...original,
+          score: reranked[idx].score, // Use semantic score
+        };
+      })
+      .filter((r): r is SearchResult => r !== null)
+      .slice(0, limit);
+  } else {
+    // Just trim to requested limit
+    results = results.slice(0, limit);
+  }
 
   if (shouldOutputJson(options)) {
     const output: SuggestOutput = {

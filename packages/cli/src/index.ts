@@ -102,7 +102,8 @@ cli
 cli
   .command("suggest <task>", "Suggest prompts for a task")
   .option("--json", "Output JSON")
-  .option("--limit <n>", "Max suggestions (default: 5)")
+  .option("--limit <n>", "Max suggestions (default: 3)")
+  .option("--semantic", "Enable semantic reranking (downloads MiniLM on first use)")
   .action(suggestCommand);
 
 cli
