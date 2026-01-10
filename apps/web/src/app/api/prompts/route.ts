@@ -6,6 +6,7 @@ import { prompts, categories, tags } from "@jeffreysprompts/core/prompts";
 const REGISTRY_VERSION = process.env.JFP_REGISTRY_VERSION ?? "1.0.0";
 
 // Generate ETag from registry version, prompt count, and filter parameters
+// Uses base64 encoding of params to guarantee no collisions
 function generateETag(params: {
   category?: string | null;
   tag?: string | null;
@@ -13,13 +14,10 @@ function generateETag(params: {
   minimal?: string | null;
 }): string {
   // Include filter params in ETag to ensure different filters get different ETags
-  const content = `${REGISTRY_VERSION}-${prompts.length}-${params.category ?? ""}-${params.tag ?? ""}-${params.featured ?? ""}-${params.minimal ?? ""}`;
-  let hash = 0;
-  for (let i = 0; i < content.length; i++) {
-    hash = ((hash << 5) - hash) + content.charCodeAt(i);
-    hash = hash & hash;
-  }
-  return `"${Math.abs(hash).toString(16)}"`;
+  const content = `v${REGISTRY_VERSION}:n${prompts.length}:c${params.category ?? ""}:t${params.tag ?? ""}:f${params.featured ?? ""}:m${params.minimal ?? ""}`;
+  // Use base64url encoding for a compact, collision-free ETag
+  const encoded = Buffer.from(content).toString("base64url");
+  return `"${encoded}"`;
 }
 
 export async function GET(request: NextRequest) {
