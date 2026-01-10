@@ -52,6 +52,23 @@ p, li, span, div {
 }
 
 /* ============================================================================
+   THEME TRANSITIONS
+   Smooth transitions when switching between light/dark themes
+   ============================================================================ */
+
+html.theme-transitioning,
+html.theme-transitioning *,
+html.theme-transitioning *::before,
+html.theme-transitioning *::after {
+  transition: background-color 0.25s ease-out,
+              border-color 0.25s ease-out,
+              color 0.2s ease-out,
+              fill 0.2s ease-out,
+              stroke 0.2s ease-out,
+              box-shadow 0.25s ease-out !important;
+}
+
+/* ============================================================================
    BRENNER BOT - WORLD-CLASS DESIGN SYSTEM v2.0
    Inspired by Stripe, Apple, Linear, Vercel - optimized for reading experience
    ============================================================================ */

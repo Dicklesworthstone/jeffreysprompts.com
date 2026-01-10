@@ -59,7 +59,7 @@ export function ThemeProvider({
     setMounted(true);
   }, []);
 
-  // Update resolved theme and apply to document
+  // Update resolved theme and apply to document with smooth transition
   useEffect(() => {
     if (!mounted) return;
 
@@ -67,8 +67,18 @@ export function ThemeProvider({
     setResolvedTheme(resolved);
 
     const root = document.documentElement;
+
+    // Enable theme transition temporarily
+    root.classList.add("theme-transitioning");
     root.classList.remove("light", "dark");
     root.classList.add(resolved);
+
+    // Remove transition class after animation completes
+    const timeout = setTimeout(() => {
+      root.classList.remove("theme-transitioning");
+    }, 300);
+
+    return () => clearTimeout(timeout);
   }, [theme, mounted]);
 
   // Listen for system theme changes when using system preference
