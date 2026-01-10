@@ -61,6 +61,19 @@ export function generateSkillMd(prompt: Prompt): string {
 }
 
 /**
+ * Generate a unique HEREDOC delimiter that doesn't appear in content
+ */
+function getUniqueDelimiter(content: string, base: string = "JFP_SKILL"): string {
+  let delimiter = base;
+  let counter = 0;
+  while (content.includes(delimiter)) {
+    counter++;
+    delimiter = `${base}_${counter}`;
+  }
+  return delimiter;
+}
+
+/**
  * Generate a shell install script for a list of prompts
  * Creates HEREDOC-based installation that does not require downloading
  */
@@ -83,12 +96,14 @@ export function generateInstallScript(prompts: Prompt[], targetDir?: string): st
   for (const prompt of prompts) {
     const skillDir = `\$SKILLS_DIR/${prompt.id}`;
     const skillContent = generateSkillMd(prompt);
+    // Use a unique delimiter for each prompt to avoid conflicts
+    const delimiter = getUniqueDelimiter(skillContent);
 
     lines.push(`# Install ${prompt.title}`);
     lines.push(`mkdir -p "${skillDir}"`);
-    lines.push(`cat > "${skillDir}/SKILL.md" << 'SKILL_EOF'`);
+    lines.push(`cat > "${skillDir}/SKILL.md" << '${delimiter}'`);
     lines.push(skillContent);
-    lines.push("SKILL_EOF");
+    lines.push(delimiter);
     lines.push(`echo "  ✓ Installed ${prompt.id}"`);
     lines.push("");
   }
