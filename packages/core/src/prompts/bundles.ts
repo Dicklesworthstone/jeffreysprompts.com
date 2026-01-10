@@ -118,13 +118,18 @@ function escapeYamlValue(value: string): string {
     value.includes("\n") ||
     value.includes('"') ||
     value.includes("'") ||
+    value.includes("[") ||
+    value.includes("]") ||
+    value.includes("{") ||
+    value.includes("}") ||
+    value.includes(">") ||
+    value.includes("|") ||
     value.startsWith(" ") ||
     value.endsWith(" ") ||
     value.startsWith("@") ||
     value.startsWith("!") ||
     value.startsWith("&") ||
-    value.startsWith("*") ||
-    /^[\[\]{}>|]/.test(value)
+    value.startsWith("*")
   ) {
     return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n")}"`;
   }

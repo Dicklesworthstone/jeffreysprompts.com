@@ -12,20 +12,25 @@ import { getPrompt } from "../prompts/registry";
  * Quotes strings containing special YAML characters
  */
 function escapeYamlValue(value: string): string {
-  // Check if value needs quoting (contains special chars, newlines, or starts with special chars)
+  // Check if value needs quoting (contains special chars, newlines, or starts/contains special chars)
   if (
     value.includes(":") ||
     value.includes("#") ||
     value.includes("\n") ||
     value.includes('"') ||
     value.includes("'") ||
+    value.includes("[") ||
+    value.includes("]") ||
+    value.includes("{") ||
+    value.includes("}") ||
+    value.includes(">") ||
+    value.includes("|") ||
     value.startsWith(" ") ||
     value.endsWith(" ") ||
     value.startsWith("@") ||
     value.startsWith("!") ||
     value.startsWith("&") ||
-    value.startsWith("*") ||
-    /^[\[\]{}>|]/.test(value)
+    value.startsWith("*")
   ) {
     // Use double quotes with escaped internal double quotes
     return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n")}"`;

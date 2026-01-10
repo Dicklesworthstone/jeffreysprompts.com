@@ -97,7 +97,25 @@ export function uninstallCommand(ids: string[], options: UninstallOptions) {
 
   // Write updated manifest
   if (manifest && removed.length > 0) {
-    writeManifest(targetRoot, manifest);
+    try {
+      writeManifest(targetRoot, manifest);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (options.json) {
+        console.log(JSON.stringify({
+          success: false,
+          removed,
+          notFound,
+          failed,
+          error: `Failed to write manifest: ${message}`,
+          targetDir: targetRoot,
+        }, null, 2));
+      } else {
+        console.error(chalk.red(`Failed to write manifest: ${message}`));
+        console.log(chalk.yellow("Skills were removed but manifest may be out of sync."));
+      }
+      process.exit(1);
+    }
   }
 
   if (options.json) {

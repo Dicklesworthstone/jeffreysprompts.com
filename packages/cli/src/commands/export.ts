@@ -32,27 +32,50 @@ export function exportCommand(ids: string[], options: ExportOptions) {
 
   const results: {id: string, file: string}[] = [];
 
+  const failed: { id: string; error: string }[] = [];
+
   for (const prompt of promptsToExport) {
     const content = format === "skill" ? generateSkillMd(prompt) : generatePromptMarkdown(prompt);
-    
+
     if (options.stdout) {
       console.log(content);
       if (promptsToExport.length > 1) console.log("\n---\n");
     } else {
       const ext = format === "skill" ? "-SKILL.md" : ".md";
       const filename = `${prompt.id}${ext}`;
-      writeFileSync(filename, content);
-      results.push({ id: prompt.id, file: filename });
+      try {
+        writeFileSync(filename, content);
+        results.push({ id: prompt.id, file: filename });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        failed.push({ id: prompt.id, error: message });
+        if (!options.json) {
+          console.error(chalk.red(`Failed to write ${filename}: ${message}`));
+        }
+      }
     }
   }
 
   if (!options.stdout) {
     if (options.json) {
-      console.log(JSON.stringify({ exported: results }, null, 2));
+      console.log(JSON.stringify({
+        success: failed.length === 0,
+        exported: results,
+        failed: failed.length > 0 ? failed : undefined,
+      }, null, 2));
+      if (failed.length > 0) {
+        process.exit(1);
+      }
     } else {
-      console.log(chalk.green(`Exported ${results.length} file(s):`));
-      for (const res of results) {
-        console.log(`  ✓ ${res.file}`);
+      if (results.length > 0) {
+        console.log(chalk.green(`Exported ${results.length} file(s):`));
+        for (const res of results) {
+          console.log(`  ✓ ${res.file}`);
+        }
+      }
+      if (failed.length > 0) {
+        console.log(chalk.red(`Failed to export ${failed.length} file(s).`));
+        process.exit(1);
       }
     }
   }

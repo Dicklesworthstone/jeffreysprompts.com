@@ -177,7 +177,25 @@ export function installCommand(ids: string[], options: InstallOptions) {
 
   // Write updated manifest
   if (installed.length > 0) {
-    writeManifest(targetRoot, manifest);
+    try {
+      writeManifest(targetRoot, manifest);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (shouldOutputJson(options)) {
+        console.log(JSON.stringify({
+          success: false,
+          installed,
+          skipped,
+          failed,
+          error: `Failed to write manifest: ${message}`,
+          targetDir: targetRoot,
+        }, null, 2));
+      } else {
+        console.error(chalk.red(`Failed to write manifest: ${message}`));
+        console.log(chalk.yellow("Skills were installed but manifest may be out of sync."));
+      }
+      process.exit(1);
+    }
   }
 
   if (shouldOutputJson(options)) {
