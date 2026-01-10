@@ -126,6 +126,9 @@ export function installCommand(ids: string[], options: InstallOptions) {
         2
       )
     );
+    if (failed.length > 0) {
+      process.exit(1);
+    }
   } else {
     console.log();
     if (installed.length > 0) {

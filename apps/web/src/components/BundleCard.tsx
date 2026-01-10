@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, type ComponentType, type MouseEvent } from "react";
 import Link from "next/link";
 import { Copy, Check, ExternalLink, Sparkles, Rocket, Code, FileText, Brain, Zap, Package, Star } from "lucide-react";
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
@@ -13,7 +13,7 @@ import type { Bundle, BundleIcon } from "@jeffreysprompts/core/prompts/bundles";
 // Icon Mapping
 // ============================================================================
 
-const iconMap: Record<BundleIcon, React.ComponentType<{ className?: string }>> = {
+const iconMap: Record<BundleIcon, ComponentType<{ className?: string }>> = {
   sparkles: Sparkles,
   rocket: Rocket,
   code: Code,
@@ -45,7 +45,7 @@ export function BundleCard({ bundle, index = 0 }: BundleCardProps) {
 
   // Copy install command
   const handleCopyInstall = useCallback(
-    async (e: React.MouseEvent) => {
+    async (e: MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
       try {

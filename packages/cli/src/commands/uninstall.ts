@@ -114,6 +114,9 @@ export function uninstallCommand(ids: string[], options: UninstallOptions) {
         2
       )
     );
+    if (failed.length > 0) {
+      process.exit(1);
+    }
   } else {
     console.log();
     if (removed.length > 0) {

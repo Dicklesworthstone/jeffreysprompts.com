@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, type MouseEvent } from "react";
 import { motion } from "framer-motion";
 import {
   Copy,
@@ -53,7 +53,7 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
   const inBasket = isInBasket(prompt.id);
 
   const handleCopy = useCallback(
-    async (e: React.MouseEvent) => {
+    async (e: MouseEvent) => {
       e.stopPropagation();
       try {
         await navigator.clipboard.writeText(prompt.content);
@@ -68,7 +68,7 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
   );
 
   const handleBasketToggle = useCallback(
-    (e: React.MouseEvent) => {
+    (e: MouseEvent) => {
       e.stopPropagation();
       if (inBasket) {
         removeItem(prompt.id);
