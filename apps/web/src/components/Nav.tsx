@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { Github, Menu, X, Sparkles } from "lucide-react";
+import { Github, Menu, X, Sparkles, ShoppingBasket } from "lucide-react";
 import { useState } from "react";
 import { ThemeToggle } from "./theme-toggle";
+import { BasketSidebar } from "./BasketSidebar";
 import { Button } from "./ui/button";
+import { useBasket } from "@/hooks/use-basket";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
@@ -15,6 +17,8 @@ const navLinks = [
 
 export function Nav() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [basketOpen, setBasketOpen] = useState(false);
+  const { items } = useBasket();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -44,6 +48,20 @@ export function Nav() {
 
         {/* Right side actions */}
         <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 relative"
+            onClick={() => setBasketOpen(true)}
+            aria-label={`Open basket (${items.length} items)`}
+          >
+            <ShoppingBasket className="h-5 w-5" />
+            {items.length > 0 && (
+              <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-[10px] font-bold text-primary-foreground flex items-center justify-center">
+                {items.length > 9 ? "9+" : items.length}
+              </span>
+            )}
+          </Button>
           <ThemeToggle />
           <Button variant="ghost" size="icon" asChild className="h-9 w-9">
             <a
@@ -93,6 +111,9 @@ export function Nav() {
           ))}
         </div>
       </div>
+
+      {/* Basket Sidebar */}
+      <BasketSidebar isOpen={basketOpen} onClose={() => setBasketOpen(false)} />
     </header>
   );
 }
