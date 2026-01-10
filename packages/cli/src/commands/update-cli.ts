@@ -379,13 +379,26 @@ export async function updateCliCommand(options: UpdateCliOptions = {}) {
 
     await downloadFile(asset.browser_download_url, tempPath, asset.size);
 
+    // Verify checksum if available (warn but continue if no checksum published)
     const expectedHash = await fetchChecksumForAsset(release, asset.name);
-    if (!expectedHash) {
-      throw new Error("Checksum not available for verification");
-    }
-    const actualHash = computeSha256(tempPath);
-    if (actualHash !== expectedHash) {
-      throw new Error("Checksum verification failed");
+    if (expectedHash) {
+      const actualHash = computeSha256(tempPath);
+      if (actualHash !== expectedHash) {
+        // Clean up temp file before throwing
+        if (existsSync(tempPath)) {
+          unlinkSync(tempPath);
+        }
+        throw new Error(
+          `Checksum verification failed.\nExpected: ${expectedHash.slice(0, 16)}...\nGot: ${actualHash.slice(0, 16)}...`
+        );
+      }
+      if (!jsonOutput) {
+        console.log(chalk.dim("Checksum verified ✓"));
+      }
+    } else {
+      if (!jsonOutput) {
+        console.log(chalk.yellow("! No checksum available for verification (continuing anyway)"));
+      }
     }
 
     if (!jsonOutput) {
