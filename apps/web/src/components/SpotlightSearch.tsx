@@ -223,7 +223,7 @@ export function SpotlightSearch({
         >
           {/* Search Input */}
           <div className="flex items-center gap-3 px-4 py-3 border-b">
-            <SearchIcon className="text-muted-foreground shrink-0" />
+            <SearchIcon className="text-muted-foreground shrink-0" aria-hidden="true" />
             <input
               ref={inputRef}
               type="text"
@@ -238,6 +238,11 @@ export function SpotlightSearch({
               autoComplete="off"
               autoCorrect="off"
               spellCheck={false}
+              role="combobox"
+              aria-expanded={results.length > 0}
+              aria-controls="spotlight-results"
+              aria-activedescendant={results[selectedIndex] ? `spotlight-result-${results[selectedIndex].prompt.id}` : undefined}
+              aria-autocomplete="list"
             />
             <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground bg-muted rounded font-mono">
               esc
@@ -247,13 +252,16 @@ export function SpotlightSearch({
           {/* Results List */}
           <div
             ref={listRef}
+            id="spotlight-results"
+            role="listbox"
+            aria-label="Search results"
             className={cn(
               "max-h-[60vh] overflow-y-auto",
               "overscroll-contain"
             )}
           >
             {results.length === 0 && query && (
-              <div className="px-4 py-8 text-center text-muted-foreground">
+              <div className="px-4 py-8 text-center text-muted-foreground" role="status">
                 No results for &quot;{query}&quot;
               </div>
             )}
@@ -267,7 +275,10 @@ export function SpotlightSearch({
             {results.map((result, index) => (
               <button
                 key={result.prompt.id}
+                id={`spotlight-result-${result.prompt.id}`}
                 data-result-item
+                role="option"
+                aria-selected={index === selectedIndex}
                 onClick={() => handleSelect(result)}
                 className={cn(
                   "w-full px-4 py-3 text-left",
@@ -287,7 +298,7 @@ export function SpotlightSearch({
                     {result.prompt.category}
                   </Badge>
                   {copied === result.prompt.id && (
-                    <span className="text-xs text-green-600 dark:text-green-400 ml-auto">
+                    <span className="text-xs text-green-600 dark:text-green-400 ml-auto" aria-live="polite">
                       Copied!
                     </span>
                   )}
@@ -347,6 +358,7 @@ export function SpotlightTrigger({ className }: SpotlightTriggerProps) {
   return (
     <button
       onClick={handleClick}
+      aria-label="Search prompts (Cmd+K)"
       className={cn(
         "flex items-center gap-2 px-3 py-2",
         "text-sm text-muted-foreground",
@@ -356,9 +368,9 @@ export function SpotlightTrigger({ className }: SpotlightTriggerProps) {
         className
       )}
     >
-      <SearchIcon className="size-4" />
+      <SearchIcon className="size-4" aria-hidden="true" />
       <span className="hidden sm:inline">Search prompts...</span>
-      <kbd className="hidden sm:inline-flex items-center gap-0.5 ml-2 px-1.5 py-0.5 text-xs bg-background rounded font-mono">
+      <kbd className="hidden sm:inline-flex items-center gap-0.5 ml-2 px-1.5 py-0.5 text-xs bg-background rounded font-mono" aria-hidden="true">
         <CommandIcon className="size-3" />K
       </kbd>
     </button>
