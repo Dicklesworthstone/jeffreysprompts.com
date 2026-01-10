@@ -107,7 +107,8 @@ export async function suggestCommand(task: string, options: SuggestOptions) {
 
   for (let i = 0; i < results.length; i++) {
     const { prompt, score, matchedFields } = results[i];
-    const relevancePercent = Math.min(100, Math.round(score * 20));
+    // Semantic scores are 0-1 (need * 100), BM25 scores are typically 0-5 (need * 20)
+    const relevancePercent = Math.min(100, Math.round(options.semantic ? score * 100 : score * 20));
     const relevanceBar = getRelevanceBar(relevancePercent);
 
     // Header: rank, title, relevance
