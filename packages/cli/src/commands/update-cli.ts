@@ -312,7 +312,7 @@ export async function updateCliCommand(options: UpdateCliOptions = {}) {
       return;
     }
 
-    if (comparison > 0 && !options.force) {
+    if (comparison > 0) {
       result.message = `You are running a newer version (${version}) than the latest release (${result.latestVersion})`;
       if (jsonOutput) {
         console.log(JSON.stringify(result, null, 2));
@@ -322,7 +322,9 @@ export async function updateCliCommand(options: UpdateCliOptions = {}) {
       return;
     }
 
-    result.message = `Update available: ${version} -> ${result.latestVersion}`;
+    result.message = comparison === 0
+      ? `Reinstalling current version (${version})`
+      : `Update available: ${version} -> ${result.latestVersion}`;
 
     const binaryName = getBinaryName();
     const asset = release.assets.find((a) => a.name === binaryName);

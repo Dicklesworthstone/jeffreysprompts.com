@@ -154,6 +154,7 @@ export function SpotlightSearch({
           })
         } catch (err) {
           console.warn("[SpotlightSearch] Semantic rerank failed, using BM25:", err)
+          if (cancelled) return
           trackEvent("search", {
             queryLength: debouncedQuery.length,
             resultCount: searchResults.slice(0, 10).length,
@@ -166,6 +167,7 @@ export function SpotlightSearch({
         }
       } else {
         const nextResults = searchResults.slice(0, 10)
+        if (cancelled) return
         setResults(nextResults)
         trackEvent("search", {
           queryLength: debouncedQuery.length,
