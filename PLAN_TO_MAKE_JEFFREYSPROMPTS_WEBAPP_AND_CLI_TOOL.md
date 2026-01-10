@@ -1,5 +1,50 @@
 # PLAN: JeffreysPrompts.com — Ultra-Detailed Implementation Blueprint
 
+**Plan version:** v2 (hybrid consolidation)  
+**Last updated:** 2026-01-10
+
+---
+
+## Executive Summary (Why This Plan Wins)
+
+- **Clean separation**: `@jeffreysprompts/core` is the sole source of truth; web + CLI import from core, never from each other.
+- **Living content**: web ships a versioned registry; CLI uses stale‑while‑revalidate cache + embedded snapshot for offline starts.
+- **Search done right**: BM25 everywhere, optional semantic rerank for harder queries, with hash fallback to avoid failures.
+- **Prompt compiler**: parametric prompts + context injection reduce user friction and improve repeatability.
+- **Agent-native**: MCP server mode exposes prompts/tools directly to agents.
+- **Product-grade**: error boundaries, health endpoint, privacy analytics, and safer skill updates.
+
+---
+
+## Goals, Non-Goals, and Success Metrics
+
+### Goals
+- Fast prompt retrieval (<10 seconds to the right prompt).
+- Low-friction use: copy, fill variables, export, and install skills quickly.
+- Offline-first reliability (web PWA + CLI snapshot/cache).
+- Agent-native integrations (MCP).
+- Compounding value (local prompts + contributions + analytics insights).
+
+### Non-Goals (for now)
+- No user accounts or auth-backed personalization.
+- No heavy backend search infrastructure.
+- No marketplace or paid prompt economy.
+
+### Success Metrics (practical)
+- % of visitors who copy a prompt.
+- Repeat usage (PWA installs, returning visitors, CLI weekly runs).
+- Search quality: clicks per query + zero-result rate.
+- Skill installs and update completion rates.
+
+---
+
+## Architecture Overview (Why This Structure Wins)
+
+- **Single source of truth**: registry, search, exports, and templates live in `packages/core`.
+- **Thin clients**: web and CLI are shells around core; no cross-app imports or brittle path coupling.
+- **Content agility**: `/api/prompts` + `/registry.json` allow rapid prompt iteration without binary churn.
+- **Future-proof**: core can be published for extensions (VS Code, MCP, etc.).
+
 ---
 
 ## Plan Preservation (No-Delete Rule Safe)
@@ -144,9 +189,9 @@ This design allows skills to bundle unlimited context without bloating the initi
 
 #### Skill Locations
 
-- **Personal Skills**: `~/.config/claude/skills/` — Available in all projects
+- **Personal Skills**: `$HOME/.config/claude/skills/` — Available in all projects
 - **Project Skills**: `.claude/skills/` — Shared via git with team members
-  - Paths are configurable via `skills.personalDir` / `skills.projectDir` in `~/.config/jfp/config.json`
+  - Paths are configurable via `skills.personalDir` / `skills.projectDir` in `$HOME/.config/jfp/config.json`
 
 #### Skill Update Manifest (NEW)
 
@@ -336,6 +381,7 @@ The AGENTS.md for this project is adapted from brennerbot.org but customized for
    - PromptCard with title, description, tags, copy button, basket add
    - SpotlightSearch (Cmd+K) with fast search
    - Prompt permalink pages: `/prompts/[id]` (shareable + SEO)
+   - Bundles index page: `/bundles`
    - Bundle permalink pages: `/bundles/[id]`
    - Export as markdown or Claude Code skills
 
@@ -694,6 +740,13 @@ export function renderPrompt(prompt: Prompt, vars: Record<string, string>): stri
 
 The web UI and CLI both use this for “prompt compilation” (see Part 6.7).
 
+**Dynamic defaults (CLI/Web layer):**
+- `PROJECT_NAME` → basename of `cwd`
+- `CWD` → absolute working directory
+- `GIT_BRANCH` → current git branch (if available)
+
+These are injected **outside** core so the core renderer stays pure/deterministic.
+
 #### 2.2.1 Core Package Barrel Exports
 
 Keep `packages/core/src/index.ts` explicit so consumers can import from `@jeffreysprompts/core` safely:
@@ -973,7 +1026,7 @@ description: Clear description of what this skill does and when to use it
 ```
 
 **Skill locations:**
-- **Personal skills**: `~/.config/claude/skills/` (available everywhere)
+- **Personal skills**: `$HOME/.config/claude/skills/` (available everywhere)
 - **Project skills**: `.claude/skills/` (shared with team via git)
 
 **Progressive disclosure:**
@@ -1051,7 +1104,7 @@ This bundle contains ${prompts.length} Claude Code skills from [JeffreysPrompts.
 
 \`\`\`bash
 # Extract to your personal skills directory
-unzip jeffrey-prompts-skills.zip -d ~/.config/claude/skills/
+unzip jeffrey-prompts-skills.zip -d $HOME/.config/claude/skills/
 \`\`\`
 
 ### Option 2: Project Skills (shared via git)
@@ -1100,7 +1153,7 @@ SKILL_EOF
 `;
   }).join("\n");
 
-  return `#!/bin/bash
+  return `#!/usr/bin/env bash
 # Jeffrey's Prompts Skills Installer
 # Generated from https://jeffreysprompts.com
 
@@ -1109,7 +1162,7 @@ IFS=$'\n\t'
 
 # Override location if desired:
 #   JFP_TARGET_DIR="$HOME/.config/claude/skills" bash install.sh
-TARGET_DIR="${JFP_TARGET_DIR:-$HOME/.config/claude/skills}"
+TARGET_DIR="${JFP_TARGET_DIR:-"$HOME/.config/claude/skills"}"
 
 mkdir -p "$TARGET_DIR"
 
@@ -1194,6 +1247,7 @@ ${content}
 ### 3.2.5 JSON Registry Export (Shared Payload)
 
 Centralize the registry payload shape so both web and CLI stay in sync.
+Include a `schemaVersion` field to allow forward-compatible changes.
 
 ```typescript
 // packages/core/src/export/json.ts
@@ -1207,13 +1261,16 @@ export function buildRegistryPayload() {
   }, "1970-01-01");
 
   return {
+    schemaVersion: 1,
     version: process.env.JFP_REGISTRY_VERSION ?? "dev",
     updatedAt,
     prompts,
     bundles,
     workflows,
     meta: {
-      total: prompts.length,
+      promptCount: prompts.length,
+      bundleCount: bundles.length,
+      workflowCount: workflows.length,
       categories,
       tags,
     },
@@ -1462,7 +1519,7 @@ async function readStdin(maxBytes = 200000): Promise<string> {
 }
 
 function normalizeVars(prompt: Prompt, vars: Record<string, string>): Record<string, string> {
-  const out = { ...vars };
+  const out = { ...deriveDynamicDefaults(), ...vars };
   for (const variable of prompt.variables ?? []) {
     if (variable.type === "file" && out[variable.name]) {
       if (existsSync(out[variable.name])) {
@@ -1473,13 +1530,50 @@ function normalizeVars(prompt: Prompt, vars: Record<string, string>): Record<str
   return out;
 }
 
+function deriveDynamicDefaults(): Record<string, string> {
+  const cwd = process.cwd();
+  const project = cwd.split("/").pop() ?? "project";
+  let branch = "";
+  try {
+    const result = Bun.spawnSync(["git", "rev-parse", "--abbrev-ref", "HEAD"]);
+    if (result.exitCode === 0) {
+      branch = (result.stdout?.toString("utf-8") ?? "").trim();
+    }
+  } catch {
+    // ignore git failures
+  }
+  return {
+    PROJECT_NAME: project,
+    CWD: cwd,
+    GIT_BRANCH: branch,
+  };
+}
+
+function expandPath(value?: string): string | undefined {
+  if (!value) return value;
+  if (value.startsWith("~")) return join(homedir(), value.slice(1));
+  return value.replace("$HOME", homedir());
+}
+
 function loadConfig(): Partial<JfpConfig> {
   const path = join(homedir(), ".config", "jfp", "config.json");
   if (!existsSync(path)) return {};
   try {
-    return JSON.parse(readFileSync(path, "utf-8"));
+    const config = JSON.parse(readFileSync(path, "utf-8")) as Partial<JfpConfig>;
+    if (config.registry) {
+      config.registry.cachePath = expandPath(config.registry.cachePath);
+      config.registry.metaPath = expandPath(config.registry.metaPath);
+    }
+    if (config.skills) {
+      config.skills.personalDir = expandPath(config.skills.personalDir);
+      config.skills.projectDir = expandPath(config.skills.projectDir);
+    }
+    if (config.localPrompts) {
+      config.localPrompts.dir = expandPath(config.localPrompts.dir);
+    }
+    return config;
   } catch {
-    console.error(chalk.yellow("Invalid ~/.config/jfp/config.json (ignoring)"));
+    console.error(chalk.yellow("Invalid $HOME/.config/jfp/config.json (ignoring)"));
     return {};
   }
 }
@@ -1533,8 +1627,13 @@ function getRegistryStatus(cachePath: string, metaPath: string) {
 // refreshRegistry implementation in Part 6.6 (stale-while-revalidate)
 
 function printCompletion(shell: string) {
-  // Use cac's built-in completion output or ship a static template.
-  // Example: console.log(cli.generateCompletion({ shell }));
+  // Prefer cac's completion generator so flags + subcommands stay in sync.
+  if (typeof (cli as any).generateCompletion === "function") {
+    console.log((cli as any).generateCompletion({ shell }));
+    return;
+  }
+
+  // Fallback: minimal static template if completion generator is unavailable.
   const commands = [
     "list", "search", "suggest", "show", "copy", "render",
     "export", "install", "uninstall", "installed", "update",
@@ -1544,9 +1643,9 @@ function printCompletion(shell: string) {
   ];
 
   if (shell === "bash") {
-    console.log(`# bash completion (generated)\ncomplete -W "${commands.join(" ")}" jfp`);
+    console.log(`# bash completion (fallback)\ncomplete -W "${commands.join(" ")}" jfp`);
   } else if (shell === "zsh") {
-    console.log(`# zsh completion (generated)\ncompdef _gnu_generic jfp`);
+    console.log(`# zsh completion (fallback)\ncompdef _gnu_generic jfp`);
   } else if (shell === "fish") {
     console.log(`complete -c jfp -f -a "${commands.join(" ")}"`);
   } else {
@@ -1605,13 +1704,13 @@ cli
   .option("--pretty", "pretty-print JSON (larger output)", { default: false })
   .option("--no-color", "disable ANSI colors", { default: false });
 
-// ~/.config/jfp/config.json
+// $HOME/.config/jfp/config.json
 interface JfpConfig {
   registry?: {
     remote?: string;            // Default: https://jeffreysprompts.com/api/prompts
     manifestUrl?: string;       // Default: https://jeffreysprompts.com/registry.manifest.json
-    cachePath?: string;          // Default: ~/.config/jfp/registry.json
-    metaPath?: string;           // Default: ~/.config/jfp/registry.meta.json
+    cachePath?: string;          // Default: $HOME/.config/jfp/registry.json
+    metaPath?: string;           // Default: $HOME/.config/jfp/registry.meta.json
     autoRefresh?: boolean;       // Default: true
     timeoutMs?: number;          // Default: 2000
   };
@@ -1621,12 +1720,12 @@ interface JfpConfig {
     lastCheck?: string;          // ISO timestamp
   };
   skills?: {
-    personalDir?: string;        // Default: ~/.config/claude/skills
+    personalDir?: string;        // Default: $HOME/.config/claude/skills
     projectDir?: string;         // Default: .claude/skills
   };
   localPrompts?: {
     enabled?: boolean;           // Default: true
-    dir?: string;                // Default: ~/.config/jfp/local
+    dir?: string;                // Default: $HOME/.config/jfp/local
   };
   analytics?: {
     enabled?: boolean;           // Default: false
@@ -1640,8 +1739,8 @@ Example config:
   "registry": {
     "remote": "https://jeffreysprompts.com/api/prompts",
     "manifestUrl": "https://jeffreysprompts.com/registry.manifest.json",
-    "cachePath": "~/.config/jfp/registry.json",
-    "metaPath": "~/.config/jfp/registry.meta.json",
+    "cachePath": "$HOME/.config/jfp/registry.json",
+    "metaPath": "$HOME/.config/jfp/registry.meta.json",
     "autoRefresh": true,
     "timeoutMs": 2000
   },
@@ -1650,12 +1749,12 @@ Example config:
     "channel": "stable"
   },
   "skills": {
-    "personalDir": "~/.config/claude/skills",
+    "personalDir": "$HOME/.config/claude/skills",
     "projectDir": ".claude/skills"
   },
   "localPrompts": {
     "enabled": true,
-    "dir": "~/.config/jfp/local"
+    "dir": "$HOME/.config/jfp/local"
   },
   "analytics": {
     "enabled": false
@@ -1663,7 +1762,7 @@ Example config:
 }
 ```
 
-Note: prefer absolute paths. If you want to allow `~`/`$HOME`, add a small expansion helper in `loadConfig`.
+Note: prefer absolute paths. `expandPath()` handles `~` and `$HOME` for convenience.
 
 // jfp list — List all prompts
 async function listCommand(flags: Flags) {
@@ -2092,7 +2191,7 @@ DOCS: https://jeffreysprompts.com
 async function installCommand(args: string[], flags: Flags) {
   const skillIds = args;
   const all = flags.all;
-  const project = flags.project;  // Install to .claude/skills instead of ~/.config
+  const project = flags.project;  // Install to .claude/skills instead of $HOME/.config
   const force = flags.force;      // Overwrite existing
 
   const config = loadConfig();
@@ -2761,7 +2860,7 @@ export async function GET(request: Request) {
     prompts: filteredPrompts,
     meta: {
       ...base.meta,
-      total: filteredPrompts.length,
+      promptCount: filteredPrompts.length,
     },
   };
 
@@ -2854,7 +2953,7 @@ import { NextResponse } from "next/server";
 const RELEASES_BASE = "https://github.com/Dicklesworthstone/jeffreysprompts.com/releases/latest/download";
 
 export async function GET() {
-  const script = `#!/bin/bash
+  const script = `#!/usr/bin/env bash
 # JeffreysPrompts CLI Installer
 # Usage: curl -fsSL https://jeffreysprompts.com/install-cli.sh | bash
 
@@ -2904,8 +3003,8 @@ fi
 TMP_DIR="\$(mktemp -d)"
 # Note: cleanup can be done manually if desired (avoid destructive commands in docs).
 
-curl -L "\$URL" -o "\$TMP_DIR/\$BINARY"
-curl -L "\$SHA_URL" -o "\$TMP_DIR/SHA256SUMS.txt"
+curl -fsSL "\$URL" -o "\$TMP_DIR/\$BINARY"
+curl -fsSL "\$SHA_URL" -o "\$TMP_DIR/SHA256SUMS.txt"
 
 if command -v sha256sum >/dev/null 2>&1; then
   (cd "\$TMP_DIR" && grep " \$BINARY\$" SHA256SUMS.txt | sha256sum -c -)
@@ -2956,7 +3055,7 @@ CLI binaries are distributed via GitHub Releases. The build process creates bina
 
 ```bash
 # Build script for releases (scripts/build-releases.sh)
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 VERSION=${1:-"dev"}
@@ -3324,6 +3423,7 @@ jeffreysprompts.com/
 │       │   │   │   └── [id]/
 │       │   │   │       └── page.tsx      # Prompt permalink page (SEO/shareable)
 │       │   │   ├── bundles/
+│       │   │   │   ├── page.tsx          # Bundles index page
 │       │   │   │   └── [id]/
 │       │   │   │       └── page.tsx      # Bundle permalink page
 │       │   │   ├── workflows/
@@ -3973,7 +4073,7 @@ async function interactiveMode() {
 ### 6.4 Build Process
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 # scripts/build-cli.sh
 
 set -e
@@ -4039,9 +4139,9 @@ This prevents accidental schema drift and keeps agent integrations stable.
 Prompts are content, and content changes faster than binaries. The CLI should load fast and update quietly:
 
 - Ship with an embedded snapshot (offline-first).
-- Read cache from `~/.config/jfp/registry.json` if present.
+- Read cache from `$HOME/.config/jfp/registry.json` if present.
 - In the background (2s timeout by default, configurable), fetch `/api/prompts` (unfiltered) with `If-None-Match` and update cache for next run.
-- Store the latest `ETag` and timestamps in `~/.config/jfp/registry.meta.json` to avoid unnecessary downloads.
+- Store the latest `ETag` and timestamps in `$HOME/.config/jfp/registry.meta.json` to avoid unnecessary downloads.
 - Respect `registry.autoRefresh: false` in config to disable background refresh.
 - Set `registry.remote` to `/registry.json` if you prefer a purely static CDN snapshot.
 
@@ -4123,7 +4223,7 @@ async function refreshRegistry({
 
   if (res.status === 304) return { updated: false, version: meta.version ?? "unknown" };
   const payload = await res.json();
-  const isFiltered = payload?.meta?.total && payload.meta.total !== payload.prompts?.length;
+  const isFiltered = payload?.meta?.promptCount && payload.meta.promptCount !== payload.prompts?.length;
 
   // Optional manifest verification
   const derivedManifestUrl = manifestUrl
@@ -4191,7 +4291,7 @@ Guardrails:
 
 ### 6.8 Local Prompt Scratchpad (Stickiness)
 
-Local prompts live in `~/.config/jfp/local/`:
+Local prompts live in `$HOME/.config/jfp/local/`:
 - `*.md` with optional YAML frontmatter (id/title/tags)
 - merged into registry at runtime
 - enables personal prompts without forking the repo
@@ -4209,6 +4309,19 @@ Tool schemas (JSON-ish):
   output: `{ results: [{ id, title, score, category, tags }] }`
 - `render_prompt` input: `{ id: string, variables?: Record<string,string>, context?: string }`
   output: `{ id, rendered }`
+
+Example Claude Desktop MCP config snippet:
+
+```json
+{
+  "mcpServers": {
+    "jfp": {
+      "command": "jfp",
+      "args": ["serve"]
+    }
+  }
+}
+```
 
 ### 6.10 CLI Auto-Update (Opt-In)
 
@@ -4251,9 +4364,14 @@ Notes:
 
 ```tsx
 // apps/web/src/app/page.tsx
+import dynamic from "next/dynamic";
 import { fetchRegistry } from "@/lib/registry-client";
 import { PromptGrid } from "@/components/prompt-grid";
-import { SpotlightSearch } from "@/components/spotlight-search";
+
+const SpotlightSearch = dynamic(
+  () => import("@/components/spotlight-search").then((m) => m.SpotlightSearch),
+  { ssr: false }
+);
 
 export default async function HomePage() {
   const registry = await fetchRegistry();
@@ -4533,8 +4651,9 @@ export function SpotlightSearch({ source }: { source: Prompt[] }) {
     }
   }, [open]);
 
-  // Search on query change (debounced)
+  // Search on query change (debounced, lazy-loaded only when open)
   useEffect(() => {
+    if (!open) return;
     let cancelled = false;
     const timer = setTimeout(() => {
       if (query.trim() && source.length) {
@@ -4552,7 +4671,7 @@ export function SpotlightSearch({ source }: { source: Prompt[] }) {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [query]);
+  }, [query, open]);
 
   // Keyboard navigation
   const handleKeyDown = useCallback(
@@ -4686,7 +4805,14 @@ Add `/prompts/[id]` pages with:
 
 Use `generateStaticParams` for pre-rendered pages.
 
-### 7.5 Bundle Permalink Pages
+### 7.5 Bundle Index Page
+
+Add `/bundles` as a listing page:
+- featured bundles first
+- short “workflow” preview
+- one-click install/download
+
+### 7.6 Bundle Permalink Pages
 
 Add `/bundles/[id]` with:
 - bundle description
@@ -4695,7 +4821,7 @@ Add `/bundles/[id]` with:
 
 Use `generateStaticParams` for pre-rendered bundle pages.
 
-### 7.6 Workflow Builder (Differentiator)
+### 7.7 Workflow Builder (Differentiator)
 
 Let users assemble multi-step workflows:
 - choose prompts as steps
@@ -4703,14 +4829,14 @@ Let users assemble multi-step workflows:
 - add short “handoff notes”
 - export as markdown or skill bundle
 
-### 7.7 Contribution Page (No DB Required)
+### 7.8 Contribution Page (No DB Required)
 
 Provide a `/contribute` page that:
 - collects prompt metadata
 - renders a TypeScript object entry
 - links to a prefilled GitHub issue/PR
 
-### 7.8 PWA + Offline Support
+### 7.9 PWA + Offline Support
 
 Add a PWA manifest + service worker:
 - cache `/registry.json`, `/registry.manifest.json`, and static assets
@@ -4719,7 +4845,7 @@ Add a PWA manifest + service worker:
 - optional runtime cache for `/api/prompts` (unfiltered) with `/registry.json` as offline fallback
 - keep BM25 search in-browser so offline search still works
 
-### 7.9 Error Boundaries + Privacy Analytics
+### 7.10 Error Boundaries + Privacy Analytics
 
 - Error boundaries around search + prompt grid with fallback UI
 - Optional, privacy-respecting analytics (e.g., Plausible) for:
@@ -4728,7 +4854,7 @@ Add a PWA manifest + service worker:
   - export and skill_install
   - workflow_copy
 
-### 7.10 Health Endpoint
+### 7.11 Health Endpoint
 
 Add `GET /api/health` returning:
 - status
@@ -4738,6 +4864,26 @@ Add `GET /api/health` returning:
 - responseTimeMs
 
 Used for uptime checks and deployment verification.
+
+```typescript
+// apps/web/src/app/api/health/route.ts
+import { NextResponse } from "next/server";
+import { prompts } from "@jeffreysprompts/core/prompts";
+
+export async function GET() {
+  const start = Date.now();
+  const payload = {
+    status: "ok",
+    promptCount: prompts.length,
+    version: process.env.NEXT_PUBLIC_GIT_SHA ?? "dev",
+    timestamp: new Date().toISOString(),
+    responseTimeMs: Date.now() - start,
+  };
+  return NextResponse.json(payload, {
+    headers: { "Cache-Control": "no-store" },
+  });
+}
+```
 
 ---
 
@@ -4989,12 +5135,12 @@ The Claude Code session transcript is stored locally in JSONL format. The `cass`
 
 Claude Code stores sessions at:
 ```
-~/.claude/projects/<project-hash>/<session-id>.jsonl
+$HOME/.claude/projects/<project-hash>/<session-id>.jsonl
 ```
 
 For this project:
 ```
-~/.claude/projects/-data-projects-jeffreysprompts-com/<session-id>.jsonl
+$HOME/.claude/projects/-data-projects-jeffreysprompts-com/<session-id>.jsonl
 ```
 
 #### Extraction Process
@@ -6647,6 +6793,8 @@ ${p.content}
   return `---
 name: ${q(bundle.id)}
 description: ${q(bundle.description)}
+author: ${q(bundle.author)}
+source: ${q(`https://jeffreysprompts.com/bundles/${bundle.id}`)}
 x_jfp_generated: true
 ---
 
@@ -6883,6 +7031,22 @@ export function BundleCard({ bundle, index }: BundleCardProps) {
 }
 ```
 
+```tsx
+// apps/web/src/app/bundles/page.tsx
+import { bundles } from "@jeffreysprompts/core/prompts";
+import { BundleCard } from "@/components/bundle-card";
+
+export default function BundlesPage() {
+  return (
+    <div className="grid gap-6 md:grid-cols-2">
+      {bundles.map((bundle, i) => (
+        <BundleCard key={bundle.id} bundle={bundle} index={i} />
+      ))}
+    </div>
+  );
+}
+```
+
 ---
 
 ## Part 14: Semantic Suggestion System (BM25 + Optional Semantic Rerank)
@@ -6944,7 +7108,7 @@ to hash embeddings without failing the command.
 
 **Note:** The CLI does **not** require a `prompt_embeddings.json` file. For this scale, in-memory
 hash embeddings are fast enough as a fallback, and optional model assets can be cached in
-`~/.config/jfp/models`.
+`$HOME/.config/jfp/models`.
 
 ### 14.3 Web Integration
 
