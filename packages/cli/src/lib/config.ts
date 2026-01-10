@@ -105,9 +105,9 @@ function applyEnvOverrides(config: JfpConfig): JfpConfig {
   };
 }
 
-export function loadConfig(): JfpConfig {
+function loadStoredConfig(): JfpConfig {
   if (!existsSync(CONFIG_FILE)) {
-    return applyEnvOverrides(DEFAULT_CONFIG);
+    return DEFAULT_CONFIG;
   }
   try {
     const raw = readFileSync(CONFIG_FILE, "utf-8");
@@ -122,22 +122,27 @@ export function loadConfig(): JfpConfig {
       localPrompts: { ...DEFAULT_CONFIG.localPrompts, ...parsed.localPrompts },
       analytics: { ...DEFAULT_CONFIG.analytics, ...parsed.analytics },
     };
-    return applyEnvOverrides(merged);
+    return merged;
   } catch {
-    return applyEnvOverrides(DEFAULT_CONFIG);
+    return DEFAULT_CONFIG;
   }
 }
 
+export function loadConfig(): JfpConfig {
+  return applyEnvOverrides(loadStoredConfig());
+}
+
 export function saveConfig(config: Partial<JfpConfig>): void {
+  const base = loadStoredConfig();
   const merged: JfpConfig = {
-    ...DEFAULT_CONFIG,
+    ...base,
     ...config,
-    registry: { ...DEFAULT_CONFIG.registry, ...config.registry },
-    updates: { ...DEFAULT_CONFIG.updates, ...config.updates },
-    skills: { ...DEFAULT_CONFIG.skills, ...config.skills },
-    output: { ...DEFAULT_CONFIG.output, ...config.output },
-    localPrompts: { ...DEFAULT_CONFIG.localPrompts, ...config.localPrompts },
-    analytics: { ...DEFAULT_CONFIG.analytics, ...config.analytics },
+    registry: { ...base.registry, ...config.registry },
+    updates: { ...base.updates, ...config.updates },
+    skills: { ...base.skills, ...config.skills },
+    output: { ...base.output, ...config.output },
+    localPrompts: { ...base.localPrompts, ...config.localPrompts },
+    analytics: { ...base.analytics, ...config.analytics },
   };
   mkdirSync(CONFIG_DIR, { recursive: true });
   writeFileSync(CONFIG_FILE, JSON.stringify(merged, null, 2));

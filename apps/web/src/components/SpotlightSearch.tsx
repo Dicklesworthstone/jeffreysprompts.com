@@ -155,13 +155,15 @@ export function SpotlightSearch({
         } catch (err) {
           console.warn("[SpotlightSearch] Semantic rerank failed, using BM25:", err)
           if (cancelled) return
+          // Limit to 10 results on failure (same as non-semantic mode)
+          const fallbackResults = searchResults.slice(0, 10)
+          setResults(fallbackResults)
           trackEvent("search", {
             queryLength: debouncedQuery.length,
-            resultCount: searchResults.slice(0, 10).length,
+            resultCount: fallbackResults.length,
             source: "spotlight",
-            semantic: true,
+            semantic: false, // Fell back to BM25
           })
-          // Keep BM25 results on failure
         } finally {
           if (!cancelled) setIsReranking(false)
         }

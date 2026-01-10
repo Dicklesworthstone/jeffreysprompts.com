@@ -36,21 +36,30 @@ export function useLocalStorage<T>(
 ): [T, (value: T | ((prev: T) => T)) => void, () => void] {
   const { debounceMs = 300 } = options;
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initialValueRef = useRef<T>(initialValue);
   // Track latest value for use in cleanup (avoids stale closure bug)
   const latestValueRef: MutableRefObject<T | null> = useRef<T | null>(null);
 
   // Initialize state with initialValue to avoid hydration mismatch
   const [storedValue, setStoredValue] = useState<T>(initialValue);
 
-  // Read from localStorage on mount
+  // Keep initialValueRef updated for resets without re-running effects every render
+  useEffect(() => {
+    initialValueRef.current = initialValue;
+  }, [initialValue]);
+
+  // Read from localStorage on mount or key change
   useEffect(() => {
     try {
       const item = window.localStorage.getItem(key);
-      if (item) {
+      if (item !== null) {
         setStoredValue(JSON.parse(item) as T);
+        return;
       }
+      setStoredValue(initialValueRef.current);
     } catch (error) {
       console.warn(`Error reading localStorage key "${key}":`, error);
+      setStoredValue(initialValueRef.current);
     }
   }, [key]);
 
@@ -86,11 +95,11 @@ export function useLocalStorage<T>(
     }
     try {
       window.localStorage.removeItem(key);
-      setStoredValue(initialValue);
+      setStoredValue(initialValueRef.current);
     } catch (error) {
       console.warn(`Error removing localStorage key "${key}":`, error);
     }
-  }, [key, initialValue]);
+  }, [key]);
 
   // Keep latestValueRef in sync (for use in cleanup without stale closure)
   useEffect(() => {
@@ -119,11 +128,16 @@ export function useLocalStorage<T>(
   // Sync across tabs
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === key && e.newValue) {
-        try {
-          setStoredValue(JSON.parse(e.newValue) as T);
-        } catch {
-          // Ignore parse errors
+      if (e.key === key) {
+        if (e.newValue === null) {
+          // Key was removed in another tab
+          setStoredValue(initialValueRef.current);
+        } else {
+          try {
+            setStoredValue(JSON.parse(e.newValue) as T);
+          } catch {
+            // Ignore parse errors
+          }
         }
       }
     };

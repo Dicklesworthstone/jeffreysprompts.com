@@ -223,7 +223,30 @@ describe("useLocalStorage", () => {
       });
 
       // Value should reflect the new key's storage
-      // Note: Implementation may vary on exact timing
+      expect(result.current[0]).toBe("value-b");
+    });
+
+    it("resets to initial value when new key has no stored value", () => {
+      localStorage.setItem("key-a", JSON.stringify("value-a"));
+
+      const { result, rerender } = renderHook(
+        ({ key }) => useLocalStorage(key, "default"),
+        { initialProps: { key: "key-a" } }
+      );
+
+      act(() => {
+        vi.runAllTimers();
+      });
+
+      expect(result.current[0]).toBe("value-a");
+
+      rerender({ key: "missing-key" });
+
+      act(() => {
+        vi.runAllTimers();
+      });
+
+      expect(result.current[0]).toBe("default");
     });
   });
 });
