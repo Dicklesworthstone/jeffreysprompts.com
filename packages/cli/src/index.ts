@@ -12,6 +12,7 @@ import { installedCommand } from "./commands/installed";
 import { updateCommand } from "./commands/update";
 import { suggestCommand } from "./commands/suggest";
 import { interactiveCommand } from "./commands/interactive";
+import { bundlesCommand, bundleShowCommand } from "./commands/bundles";
 
 export const cli = cac("jfp");
 
@@ -37,6 +38,7 @@ cli
   .command("install [...ids]", "Install prompts as Claude Code skills")
   .option("--project", "Install to current project (.claude/skills)")
   .option("--all", "Install all prompts")
+  .option("--bundle <id>", "Install a bundle as a combined skill")
   .option("--force", "Overwrite skills even if user modified them")
   .option("--json", "Output JSON")
   .action(installCommand);
@@ -90,6 +92,16 @@ cli
   .option("--json", "Output JSON")
   .option("--limit <n>", "Max suggestions (default: 5)")
   .action(suggestCommand);
+
+cli
+  .command("bundles", "List all prompt bundles")
+  .option("--json", "Output JSON")
+  .action(bundlesCommand);
+
+cli
+  .command("bundle <id>", "Show bundle details")
+  .option("--json", "Output JSON")
+  .action(bundleShowCommand);
 
 cli
   .command("i", "Interactive mode - fzf-style prompt picker")

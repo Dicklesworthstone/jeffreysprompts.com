@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, writeFileSync } from "fs";
 import { join, resolve } from "path";
 import { homedir } from "os";
 import { getPrompt, prompts } from "@jeffreysprompts/core/prompts";
+import { getBundle, generateBundleSkillMd } from "@jeffreysprompts/core/prompts/bundles";
 import { generateSkillMd, computeSkillHash } from "@jeffreysprompts/core/export";
 import chalk from "chalk";
 import {
@@ -17,6 +18,7 @@ import { isSafeSkillId, resolveSafeChildPath, shouldOutputJson } from "../lib/ut
 interface InstallOptions {
   project?: boolean;
   all?: boolean;
+  bundle?: string;
   json?: boolean;
   force?: boolean;
 }
@@ -31,8 +33,74 @@ export function installCommand(ids: string[], options: InstallOptions) {
     ids = prompts.map((p) => p.id);
   }
 
+  // Handle bundle installation
+  if (options.bundle) {
+    const bundle = getBundle(options.bundle);
+    if (!bundle) {
+      if (shouldOutputJson(options)) {
+        console.log(JSON.stringify({ error: "bundle_not_found", id: options.bundle }));
+      } else {
+        console.error(chalk.red("Bundle not found: " + options.bundle));
+      }
+      process.exit(1);
+    }
+
+    if (!isSafeSkillId(bundle.id)) {
+      console.error(chalk.red("Error: Unsafe bundle id. Refusing to write files."));
+      process.exit(1);
+    }
+
+    try {
+      const skillContent = generateBundleSkillMd(bundle);
+      const skillDir = resolveSafeChildPath(targetRoot, bundle.id);
+      const skillPath = join(skillDir, "SKILL.md");
+
+      if (!existsSync(skillDir)) {
+        mkdirSync(skillDir, { recursive: true });
+      }
+
+      writeFileSync(skillPath, skillContent);
+
+      // Update manifest
+      let manifest = readManifest(targetRoot) ?? createEmptyManifest();
+      const hash = computeSkillHash(skillContent);
+      const entry: SkillManifestEntry = {
+        id: bundle.id,
+        kind: "bundle",
+        version: bundle.version,
+        hash,
+        updatedAt: new Date().toISOString(),
+      };
+      manifest = upsertManifestEntry(manifest, entry);
+      writeManifest(targetRoot, manifest);
+
+      if (shouldOutputJson(options)) {
+        console.log(JSON.stringify({
+          success: true,
+          installed: [bundle.id],
+          type: "bundle",
+          prompts: bundle.promptIds,
+          targetDir: targetRoot,
+        }, null, 2));
+      } else {
+        console.log(chalk.green("✓") + " Installed bundle " + chalk.bold(bundle.title) + " to " + chalk.dim(skillPath));
+        console.log(chalk.dim("  Contains " + bundle.promptIds.length + " prompts: " + bundle.promptIds.join(", ")));
+        console.log();
+        console.log(chalk.dim("Restart Claude Code or run /refresh to see new skills."));
+      }
+    } catch (err) {
+      if (shouldOutputJson(options)) {
+        console.log(JSON.stringify({ error: "install_failed", message: (err as Error).message }));
+      } else {
+        console.error(chalk.red("Failed to install bundle: " + (err as Error).message));
+      }
+      process.exit(1);
+    }
+    return;
+  }
+
   if (ids.length === 0) {
-    console.error(chalk.red("Error: No prompts specified. Use <id> or --all"));
+    console.error(chalk.red("Error: No prompts specified. Use <id>, --all, or --bundle <id>"));
     process.exit(1);
   }
 
