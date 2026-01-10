@@ -11,6 +11,7 @@ import { copyCommand } from "./commands/copy";
 import { installedCommand } from "./commands/installed";
 import { updateCommand } from "./commands/update";
 import { suggestCommand } from "./commands/suggest";
+import { interactiveCommand } from "./commands/interactive";
 
 export const cli = cac("jfp");
 
@@ -89,6 +90,11 @@ cli
   .option("--json", "Output JSON")
   .option("--limit <n>", "Max suggestions (default: 5)")
   .action(suggestCommand);
+
+cli
+  .command("i", "Interactive mode - fzf-style prompt picker")
+  .alias("interactive")
+  .action(interactiveCommand);
 
 cli.help();
 cli.version(version);
