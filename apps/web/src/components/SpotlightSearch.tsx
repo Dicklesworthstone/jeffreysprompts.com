@@ -2,9 +2,11 @@
 
 import * as React from "react"
 import { createPortal } from "react-dom"
+import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { trackEvent } from "@/lib/analytics"
 import { searchPrompts, semanticRerank, type SearchResult, type RankedResult } from "@jeffreysprompts/core/search"
+import { featuredPrompts, type Prompt } from "@jeffreysprompts/core/prompts"
 import { Badge } from "./ui/badge"
 import { useToast } from "@/components/ui/toast"
 import { useLocalStorage } from "@/hooks/useLocalStorage"
@@ -53,6 +55,24 @@ const CommandIcon = ({ className }: { className?: string }) => (
 const SparklesIcon = ({ className }: { className?: string }) => (
   <svg className={cn("size-4", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
+  </svg>
+)
+
+const StarIcon = ({ className }: { className?: string }) => (
+  <svg className={cn("size-4", className)} viewBox="0 0 24 24" fill="currentColor">
+    <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clipRule="evenodd" />
+  </svg>
+)
+
+const CopyIcon = ({ className }: { className?: string }) => (
+  <svg className={cn("size-4", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" />
+  </svg>
+)
+
+const CheckIcon = ({ className }: { className?: string }) => (
+  <svg className={cn("size-4", className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
   </svg>
 )
 
@@ -284,174 +304,273 @@ export function SpotlightSearch({
     [results, selectedIndex, handleSelect]
   )
 
+  // Helper to handle featured prompt selection
+  const handleFeaturedSelect = React.useCallback(
+    async (prompt: Prompt) => {
+      if (copyOnSelect) {
+        try {
+          await navigator.clipboard.writeText(prompt.content)
+          setCopied(prompt.id)
+          success("Copied prompt", prompt.title, 2500)
+          setTimeout(() => setIsOpen(false), 500)
+        } catch (err) {
+          console.error("Failed to copy:", err)
+          error("Failed to copy", "Please try again")
+          setIsOpen(false)
+        }
+      } else {
+        setIsOpen(false)
+      }
+      onSelect?.(prompt.id)
+    },
+    [copyOnSelect, onSelect, success, error]
+  )
+
   // Don't render on server
   if (typeof document === "undefined") return null
 
+  // Show featured prompts in empty state
+  const showFeatured = !query.trim() && featuredPrompts.length > 0
+
   return createPortal(
-    <>
-      {/* Backdrop */}
+    <AnimatePresence>
       {isOpen && (
-        <div
-          className={cn(
-            "fixed inset-0 z-50",
-            "bg-black/60 backdrop-blur-sm",
-            "animate-in fade-in-0 duration-200"
-          )}
-          onClick={() => setIsOpen(false)}
-          aria-hidden
-        />
-      )}
+        <>
+          {/* Backdrop */}
+          <motion.div
+            key="spotlight-backdrop"
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={() => setIsOpen(false)}
+            aria-hidden
+          />
 
-      {/* Dialog */}
-      {isOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label="Search prompts"
-          className={cn(
-            "fixed left-1/2 top-[15%] z-50 -translate-x-1/2",
-            "w-[calc(100%-2rem)] max-w-xl",
-            "bg-card text-card-foreground",
-            "border shadow-2xl rounded-xl",
-            "animate-in fade-in-0 zoom-in-95 duration-200",
-            "overflow-hidden"
-          )}
-        >
-          {/* Search Input */}
-          <div className="flex items-center gap-3 px-4 py-3 border-b">
-            <SearchIcon className="text-muted-foreground shrink-0" aria-hidden="true" />
-            <input
-              ref={inputRef}
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Search prompts..."
-              className={cn(
-                "flex-1 bg-transparent outline-none",
-                "text-base placeholder:text-muted-foreground"
-              )}
-              autoComplete="off"
-              autoCorrect="off"
-              spellCheck={false}
-              role="combobox"
-              aria-expanded={results.length > 0}
-              aria-controls="spotlight-results"
-              aria-activedescendant={results[selectedIndex] ? `spotlight-result-${results[selectedIndex].prompt.id}` : undefined}
-              aria-autocomplete="list"
-            />
-            {/* Semantic mode toggle */}
-            <button
-              type="button"
-              onClick={() => setSemanticMode(!semanticMode)}
-              title={semanticMode ? "Semantic search enabled" : "Enable semantic search"}
-              className={cn(
-                "shrink-0 p-1.5 rounded-md transition-colors",
-                semanticMode
-                  ? "text-amber-500 bg-amber-500/10 hover:bg-amber-500/20"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
-              )}
-              aria-pressed={semanticMode}
-              aria-label="Toggle semantic search"
-            >
-              <SparklesIcon className={cn(isReranking && "animate-pulse")} />
-            </button>
-            <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground bg-muted rounded font-mono">
-              esc
-            </kbd>
-          </div>
-
-          {/* Results List */}
-          <div
-            ref={listRef}
-            id="spotlight-results"
-            role="listbox"
-            aria-label="Search results"
+          {/* Dialog */}
+          <motion.div
+            key="spotlight-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Search prompts"
             className={cn(
-              "max-h-[60vh] overflow-y-auto",
-              "overscroll-contain"
+              "fixed left-1/2 top-[12%] z-50",
+              "w-[calc(100%-2rem)] max-w-xl",
+              "bg-card text-card-foreground",
+              "border border-border/50 rounded-2xl",
+              "shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25),0_0_0_1px_rgba(0,0,0,0.05)]",
+              "overflow-hidden"
             )}
+            initial={{ opacity: 0, scale: 0.96, x: "-50%" }}
+            animate={{ opacity: 1, scale: 1, x: "-50%" }}
+            exit={{ opacity: 0, scale: 0.96, x: "-50%" }}
+            transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
           >
-            {results.length === 0 && query && (
-              <div className="px-4 py-8 text-center text-muted-foreground" role="status">
-                No results for &quot;{query}&quot;
-              </div>
-            )}
-
-            {results.length === 0 && !query && (
-              <div className="px-4 py-8 text-center text-muted-foreground">
-                Start typing to search prompts...
-              </div>
-            )}
-
-            {results.map((result, index) => (
-              <button
-                key={result.prompt.id}
-                id={`spotlight-result-${result.prompt.id}`}
-                data-result-item
-                role="option"
-                aria-selected={index === selectedIndex}
-                onClick={() => handleSelect(result)}
+            {/* Search Input */}
+            <div className="flex items-center gap-3 px-4 py-3.5 border-b border-border/50">
+              <SearchIcon className="text-muted-foreground/70 shrink-0" aria-hidden="true" />
+              <input
+                ref={inputRef}
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Search prompts..."
                 className={cn(
-                  "w-full px-4 py-3 text-left",
-                  "flex flex-col gap-1",
-                  "transition-colors duration-100",
-                  index === selectedIndex
-                    ? "bg-accent text-accent-foreground"
-                    : "hover:bg-muted/50",
-                  copied === result.prompt.id && "bg-green-500/20"
+                  "flex-1 bg-transparent outline-none",
+                  "text-base placeholder:text-muted-foreground/60"
                 )}
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
+                role="combobox"
+                aria-expanded={results.length > 0}
+                aria-controls="spotlight-results"
+                aria-activedescendant={results[selectedIndex] ? `spotlight-result-${results[selectedIndex].prompt.id}` : undefined}
+                aria-autocomplete="list"
+              />
+              {/* Semantic mode toggle */}
+              <button
+                type="button"
+                onClick={() => setSemanticMode(!semanticMode)}
+                title={semanticMode ? "Semantic search enabled" : "Enable semantic search"}
+                className={cn(
+                  "shrink-0 size-8 rounded-lg flex items-center justify-center transition-colors duration-150",
+                  semanticMode
+                    ? "text-amber-500 bg-amber-500/10 hover:bg-amber-500/20"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                )}
+                aria-pressed={semanticMode}
+                aria-label="Toggle semantic search"
               >
-                <div className="flex items-center gap-2">
-                  <span className="font-medium truncate">
-                    {result.prompt.title}
-                  </span>
-                  <Badge variant="secondary" className="text-xs shrink-0">
-                    {result.prompt.category}
-                  </Badge>
-                  {copied === result.prompt.id && (
-                    <span className="text-xs text-green-600 dark:text-green-400 ml-auto" aria-live="polite">
-                      Copied!
-                    </span>
-                  )}
-                </div>
-                <p className="text-sm text-muted-foreground line-clamp-1">
-                  {result.prompt.description}
-                </p>
+                <SparklesIcon className={cn("size-4", isReranking && "animate-pulse")} />
               </button>
-            ))}
-          </div>
+              <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-1 text-[11px] text-muted-foreground/70 bg-muted/50 rounded-md font-mono">
+                esc
+              </kbd>
+            </div>
 
-          {/* Footer */}
-          <div className="flex items-center justify-between gap-4 px-4 py-2 border-t text-xs text-muted-foreground bg-muted/30">
-            <div className="flex items-center gap-4">
-              <span className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 bg-muted rounded font-mono">↑</kbd>
-                <kbd className="px-1.5 py-0.5 bg-muted rounded font-mono">↓</kbd>
-                <span className="ml-1">Navigate</span>
-              </span>
-              <span className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 bg-muted rounded font-mono">↵</kbd>
-                <span className="ml-1">Copy</span>
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              {semanticMode && (
-                <span className="flex items-center gap-1 text-amber-500">
-                  <SparklesIcon className={cn("size-3", isReranking && "animate-pulse")} />
-                  {isReranking ? "Improving..." : "Semantic"}
-                </span>
+            {/* Results List */}
+            <div
+              ref={listRef}
+              id="spotlight-results"
+              role="listbox"
+              aria-label="Search results"
+              className={cn(
+                "max-h-[60vh] overflow-y-auto",
+                "overscroll-contain"
               )}
-              <span className="flex items-center gap-1">
-                <CommandIcon className="size-3" />
-                <span>K</span>
-                <span className="ml-1">to open</span>
-              </span>
+            >
+              {/* No results state */}
+              {results.length === 0 && query && (
+                <div className="px-4 py-10 text-center" role="status">
+                  <p className="text-muted-foreground">No results for &quot;{query}&quot;</p>
+                  <p className="text-sm text-muted-foreground/60 mt-1">Try different keywords or enable semantic search</p>
+                </div>
+              )}
+
+              {/* Featured prompts in empty state */}
+              {showFeatured && (
+                <div className="py-2">
+                  <div className="px-4 py-2 flex items-center gap-2">
+                    <StarIcon className="size-3.5 text-amber-500" />
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Featured</span>
+                  </div>
+                  {featuredPrompts.map((prompt) => (
+                    <button
+                      key={prompt.id}
+                      onClick={() => handleFeaturedSelect(prompt)}
+                      className={cn(
+                        "w-full px-4 py-3 text-left",
+                        "flex items-start gap-3",
+                        "transition-colors duration-150",
+                        "hover:bg-muted/50",
+                        copied === prompt.id && "bg-emerald-500/10"
+                      )}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-medium text-foreground truncate">
+                            {prompt.title}
+                          </span>
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0 capitalize">
+                            {prompt.category}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground line-clamp-1">
+                          {prompt.description}
+                        </p>
+                        {/* Preview snippet */}
+                        <p className="text-xs text-muted-foreground/60 mt-1.5 line-clamp-1 font-mono">
+                          {prompt.content.slice(0, 80)}...
+                        </p>
+                      </div>
+                      <div className="shrink-0 pt-0.5">
+                        {copied === prompt.id ? (
+                          <CheckIcon className="size-4 text-emerald-500" />
+                        ) : (
+                          <CopyIcon className="size-4 text-muted-foreground/40" />
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Search results */}
+              {results.map((result, index) => (
+                <button
+                  key={result.prompt.id}
+                  id={`spotlight-result-${result.prompt.id}`}
+                  data-result-item
+                  role="option"
+                  aria-selected={index === selectedIndex}
+                  onClick={() => handleSelect(result)}
+                  className={cn(
+                    "w-full px-4 py-3 text-left",
+                    "flex items-start gap-3",
+                    "transition-colors duration-150",
+                    index === selectedIndex
+                      ? "bg-indigo-50 dark:bg-indigo-950/30"
+                      : "hover:bg-muted/50",
+                    copied === result.prompt.id && "bg-emerald-500/10"
+                  )}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={cn(
+                        "font-medium truncate",
+                        index === selectedIndex ? "text-indigo-600 dark:text-indigo-400" : "text-foreground"
+                      )}>
+                        {result.prompt.title}
+                      </span>
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0 capitalize">
+                        {result.prompt.category}
+                      </Badge>
+                      {result.prompt.featured && (
+                        <StarIcon className="size-3 text-amber-500 shrink-0" />
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground line-clamp-1">
+                      {result.prompt.description}
+                    </p>
+                    {/* Tags */}
+                    {result.prompt.tags.length > 0 && (
+                      <div className="flex items-center gap-1.5 mt-1.5">
+                        {result.prompt.tags.slice(0, 3).map((tag) => (
+                          <span key={tag} className="text-[10px] text-muted-foreground/60 bg-muted/50 px-1.5 py-0.5 rounded">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="shrink-0 pt-0.5">
+                    {copied === result.prompt.id ? (
+                      <CheckIcon className="size-4 text-emerald-500" />
+                    ) : (
+                      <CopyIcon className={cn(
+                        "size-4",
+                        index === selectedIndex ? "text-indigo-500" : "text-muted-foreground/40"
+                      )} />
+                    )}
+                  </div>
+                </button>
+              ))}
             </div>
-          </div>
-        </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-between gap-4 px-4 py-2.5 border-t border-border/50 text-[11px] text-muted-foreground/70 bg-muted/20">
+              <div className="flex items-center gap-4">
+                <span className="hidden sm:flex items-center gap-1.5">
+                  <kbd className="px-1.5 py-0.5 bg-muted/70 rounded font-mono">↑</kbd>
+                  <kbd className="px-1.5 py-0.5 bg-muted/70 rounded font-mono">↓</kbd>
+                  <span className="ml-0.5">Navigate</span>
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <kbd className="px-1.5 py-0.5 bg-muted/70 rounded font-mono">↵</kbd>
+                  <span className="ml-0.5">Copy</span>
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                {semanticMode && (
+                  <span className="flex items-center gap-1.5 text-amber-500">
+                    <SparklesIcon className={cn("size-3", isReranking && "animate-pulse")} />
+                    {isReranking ? "Improving..." : "Semantic"}
+                  </span>
+                )}
+                <span className="hidden sm:flex items-center gap-1">
+                  <CommandIcon className="size-3" />
+                  <span>K</span>
+                  <span className="ml-0.5 text-muted-foreground/50">to open</span>
+                </span>
+              </div>
+            </div>
+          </motion.div>
+        </>
       )}
-    </>,
+    </AnimatePresence>,
     document.body
   )
 }
