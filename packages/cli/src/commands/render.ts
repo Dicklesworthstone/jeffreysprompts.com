@@ -107,17 +107,25 @@ export async function renderCommand(id: string, options: RenderOptions) {
 
   if (options.stdin) {
     const chunks: Buffer[] = [];
+    let totalBytes = 0;
     const STDIN_TIMEOUT_MS = 30000; // 30 second timeout for stdin
+    // Allow slightly more than maxContext to detect truncation, but cap memory usage
+    const readLimit = maxContext + 1024;
 
     // Create a timeout promise that rejects if stdin takes too long
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => reject(new Error("stdin_timeout")), STDIN_TIMEOUT_MS);
     });
 
-    // Read stdin with timeout protection
+    // Read stdin with timeout protection and size limit
     const readStdin = async () => {
       for await (const chunk of process.stdin) {
         chunks.push(chunk);
+        totalBytes += chunk.length;
+        // Early termination once we have enough data (prevents memory exhaustion)
+        if (totalBytes >= readLimit) {
+          break;
+        }
       }
     };
 

@@ -3,7 +3,7 @@
  * Used by render and copy commands for variable parsing and prompting
  */
 
-import { existsSync, readFileSync, statSync } from "fs";
+import { existsSync, readFileSync, statSync, openSync, readSync, closeSync } from "fs";
 import { input, select, editor } from "@inquirer/prompts";
 import type { PromptVariable } from "@jeffreysprompts/core/prompts/types";
 
@@ -38,13 +38,18 @@ export function readFileVariable(path: string, varName: string): string {
 
   const stats = statSync(path);
   if (stats.size > MAX_FILE_VAR_SIZE) {
-    // Read as buffer and truncate by bytes, then decode to UTF-8
-    // This ensures we actually cap at MAX_FILE_VAR_SIZE bytes
-    const buffer = readFileSync(path);
-    const truncatedBuffer = buffer.subarray(0, MAX_FILE_VAR_SIZE);
-    // Decode, replacing any incomplete multi-byte sequences at the end
-    const content = truncatedBuffer.toString("utf-8");
-    return content + `\n\n[File truncated to ${MAX_FILE_VAR_SIZE} bytes from ${stats.size} bytes]`;
+    // Read only the bytes we need - prevents memory exhaustion from large files
+    const fd = openSync(path, "r");
+    try {
+      const buffer = Buffer.allocUnsafe(MAX_FILE_VAR_SIZE);
+      const bytesRead = readSync(fd, buffer, 0, MAX_FILE_VAR_SIZE, 0);
+      const truncatedBuffer = buffer.subarray(0, bytesRead);
+      // Decode, replacing any incomplete multi-byte sequences at the end
+      const content = truncatedBuffer.toString("utf-8");
+      return content + `\n\n[File truncated to ${MAX_FILE_VAR_SIZE} bytes from ${stats.size} bytes]`;
+    } finally {
+      closeSync(fd);
+    }
   }
 
   return readFileSync(path, "utf-8");
