@@ -3,7 +3,7 @@
 // Thin wrapper that imports from @jeffreysprompts/cli
 
 import { cac } from "cac";
-import { mkdirSync, writeFileSync, existsSync } from "fs";
+import { mkdirSync, writeFileSync, readFileSync, existsSync } from "fs";
 import { join, resolve } from "path";
 import { homedir } from "os";
 import {
@@ -113,23 +113,33 @@ cli
 cli
   .command("search <query>", "Search prompts")
   .option("--json", "Output as JSON")
-  .option("--limit <n>", "Max results", { default: 10 })
+  .option("--limit <n>", "Max results", { default: 20 })
   .action((query, options) => {
-    const results = searchPrompts(query, { limit: options.limit });
+    const limit = parseInt(options.limit, 10);
+    const results = searchPrompts(query, { limit });
 
-    if (options.json) {
+    if (options.json || !isTTY) {
       output(
-        results.map((r) => ({
-          id: r.prompt.id,
-          title: r.prompt.title,
-          score: r.score,
-          matchedFields: r.matchedFields,
-        })),
+        {
+          query,
+          count: results.length,
+          results: results.map((r) => ({
+            id: r.prompt.id,
+            score: r.score,
+            title: r.prompt.title,
+            description: r.prompt.description,
+          })),
+        },
         true
       );
     } else {
-      for (const r of results) {
-        console.log(`${r.prompt.id.padEnd(20)} ${r.score.toFixed(2).padStart(6)} ${r.prompt.title}`);
+      if (results.length === 0) {
+        console.log(`No results for "${query}"`);
+      } else {
+        console.log(`Search: "${query}" (${results.length} result${results.length !== 1 ? "s" : ""})\n`);
+        results.forEach((r, i) => {
+          console.log(`${String(i + 1).padStart(2)}. ${r.prompt.id.padEnd(20)} [${r.score.toFixed(2)}] ${r.prompt.title}`);
+        });
       }
     }
   });
@@ -149,24 +159,124 @@ cli
 
     if (options.raw) {
       console.log(prompt.content);
-    } else if (options.json) {
+    } else if (options.json || !isTTY) {
       output(prompt, true);
     } else {
+      // Markdown-style human output
       console.log(`# ${prompt.title}\n`);
-      console.log(`${prompt.description}\n`);
-      console.log(`Category: ${prompt.category}`);
-      console.log(`Tags: ${prompt.tags.join(", ")}`);
-      console.log(`Author: ${prompt.author}\n`);
-      console.log("---\n");
+      console.log(`> ${prompt.description}\n`);
+      console.log(`**Category:** ${prompt.category}`);
+      console.log(`**Tags:** ${prompt.tags.join(", ")}`);
+      console.log(`**Author:** ${prompt.author}${prompt.twitter ? ` (${prompt.twitter})` : ""}`);
+      console.log(`**Version:** ${prompt.version}`);
+      if (prompt.difficulty) console.log(`**Difficulty:** ${prompt.difficulty}`);
+      console.log("\n---\n");
+      console.log("## Prompt\n");
+      console.log("```");
       console.log(prompt.content);
+      console.log("```");
+
+      if (prompt.whenToUse && prompt.whenToUse.length > 0) {
+        console.log("\n## When to Use\n");
+        for (const use of prompt.whenToUse) {
+          console.log(`- ${use}`);
+        }
+      }
+
+      if (prompt.tips && prompt.tips.length > 0) {
+        console.log("\n## Tips\n");
+        for (const tip of prompt.tips) {
+          console.log(`- ${tip}`);
+        }
+      }
+
+      if (prompt.examples && prompt.examples.length > 0) {
+        console.log("\n## Examples\n");
+        for (const example of prompt.examples) {
+          console.log(`- ${example}`);
+        }
+      }
     }
   });
 
 // Export command
 cli
-  .command("export <id>", "Export a prompt")
+  .command("export [...ids]", "Export prompts to files")
   .option("--format <format>", "Format: skill or md", { default: "skill" })
-  .action((id, options) => {
+  .option("--all", "Export all prompts")
+  .option("--stdout", "Print to stdout instead of files")
+  .option("--json", "Output as JSON")
+  .action((ids, options) => {
+    // Determine prompts to export
+    let promptsToExport: typeof prompts = [];
+    if (options.all) {
+      promptsToExport = [...prompts];
+    } else {
+      if (!ids || ids.length === 0) {
+        console.error("Error: Provide prompt IDs or use --all");
+        process.exit(1);
+      }
+      for (const id of ids) {
+        const p = getPrompt(id);
+        if (!p) {
+          console.error(`Error: Prompt not found: ${id}`);
+          process.exit(1);
+        }
+        promptsToExport.push(p);
+      }
+    }
+
+    const exported: string[] = [];
+    const errors: { id: string; error: string }[] = [];
+
+    for (const prompt of promptsToExport) {
+      const content = options.format === "skill"
+        ? generateSkillMd(prompt)
+        : generatePromptMarkdown(prompt);
+
+      if (options.stdout) {
+        console.log(content);
+        if (promptsToExport.length > 1) console.log("\n---\n");
+      } else {
+        const ext = options.format === "skill" ? "-SKILL.md" : ".md";
+        const filename = `${prompt.id}${ext}`;
+        try {
+          writeFileSync(filename, content);
+          exported.push(filename);
+        } catch (err) {
+          errors.push({ id: prompt.id, error: String(err) });
+        }
+      }
+    }
+
+    if (!options.stdout) {
+      if (options.json || !isTTY) {
+        output({ exported, errors }, true);
+      } else {
+        if (exported.length > 0) {
+          console.log(`Exported ${exported.length} file(s):`);
+          for (const f of exported) {
+            console.log(`  ✓ ${f}`);
+          }
+        }
+        if (errors.length > 0) {
+          console.error(`Failed to export ${errors.length} file(s):`);
+          for (const e of errors) {
+            console.error(`  ✗ ${e.id}: ${e.error}`);
+          }
+          process.exit(1);
+        }
+      }
+    }
+  });
+
+// Render command - renders prompt with variable substitution
+cli
+  .command("render <id>", "Render prompt with variables")
+  .option("--context <path>", "Append file content as context")
+  .option("--stdin", "Read context from stdin")
+  .option("--max-context <bytes>", "Max context size in bytes", { default: "204800" })
+  .action(async (id, options) => {
     const prompt = getPrompt(id);
 
     if (!prompt) {
@@ -174,11 +284,53 @@ cli
       process.exit(1);
     }
 
-    if (options.format === "skill") {
-      console.log(generateSkillMd(prompt));
-    } else {
-      console.log(generatePromptMarkdown(prompt));
+    // Parse --VAR=value from process.argv
+    const variables: Record<string, string> = {};
+    for (const arg of process.argv) {
+      const match = arg.match(/^--([A-Z_][A-Z0-9_]*)=(.*)$/);
+      if (match) {
+        variables[match[1]] = match[2];
+      }
     }
+
+    // Read context from file or stdin
+    let context = "";
+    const maxContext = parseInt(options.maxContext, 10);
+
+    if (options.stdin) {
+      // Read from stdin
+      const chunks: Buffer[] = [];
+      for await (const chunk of process.stdin) {
+        chunks.push(chunk);
+      }
+      context = Buffer.concat(chunks).toString("utf-8");
+    } else if (options.context) {
+      if (!existsSync(options.context)) {
+        console.error(`Context file not found: ${options.context}`);
+        process.exit(1);
+      }
+      context = readFileSync(options.context, "utf-8");
+    }
+
+    // Truncate context if needed
+    let truncated = false;
+    if (context.length > maxContext) {
+      context = context.slice(0, maxContext);
+      truncated = true;
+    }
+
+    // Render the prompt
+    let rendered = renderPrompt(prompt, variables);
+
+    // Append context if provided
+    if (context) {
+      rendered += "\n\n---\n\n## Context\n\n" + context;
+      if (truncated) {
+        rendered += `\n\n[Context truncated to ${maxContext} bytes]`;
+      }
+    }
+
+    console.log(rendered);
   });
 
 // Install command
