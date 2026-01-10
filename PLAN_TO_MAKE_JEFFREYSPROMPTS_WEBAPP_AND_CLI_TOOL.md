@@ -55,7 +55,7 @@ JeffreysPrompts.com is a platform for showcasing, distributing, and using Jeffre
    - Install prompts directly as Claude Code skills
 
 2. **CLI Tool (`jfp`)**: A command-line tool for power users and agents that provides:
-   - Fuzzy search with fzf-style interactive mode
+   - BM25 search with fzf-style interactive mode
    - JSON output for programmatic access
    - Direct installation of prompts as Claude Code skills
    - Quick-start mode optimized for agent discoverability
@@ -1097,7 +1097,7 @@ IFS=$'\n\t'
 
 # Override location if desired:
 #   JFP_TARGET_DIR="$HOME/.config/claude/skills" bash install.sh
-TARGET_DIR="${JFP_TARGET_DIR:-"$HOME/.config/claude/skills"}"
+TARGET_DIR="${JFP_TARGET_DIR:-$HOME/.config/claude/skills}"
 
 mkdir -p "$TARGET_DIR"
 
@@ -1189,9 +1189,14 @@ Centralize the registry payload shape so both web and CLI stay in sync.
 import { prompts, bundles, workflows, categories, tags } from "../prompts/registry";
 
 export function buildRegistryPayload() {
+  const updatedAt = prompts.reduce((latest, p) => {
+    const ts = p.updatedAt ?? p.created;
+    return ts > latest ? ts : latest;
+  }, "1970-01-01");
+
   return {
     version: process.env.JFP_REGISTRY_VERSION ?? "dev",
-    updatedAt: new Date().toISOString(),
+    updatedAt,
     prompts,
     bundles,
     workflows,
@@ -1260,11 +1265,12 @@ export function filterByTag(tag: string, source: Prompt[] = prompts): Prompt[] {
 
 export function searchAndFilter(
   query: string,
-  options: { category?: PromptCategory; tags?: string[] } = {}
+  options: { category?: PromptCategory; tags?: string[] } = {},
+  source: Prompt[] = prompts
 ): SearchResult[] {
   let results: SearchResult[] = query.trim()
-    ? searchPrompts(query)
-    : prompts.map((p) => ({
+    ? searchPrompts(query, 20, source)
+    : source.map((p) => ({
         id: p.id,
         title: p.title,
         description: p.description,
@@ -1316,6 +1322,8 @@ export function expandQueryWithSynonyms(query: string): string {
 }
 ```
 
+Maintain `SYNONYMS` as a small, curated list (dev verbs + common aliases). Update alongside new prompt categories/tags.
+
 ### 3.3 Automated Skills Management via jfp CLI
 
 > **Note**: This section shows the core CLI implementation. Some functions called in `main()` are
@@ -1347,7 +1355,7 @@ import { generatePromptMarkdown } from "@jfp/core/export/markdown";
 import { renderPrompt } from "@jfp/core/template/render";
 import { cac } from "cac";
 import { loadRegistry } from "./lib/registry-loader";
-import { input, select } from "@inquirer/prompts";
+import { input, select, confirm } from "@inquirer/prompts";
 
 // In production, commands should operate on registry prompts loaded via SWR cache
 // (see Part 6.6), not the static bundled `prompts` array.
@@ -1376,6 +1384,7 @@ interface Flags {
   limit?: number;
   bundle?: string;
   format?: string; // "skill" | "md"
+  confirm?: boolean;
 }
 
 function printJson(value: unknown, flags: Flags) {
@@ -1414,7 +1423,12 @@ async function promptForVars(prompt: Prompt, existing: Record<string, string> = 
     const value = variable.type === "select"
       ? await select({ message: variable.label, choices: variable.options?.map((o) => ({ name: o, value: o })) ?? [] })
       : await input({ message: `${variable.label}`, default: variable.default });
-    vars[variable.name] = value ?? "";
+
+    if (variable.type === "file" && value) {
+      vars[variable.name] = readContextFile(value, 200000);
+    } else {
+      vars[variable.name] = value ?? "";
+    }
   }
 
   return vars;
@@ -1447,12 +1461,27 @@ function formatRegistryRefresh(result: { updated: boolean; version: string }) {
     : `Registry already up to date (${result.version})`;
 }
 
-function getRegistryStatus() {
-  // Read cache metadata (etag, version, cachedAt) from ~/.config/jfp/registry.meta.json
-  return { version: "unknown", cachedAt: undefined, updatedAt: undefined };
+function getRegistryPaths() {
+  const base = join(homedir(), ".config", "jfp");
+  return {
+    cachePath: join(base, "registry.json"),
+    metaPath: join(base, "registry.meta.json"),
+  };
 }
 
-async function refreshRegistry(cachePath?: string) {
+function getRegistryStatus(metaPath: string) {
+  if (!existsSync(metaPath)) {
+    return { version: "none", cachedAt: undefined, updatedAt: undefined };
+  }
+  const meta = JSON.parse(readFileSync(metaPath, "utf-8"));
+  return {
+    version: meta.version ?? "unknown",
+    cachedAt: meta.cachedAt,
+    updatedAt: meta.updatedAt,
+  };
+}
+
+async function refreshRegistry(opts: { cachePath: string; metaPath: string; registryUrl?: string }) {
   // See Part 6.6 for full SWR + ETag implementation (writes cache + metadata).
   // If registry.manifest.json is present, verify sha256 before writing.
 }
@@ -1460,12 +1489,22 @@ async function refreshRegistry(cachePath?: string) {
 function printCompletion(shell: string) {
   // Use cac's built-in completion output or ship a static template.
   // Example: console.log(cli.generateCompletion({ shell }));
+  if (shell === "bash") {
+    console.log(`# bash completion (generated)\ncomplete -W "list search show copy render export install uninstall installed update bundles bundle categories tags registry open serve completion about" jfp`);
+  } else if (shell === "zsh") {
+    console.log(`# zsh completion (generated)\ncompdef _gnu_generic jfp`);
+  } else if (shell === "fish") {
+    console.log(`complete -c jfp -f -a "list search show copy render export install uninstall installed update bundles bundle categories tags registry open serve completion about"`);
+  } else {
+    console.error("Unsupported shell");
+  }
 }
 
 function updateSkillsManifest(skillsDir: string, registry: Prompt[]) {
+  if (!existsSync(skillsDir)) return;
   const manifestPath = join(skillsDir, "manifest.json");
   const entries = registry.map((p) => ({
-    id: p.id,
+    promptId: p.id,
     version: p.version,
     updatedAt: p.updatedAt ?? p.created,
     hash: createHash("sha256").update(generateSkillMd(p)).digest("hex"),
@@ -1487,7 +1526,7 @@ cli
 interface JfpConfig {
   skillsDir: string;           // Default: ~/.config/claude/skills
   projectSkillsDir: string;    // Default: .claude/skills
-  registryUrl: string;         // Default: https://jeffreysprompts.com/api/prompts
+  registryUrl: string;         // Default: https://jeffreysprompts.com/registry.json
   registryCachePath: string;   // Default: ~/.config/jfp/registry.json
   autoRefreshRegistry: boolean;
   autoUpdate: boolean;         // Check for CLI updates on startup (opt-in)
@@ -1676,6 +1715,10 @@ async function renderCommand(id: string, flags: Flags) {
   }
 
   const vars = flags.vars ?? {};
+  const missingRequired = (prompt.variables ?? []).filter((v) => v.required && !vars[v.name]);
+  if (missingRequired.length && !flags.fill) {
+    console.error(chalk.yellow(`Missing required vars: ${missingRequired.map((v) => v.name).join(", ")} (use --fill)`));
+  }
   let output = renderPrompt(prompt, vars);
 
   if (flags.context) {
@@ -1705,12 +1748,14 @@ async function openCommand(id: string) {
 
 // jfp registry status/refresh — Registry cache management
 async function registryStatusCommand(flags: Flags) {
-  const status = await getRegistryStatus();
+  const paths = getRegistryPaths();
+  const status = await getRegistryStatus(paths.metaPath);
   flags.json ? printJson(status, flags) : console.log(formatRegistryStatus(status));
 }
 
 async function registryRefreshCommand(flags: Flags) {
-  const result = await refreshRegistry();
+  const paths = getRegistryPaths();
+  const result = await refreshRegistry({ ...paths });
   flags.json ? printJson(result, flags) : console.log(formatRegistryRefresh(result));
 }
 
@@ -1811,6 +1856,7 @@ COMMANDS:
   uninstall <id>...       Remove installed skills
     --all                 Remove all installed skills
     --project             Remove from .claude/skills
+    --confirm             Required in non-interactive contexts
 
   installed               List installed skills
     --json                Output as JSON
@@ -1927,6 +1973,11 @@ async function uninstallCommand(args: string[], flags: Flags) {
     ? registry.map((p) => p.id)
     : skillIds;
 
+  if (!flags.confirm) {
+    const ok = await confirm({ message: `Remove ${toRemove.length} skill(s)?` });
+    if (!ok) return;
+  }
+
   for (const skillId of toRemove) {
     const skillDir = join(targetDir, skillId);
     if (existsSync(skillDir)) {
@@ -1936,6 +1987,8 @@ async function uninstallCommand(args: string[], flags: Flags) {
       console.log(chalk.dim(`⏭  ${skillId} (not installed)`));
     }
   }
+
+  updateSkillsManifest(targetDir, registry);
 }
 
 // jfp installed — List installed skills
@@ -1986,6 +2039,13 @@ function extractSkillVersion(content: string): string {
   return match?.[1]?.replace(/\"/g, "") ?? "unknown";
 }
 
+function readSkillsManifest(skillsDir: string) {
+  const path = join(skillsDir, "manifest.json");
+  if (!existsSync(path)) return new Map<string, string>();
+  const data = JSON.parse(readFileSync(path, "utf-8"));
+  return new Map((data.entries ?? []).map((e: { promptId: string; version: string }) => [e.promptId, e.version]));
+}
+
 async function updateCommand(flags: Flags) {
   // Re-install all installed skills with --force
   const personalDir = join(homedir(), ".config", "claude", "skills");
@@ -1993,6 +2053,8 @@ async function updateCommand(flags: Flags) {
 
   let updated = 0;
   const registry = await loadRegistry();
+  const personalManifest = readSkillsManifest(personalDir);
+  const projectManifest = readSkillsManifest(projectDir);
 
   for (const prompt of registry) {
     const personalPath = join(personalDir, prompt.id, "SKILL.md");
@@ -2003,6 +2065,8 @@ async function updateCommand(flags: Flags) {
       const isGenerated = existing.includes("x_jfp_generated: true");
       if (!isGenerated && !flags.force) {
         console.log(chalk.yellow(`⏭  Skipping ${prompt.id} (modified; use --force to overwrite)`));
+      } else if (personalManifest.get(prompt.id) === prompt.version && !flags.force) {
+        continue;
       } else if (flags.dryRun) {
         const currentVersion = extractSkillVersion(existing);
         const nextVersion = prompt.version;
@@ -2023,6 +2087,8 @@ async function updateCommand(flags: Flags) {
       const isGenerated = existing.includes("x_jfp_generated: true");
       if (!isGenerated && !flags.force) {
         console.log(chalk.yellow(`⏭  Skipping ${prompt.id} (modified; use --force to overwrite)`));
+      } else if (projectManifest.get(prompt.id) === prompt.version && !flags.force) {
+        continue;
       } else if (flags.dryRun) {
         const currentVersion = extractSkillVersion(existing);
         const nextVersion = prompt.version;
@@ -2171,7 +2237,7 @@ function showQuickStart() {
 
 QUICK START:
   jfp list                    List all prompts
-  jfp search "idea"           Fuzzy search
+  jfp search "idea"           BM25 search
   jfp suggest "update docs"   Semantic suggestion
   jfp show idea-wizard        View full prompt
   jfp install idea-wizard     Install as Claude Code skill
@@ -2243,6 +2309,7 @@ cli.command("install <id...>", "install skills")
 cli.command("uninstall <id...>", "remove installed skills")
   .option("--all", "remove all skills")
   .option("--project", "remove from .claude/skills")
+  .option("--confirm", "confirm destructive uninstall")
   .action((ids, opts) => uninstallCommand(ids, { ...opts, json: cli.options.json, pretty: cli.options.pretty }));
 
 cli.command("installed", "list installed skills")
@@ -2440,6 +2507,10 @@ export async function GET(request: Request) {
 }
 ```
 
+Note:
+- `/registry.json` is the canonical full registry payload (static, cacheable).
+- `/api/prompts` supports filtering (`?category=...&tag=...`) for web UI.
+
 **API endpoint for single skill (SKILL.md):**
 
 ```typescript
@@ -2537,7 +2608,7 @@ esac
 
 BINARY="jfp-\$PLATFORM-\$ARCH"
 URL="${RELEASES_BASE}/\$BINARY"
-SHA_URL="${RELEASES_BASE}/\$BINARY.sha256"
+SHA_URL="${RELEASES_BASE}/SHA256SUMS.txt"
 
 if [ -d "\$HOME/.local/bin" ]; then
   INSTALL_DIR="\$HOME/.local/bin"
@@ -2560,12 +2631,12 @@ TMP_DIR="\$(mktemp -d)"
 # Note: cleanup can be done manually if desired (avoid destructive commands in docs).
 
 curl -L "\$URL" -o "\$TMP_DIR/\$BINARY"
-curl -L "\$SHA_URL" -o "\$TMP_DIR/\$BINARY.sha256"
+curl -L "\$SHA_URL" -o "\$TMP_DIR/SHA256SUMS.txt"
 
 if command -v sha256sum >/dev/null 2>&1; then
-  (cd "\$TMP_DIR" && sha256sum -c "\$BINARY.sha256")
+  (cd "\$TMP_DIR" && grep " \$BINARY\$" SHA256SUMS.txt | sha256sum -c -)
 elif command -v shasum >/dev/null 2>&1; then
-  (cd "\$TMP_DIR" && shasum -a 256 -c "\$BINARY.sha256")
+  (cd "\$TMP_DIR" && grep " \$BINARY\$" SHA256SUMS.txt | shasum -a 256 -c -)
 else
   echo "No SHA256 tool found (sha256sum or shasum)."
   echo "Please install one or verify checksums manually."
@@ -2580,7 +2651,7 @@ echo "✓ jfp installed to \$INSTALL_PATH"
 echo ""
 echo "Quick start:"
 echo "  jfp list              # List all prompts"
-echo "  jfp search \\"idea\\"    # Fuzzy search"
+echo "  jfp search \\"idea\\"    # BM25 search"
 echo "  jfp install --all    # Install as Claude Code skills"
 echo ""
 
@@ -3181,7 +3252,7 @@ jfp — Jeffrey's Prompts CLI
 
 QUICK START:
   jfp list                    List all prompts
-  jfp search "idea"           Fuzzy search
+  jfp search "idea"           BM25 search
   jfp show idea-wizard        View full prompt
   jfp install idea-wizard     Install as Claude Code skill
 
@@ -3401,7 +3472,7 @@ jfp list --category ideation  # Filter by category
 jfp list --tag ultrathink     # Filter by tag
 jfp list --json               # JSON output for agents
 
-jfp search <query>            # Fuzzy search
+jfp search <query>            # BM25 search
 jfp search "robot" --json     # JSON output
 
 jfp suggest <task>            # Suggest prompts for a task
@@ -3425,6 +3496,7 @@ jfp install --all             # Install all skills
 jfp install --project         # Install to .claude/skills
 
 jfp uninstall <id>...         # Remove installed skills
+jfp uninstall <id>... --confirm  # Required in scripts/non-interactive
 jfp uninstall --all
 
 jfp installed                 # List installed skills
@@ -3672,6 +3744,9 @@ await Bun.write(
 );
 ```
 
+Versioning note:
+- set `JFP_REGISTRY_VERSION` at build time (e.g., git short SHA or semver tag) so content updates are traceable.
+
 ### 6.5 CLI Output Contracts & Golden Tests (NEW)
 
 Because agents depend on stable JSON output, add golden tests for:
@@ -3688,7 +3763,7 @@ Prompts are content, and content changes faster than binaries. The CLI should lo
 
 - Ship with an embedded snapshot (offline-first).
 - Read cache from `~/.config/jfp/registry.json` if present.
-- In the background, fetch `/api/prompts` with `If-None-Match` and update cache for next run.
+- In the background, fetch `/registry.json` with `If-None-Match` and update cache for next run.
 - Store the latest `ETag` and timestamps in `~/.config/jfp/registry.meta.json` to avoid unnecessary downloads.
 
 ```typescript
@@ -3699,13 +3774,14 @@ export async function loadRegistry(): Promise<Prompt[]> {
   const cachePath = join(homedir(), ".config", "jfp", "registry.json");
   const metaPath = join(homedir(), ".config", "jfp", "registry.meta.json");
   const localDir = join(homedir(), ".config", "jfp", "local");
+  const registryUrl = "https://jeffreysprompts.com/registry.json";
 
   const cached = existsSync(cachePath)
     ? JSON.parse(readFileSync(cachePath, "utf-8"))
     : null;
 
   // Fire-and-forget refresh (2s timeout)
-  refreshRegistry({ cachePath, metaPath }).catch(() => {});
+  refreshRegistry({ cachePath, metaPath, registryUrl }).catch(() => {});
 
   const base = cached?.prompts ?? embedded;
   const local = loadLocalPrompts(localDir);
@@ -3737,9 +3813,13 @@ function loadLocalPrompts(dir: string): Prompt[] {
 ```typescript
 import { createHash } from "crypto";
 
-async function refreshRegistry({ cachePath, metaPath }: { cachePath: string; metaPath: string }) {
+async function refreshRegistry({
+  cachePath,
+  metaPath,
+  registryUrl = "https://jeffreysprompts.com/registry.json",
+}: { cachePath: string; metaPath: string; registryUrl?: string }) {
   const meta = existsSync(metaPath) ? JSON.parse(readFileSync(metaPath, "utf-8")) : {};
-  const res = await fetch("https://jeffreysprompts.com/api/prompts", {
+  const res = await fetch(registryUrl, {
     headers: meta.etag ? { "If-None-Match": meta.etag } : {},
   });
 
@@ -3758,6 +3838,7 @@ async function refreshRegistry({ cachePath, metaPath }: { cachePath: string; met
   writeFileSync(metaPath, JSON.stringify({
     etag: res.headers.get("etag"),
     version: payload.version,
+    updatedAt: payload.updatedAt,
     cachedAt: new Date().toISOString(),
   }, null, 2));
 
@@ -3782,6 +3863,8 @@ The CLI verifies the checksum **before** writing cache:
 
 This adds tamper-resistance without adding heavy signing infrastructure.
 
+Note: checksum verification applies to `/registry.json` only (filtered `/api/prompts` responses are not checksummed).
+
 ### 6.7 Prompt Rendering + Context Injection
 
 Add a render pipeline that fills `{{VARS}}` and can append context:
@@ -3796,6 +3879,8 @@ jfp render idea-wizard --stdin       # read context from stdin
 Guardrails:
 - default max context size (e.g., 200KB)
 - show truncation note if clipped
+- `file` variable type reads file contents (size-capped)
+- `path` variable type passes raw path string
 
 ### 6.8 Local Prompt Scratchpad (Stickiness)
 
@@ -4023,6 +4108,21 @@ export function useLocalStorage<T>(key: string, initial: T) {
   });
   useEffect(() => localStorage.setItem(key, JSON.stringify(value)), [key, value]);
   return [value, setValue] as const;
+}
+```
+
+```tsx
+// apps/web/src/components/prompt-detail-sheet.tsx (sketch)
+// Mobile bottom-sheet with fixed action bar + thumb-friendly inputs
+import { Drawer } from "@/components/ui/drawer";
+
+export function PromptDetailSheet({ prompt, open, onOpenChange }: Props) {
+  return (
+    <Drawer open={open} onOpenChange={onOpenChange}>
+      {/* Variable inputs + rendered preview */}
+      {/* Fixed bottom bar: Copy / Install / Download */}
+    </Drawer>
+  );
 }
 ```
 
@@ -6454,9 +6554,9 @@ This phase upgrades “suggest a prompt” beyond pure lexical matching without 
 ```typescript
 // packages/cli/src/commands/suggest.ts
 
-import { prompts } from "@jfp/core/prompts";
 import { searchPrompts } from "@jfp/core/search/engine";
 import { semanticRerank } from "@jfp/core/search/semantic";
+import { loadRegistry } from "../lib/registry-loader";
 
 async function suggestCommand(task: string, flags: Flags) {
   if (!task?.trim()) {
@@ -6464,7 +6564,8 @@ async function suggestCommand(task: string, flags: Flags) {
     process.exit(2);
   }
 
-  const baseline = searchPrompts(task, flags.limit ?? 10);
+  const registry = await loadRegistry();
+  const baseline = searchPrompts(task, flags.limit ?? 10, registry);
 
   const results = flags.semantic
     ? await semanticRerank(task, baseline)
