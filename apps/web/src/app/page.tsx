@@ -1,40 +1,66 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
-import { prompts, categories } from "@jeffreysprompts/core/prompts/registry";
+import { Suspense, useMemo, useCallback } from "react";
+import { prompts, categories, tags } from "@jeffreysprompts/core/prompts/registry";
 import { searchPrompts } from "@jeffreysprompts/core/search/engine";
 import { Hero } from "@/components/Hero";
 import { PromptGrid } from "@/components/PromptGrid";
+import { CategoryFilter } from "@/components/CategoryFilter";
+import { TagFilter } from "@/components/TagFilter";
+import { useFilterState } from "@/hooks/useFilterState";
 import type { Prompt, PromptCategory } from "@jeffreysprompts/core/prompts/types";
 
-export default function Home() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<PromptCategory | null>(null);
+function HomeContent() {
+  const { filters, setQuery, setCategory, setTags, clearFilters, hasActiveFilters } =
+    useFilterState();
 
-  // Filter prompts based on search and category
+  // Compute category counts
+  const categoryCounts = useMemo(() => {
+    const counts: Record<PromptCategory, number> = {} as Record<PromptCategory, number>;
+    for (const prompt of prompts) {
+      counts[prompt.category] = (counts[prompt.category] ?? 0) + 1;
+    }
+    return counts;
+  }, []);
+
+  // Compute tag counts
+  const tagCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const prompt of prompts) {
+      for (const tag of prompt.tags) {
+        counts[tag] = (counts[tag] ?? 0) + 1;
+      }
+    }
+    return counts;
+  }, []);
+
+  // Filter prompts based on search, category, and tags
   const filteredPrompts = useMemo(() => {
-    if (searchQuery.trim()) {
-      const results = searchPrompts(searchQuery, {
-        category: selectedCategory ?? undefined,
+    let results: Prompt[];
+
+    if (filters.query.trim()) {
+      const searchResults = searchPrompts(filters.query, {
+        category: filters.category ?? undefined,
+        tags: filters.tags.length > 0 ? filters.tags : undefined,
         limit: 50,
       });
-      return results.map((r) => r.prompt);
+      results = searchResults.map((r) => r.prompt);
+    } else {
+      results = [...prompts];
+
+      if (filters.category) {
+        results = results.filter((p) => p.category === filters.category);
+      }
+
+      if (filters.tags.length > 0) {
+        results = results.filter((p) =>
+          filters.tags.some((tag) => p.tags.includes(tag))
+        );
+      }
     }
 
-    if (selectedCategory) {
-      return prompts.filter((p) => p.category === selectedCategory);
-    }
-
-    return prompts;
-  }, [searchQuery, selectedCategory]);
-
-  const handleSearch = useCallback((query: string) => {
-    setSearchQuery(query);
-  }, []);
-
-  const handleCategorySelect = useCallback((category: PromptCategory | null) => {
-    setSelectedCategory(category);
-  }, []);
+    return results;
+  }, [filters]);
 
   const handlePromptClick = useCallback((prompt: Prompt) => {
     // TODO: Open prompt detail modal
@@ -53,20 +79,52 @@ export default function Home() {
         promptCount={prompts.length}
         categoryCount={categories.length}
         categories={categories}
-        onSearch={handleSearch}
-        onCategorySelect={handleCategorySelect}
-        selectedCategory={selectedCategory}
+        onSearch={setQuery}
+        onCategorySelect={setCategory}
+        selectedCategory={filters.category}
       />
 
       {/* Main Content */}
       <main className="container-wide px-4 sm:px-6 lg:px-8 py-12">
+        {/* Filters Section */}
+        <div className="mb-8 space-y-4">
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+            {/* Category Filter */}
+            <CategoryFilter
+              categories={categories}
+              selected={filters.category}
+              onChange={setCategory}
+              counts={categoryCounts}
+            />
+
+            {/* Clear all filters */}
+            {hasActiveFilters && (
+              <button
+                onClick={clearFilters}
+                className="text-sm text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors"
+              >
+                Clear all filters
+              </button>
+            )}
+          </div>
+
+          {/* Tag Filter */}
+          <TagFilter
+            tags={tags}
+            selected={filters.tags}
+            onChange={setTags}
+            counts={tagCounts}
+            maxVisible={12}
+          />
+        </div>
+
         {/* Results header */}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">
-              {selectedCategory ? (
-                <span className="capitalize">{selectedCategory}</span>
-              ) : searchQuery ? (
+              {filters.category ? (
+                <span className="capitalize">{filters.category}</span>
+              ) : filters.query ? (
                 "Search Results"
               ) : (
                 "All Prompts"
@@ -74,7 +132,8 @@ export default function Home() {
             </h2>
             <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
               {filteredPrompts.length} prompt{filteredPrompts.length !== 1 ? "s" : ""}
-              {searchQuery && ` for "${searchQuery}"`}
+              {filters.query && ` for "${filters.query}"`}
+              {filters.tags.length > 0 && ` with tags: ${filters.tags.join(", ")}`}
             </p>
           </div>
         </div>
@@ -129,5 +188,13 @@ export default function Home() {
         </div>
       </footer>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-zinc-50 dark:bg-zinc-950" />}>
+      <HomeContent />
+    </Suspense>
   );
 }

@@ -1,6 +1,7 @@
 import { getPrompt } from "@jeffreysprompts/core/prompts";
 import boxen from "boxen";
 import chalk from "chalk";
+import { shouldOutputJson } from "../lib/utils";
 
 interface ShowOptions {
   json?: boolean;

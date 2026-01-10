@@ -1,6 +1,7 @@
 import { prompts } from "@jeffreysprompts/core/prompts";
 import Table from "cli-table3";
 import chalk from "chalk";
+import { shouldOutputJson } from "../lib/utils";
 
 interface ListOptions {
   category?: string;
@@ -19,7 +20,7 @@ export function listCommand(options: ListOptions) {
     results = results.filter((p) => p.tags.includes(options.tag!));
   }
 
-  if (options.json) {
+  if (shouldOutputJson(options)) {
     console.log(JSON.stringify(results, null, 2));
     return;
   }

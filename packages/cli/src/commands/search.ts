@@ -1,5 +1,6 @@
 import { searchPrompts } from "@jeffreysprompts/core/search";
 import chalk from "chalk";
+import { shouldOutputJson } from "../lib/utils";
 
 interface SearchOptions {
   json?: boolean;
@@ -8,7 +9,7 @@ interface SearchOptions {
 export function searchCommand(query: string, options: SearchOptions) {
   const results = searchPrompts(query, { limit: 10 });
 
-  if (options.json) {
+  if (shouldOutputJson(options)) {
     console.log(JSON.stringify(results, null, 2));
     return;
   }
