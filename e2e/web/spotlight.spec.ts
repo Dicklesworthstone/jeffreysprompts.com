@@ -46,11 +46,15 @@ test.describe("SpotlightSearch", () => {
     const dialog = page.getByRole("dialog", { name: /search prompts/i });
     await expect(dialog).toBeVisible();
 
-    // Press Escape
+    // Wait for input to be focused (Escape handler is on the input)
+    const searchInput = dialog.getByRole("combobox");
+    await expect(searchInput).toBeFocused();
+
+    // Press Escape to close
     await page.keyboard.press("Escape");
 
-    // Dialog should be hidden
-    await expect(dialog).not.toBeVisible();
+    // Dialog should be hidden (allow time for close animation)
+    await expect(dialog).not.toBeVisible({ timeout: 2000 });
   });
 
   test("closes when clicking backdrop", async ({ page }) => {
@@ -104,12 +108,19 @@ test.describe("SpotlightSearch", () => {
     // Wait for results
     await page.waitForTimeout(300);
 
-    // Press ArrowDown to navigate
+    // Get all result options
+    const options = dialog.locator('[role="option"]');
+    const optionCount = await options.count();
+    expect(optionCount).toBeGreaterThan(1); // Need at least 2 results to test navigation
+
+    // First item should be selected initially (index 0)
+    await expect(options.nth(0)).toHaveAttribute("aria-selected", "true");
+
+    // Press ArrowDown to navigate to second item
     await page.keyboard.press("ArrowDown");
 
-    // Second item should now be selected (aria-selected=true)
-    const selectedItem = dialog.locator('[role="option"][aria-selected="true"]');
-    await expect(selectedItem).toBeVisible();
+    // Second item should now be selected
+    await expect(options.nth(1)).toHaveAttribute("aria-selected", "true");
   });
 
   test("Enter key copies selected prompt", async ({ page, context }) => {
@@ -166,8 +177,8 @@ test.describe("SpotlightSearch", () => {
     const resultItem = dialog.locator("[data-result-item]").first();
     await resultItem.click();
 
-    // Should show feedback or close
-    await page.waitForTimeout(500);
+    // Should show "Copied!" feedback
+    await expect(page.getByText(/copied/i).first()).toBeVisible({ timeout: 2000 });
   });
 });
 

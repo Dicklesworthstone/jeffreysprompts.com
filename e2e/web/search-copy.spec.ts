@@ -30,20 +30,14 @@ test.describe("Search & Copy Flow", () => {
     // Wait for prompts to load
     await expect(page.getByText("The Idea Wizard")).toBeVisible({ timeout: 10000 });
 
-    // Click on a View button to navigate to details
-    // Or click on the card itself if there's a View button
+    // Click on a View button to open modal
     const viewButton = page.getByRole("button", { name: /view/i }).first();
-    if (await viewButton.isVisible()) {
-      await viewButton.click();
-    } else {
-      // Try clicking directly on a prompt card title
-      const ideaWizardCard = page.getByText("The Idea Wizard");
-      await ideaWizardCard.click();
-    }
+    await expect(viewButton).toBeVisible();
+    await viewButton.click();
 
-    // Modal should open (not navigating to separate page)
-    // Look for modal content
-    await page.waitForTimeout(500);
+    // Modal should open - look for dialog or expanded content
+    // The modal contains the full prompt content and a larger heading
+    await expect(page.getByRole("dialog")).toBeVisible({ timeout: 2000 });
   });
 
   test("prompt detail page has copy button", async ({ page }) => {
@@ -100,14 +94,11 @@ test.describe("Filter Flow", () => {
     // Look for category filter buttons (they're rendered as buttons/chips)
     // Use first() since there may be multiple buttons with same name (category + tag filters)
     const ideationButton = page.getByRole("button", { name: /ideation/i }).first();
+    await expect(ideationButton).toBeVisible();
+    await ideationButton.click();
 
-    if (await ideationButton.isVisible()) {
-      await ideationButton.click();
-
-      // Verify filtering happened (heading should change or URL should update)
-      await page.waitForTimeout(500);
-      // Either the heading changes to show category or filter is applied
-    }
+    // Verify filtering happened - heading should change to show the selected category
+    await expect(page.getByRole("heading", { name: /ideation/i })).toBeVisible({ timeout: 2000 });
   });
 });
 
