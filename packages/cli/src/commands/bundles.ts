@@ -45,7 +45,7 @@ export function bundlesCommand(options: BundlesListOptions) {
   }
 
   console.log(table.toString());
-  console.log(chalk.dim("\nFound " + bundles.length + " bundles. Use \"jfp bundle show <id>\" for details."));
+  console.log(chalk.dim("\nFound " + bundles.length + " bundles. Use \"jfp bundle <id>\" for details."));
 }
 
 /**
