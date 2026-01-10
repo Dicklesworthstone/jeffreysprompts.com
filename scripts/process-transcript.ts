@@ -160,7 +160,48 @@ function processTranscript(
   let linesWritten = 0;
   let totalContent = "";
 
-  for (const msg of messages as Array<{ type?: string; content?: string; tool_use?: unknown[]; message?: { role?: string; content?: string } }>) {
+  // Helper to process a tool call object
+  function processToolCall(tool: { name?: string; input?: { file_path?: string; content?: string; new_string?: string } }) {
+    const toolName = tool.name?.toLowerCase();
+
+    // Track files edited via Write or Edit tools
+    if (toolName === "write" || toolName === "edit") {
+      const filePath = tool.input?.file_path;
+      if (filePath) {
+        filesEdited.add(filePath);
+      }
+
+      // Count lines written
+      const contentWritten = tool.input?.content || tool.input?.new_string || "";
+      if (contentWritten) {
+        linesWritten += contentWritten.split("\n").length;
+      }
+    }
+  }
+
+  // Helper to extract text content from various formats
+  function extractTextContent(content: unknown): string {
+    if (typeof content === "string") {
+      return content;
+    }
+    if (Array.isArray(content)) {
+      // Handle Claude's content block format: [{type: "text", text: "..."}, ...]
+      return content
+        .filter((block): block is { type: string; text: string } =>
+          typeof block === "object" && block !== null && block.type === "text" && typeof block.text === "string"
+        )
+        .map((block) => block.text)
+        .join("\n");
+    }
+    return "";
+  }
+
+  for (const msg of messages as Array<{
+    type?: string;
+    content?: unknown;
+    tool_use?: unknown[];
+    message?: { role?: string; content?: unknown };
+  }>) {
     const msgType = msg.type || msg.message?.role;
 
     if (msgType === "human" || msgType === "user") {
@@ -169,30 +210,27 @@ function processTranscript(
       assistantMessages++;
     }
 
-    const content = (msg.content || msg.message?.content || "") as string;
-    totalContent += content;
+    // Extract text content (handles both string and array of content blocks)
+    const rawContent = msg.content || msg.message?.content;
+    totalContent += extractTextContent(rawContent);
 
-    // Count tool calls and extract file editing stats
+    // Count tool calls from msg.tool_use array (some formats)
     if (msg.tool_use && Array.isArray(msg.tool_use)) {
       toolCallCount += msg.tool_use.length;
-
-      // Extract file editing information from tool calls
       for (const tool of msg.tool_use as Array<{ name?: string; input?: { file_path?: string; content?: string; new_string?: string } }>) {
-        const toolName = tool.name?.toLowerCase();
+        processToolCall(tool);
+      }
+    }
 
-        // Track files edited via Write or Edit tools
-        if (toolName === "write" || toolName === "edit") {
-          const filePath = tool.input?.file_path;
-          if (filePath) {
-            filesEdited.add(filePath);
-          }
-
-          // Count lines written
-          const contentWritten = tool.input?.content || tool.input?.new_string || "";
-          if (contentWritten) {
-            linesWritten += contentWritten.split("\n").length;
-          }
-        }
+    // Also check for tool_use blocks embedded in content array (Claude Code format)
+    if (Array.isArray(rawContent)) {
+      const toolUseBlocks = rawContent.filter(
+        (block): block is { type: "tool_use"; name: string; input: { file_path?: string; content?: string; new_string?: string } } =>
+          typeof block === "object" && block !== null && block.type === "tool_use"
+      );
+      toolCallCount += toolUseBlocks.length;
+      for (const tool of toolUseBlocks) {
+        processToolCall(tool);
       }
     }
   }
