@@ -7,7 +7,6 @@ import {
   Trash2,
   GripVertical,
   ArrowRight,
-  Download,
   Copy,
   Search,
   X,
