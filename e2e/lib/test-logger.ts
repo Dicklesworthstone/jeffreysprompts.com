@@ -241,7 +241,6 @@ export class TestLogger {
     const levelLabel = entry.level.toUpperCase().padEnd(5);
     const color = this.isTTY ? LEVEL_COLORS[entry.level] : "";
     const reset = this.isTTY ? RESET : "";
-    const bold = this.isTTY ? BOLD : "";
 
     let line = `${color}[${entry.timestamp}] [${levelLabel}] [${entry.context}]${reset} ${entry.message}`;
 
