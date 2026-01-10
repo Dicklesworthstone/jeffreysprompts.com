@@ -65,6 +65,7 @@ cli
   .option("--category <cat>", "Filter by category")
   .option("--tag <tag>", "Filter by tag")
   .option("--featured", "Show only featured prompts")
+  .option("--limit <n>", "Maximum number of results")
   .action((options) => {
     let result = [...prompts];
 
@@ -77,22 +78,34 @@ cli
     if (options.featured) {
       result = result.filter((p) => p.featured);
     }
+    if (options.limit) {
+      result = result.slice(0, parseInt(options.limit, 10));
+    }
 
-    if (options.json) {
+    if (options.json || !isTTY) {
       output(
-        result.map(({ id, title, description, category, tags }) => ({
+        result.map(({ id, title, description, category, tags, featured }) => ({
           id,
           title,
           description,
           category,
           tags,
+          featured,
         })),
         true
       );
     } else {
+      // Compact table: ID | Category | Tags (up to 3) | Description
+      console.log("ID".padEnd(22) + "Category".padEnd(14) + "Tags".padEnd(25) + "Description");
+      console.log("─".repeat(80));
       for (const p of result) {
-        console.log(`${p.id.padEnd(20)} ${p.category.padEnd(15)} ${p.description.slice(0, 50)}`);
+        const tagStr = p.tags.slice(0, 3).join(", ") + (p.tags.length > 3 ? "..." : "");
+        const desc = p.description.length > 25 ? p.description.slice(0, 22) + "..." : p.description;
+        console.log(
+          `${p.id.padEnd(22)}${p.category.padEnd(14)}${tagStr.padEnd(25)}${desc}`
+        );
       }
+      console.log(`\n${result.length} prompt(s) found`);
     }
   });
 

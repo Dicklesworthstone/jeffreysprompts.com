@@ -60,6 +60,13 @@ function mergePrompts(base: Prompt[], extras: Prompt[]): Prompt[] {
   return merged;
 }
 
+function isCacheFresh(meta: RegistryMeta | null, cacheTtlSeconds: number): boolean {
+  if (!meta?.fetchedAt) return false;
+  const fetchedAt = new Date(meta.fetchedAt).getTime();
+  if (!Number.isFinite(fetchedAt)) return false;
+  return Date.now() - fetchedAt < cacheTtlSeconds * 1000;
+}
+
 function loadLocalPrompts(dir: string): Prompt[] {
   if (!existsSync(dir)) return [];
   const prompts: Prompt[] = [];
@@ -132,7 +139,7 @@ export async function loadRegistry(): Promise<LoadedRegistry> {
     : [];
 
   if (cachedPrompts?.length) {
-    if (config.registry.autoRefresh) {
+    if (!isCacheFresh(cachedMeta, config.registry.cacheTtl) && config.registry.autoRefresh) {
       void refreshRegistry().catch(() => undefined);
     }
     return {
