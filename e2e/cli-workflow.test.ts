@@ -7,9 +7,8 @@
  * Uses detailed logging for each step to aid debugging.
  * Verifies JSON output schemas for agent integration stability.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from "bun:test";
-import { $ } from "bun";
-import { existsSync, rmSync, mkdirSync, readFileSync } from "fs";
+import { describe, it, expect, beforeAll, afterAll } from "bun:test";
+import { existsSync, rmSync, mkdirSync } from "fs";
 import { join } from "path";
 
 // ============================================================================

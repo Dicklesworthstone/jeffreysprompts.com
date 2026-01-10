@@ -22,7 +22,6 @@
 
 import { existsSync, readdirSync, readFileSync, writeFileSync, mkdirSync, statSync } from "fs";
 import { dirname, join, basename } from "path";
-import { $ } from "bun";
 
 // ============================================================================
 // Configuration
@@ -267,7 +266,18 @@ function parseDate(dateStr: string): Date {
 
 async function exportSessionWithCass(sessionPath: string): Promise<string> {
   try {
-    const result = await $`cass export ${sessionPath} --format json --include-tools`.text();
+    // Use Bun.spawn with array args to properly handle paths with spaces
+    const proc = Bun.spawn(["cass", "export", sessionPath, "--format", "json", "--include-tools"], {
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const result = await new Response(proc.stdout).text();
+    const exitCode = await proc.exited;
+
+    if (exitCode !== 0) {
+      throw new Error(`cass exited with code ${exitCode}`);
+    }
+
     return result;
   } catch (error) {
     // Fallback to direct JSONL parsing if cass fails
