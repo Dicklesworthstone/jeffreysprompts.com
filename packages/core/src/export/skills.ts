@@ -4,6 +4,8 @@
 
 import { createHash } from "crypto";
 import type { Prompt } from "../prompts/types";
+import type { Workflow } from "../prompts/workflows";
+import { getPrompt } from "../prompts/registry";
 
 /**
  * Escape a string for safe YAML scalar value
@@ -88,6 +90,60 @@ export function generateSkillMd(prompt: Prompt): string {
 }
 
 /**
+ * Generate SKILL.md content for a workflow
+ */
+export function generateWorkflowSkillMd(workflow: Workflow): string {
+  const frontmatter = [
+    "---",
+    `name: ${escapeYamlValue(workflow.id)}`,
+    `description: ${escapeYamlValue(workflow.description)}`,
+    `version: 1.0.0`,
+    `category: workflow`,
+    `source: https://jeffreysprompts.com/workflows/${workflow.id}`,
+    "x_jfp_generated: true",
+    "x_jfp_kind: workflow",
+    "---",
+    "",
+  ].join("\n");
+
+  const content: string[] = [`# ${workflow.title}`, "", workflow.description, ""];
+
+  if (workflow.whenToUse.length) {
+    content.push("## When to Use", "");
+    for (const item of workflow.whenToUse) {
+      content.push(`- ${item}`);
+    }
+    content.push("");
+  }
+
+  content.push("## Steps", "");
+
+  workflow.steps.forEach((step, index) => {
+    const prompt = getPrompt(step.promptId);
+    const stepTitle = prompt?.title ?? step.promptId;
+    content.push(`### Step ${index + 1}: ${stepTitle}`, "");
+    content.push(`**Prompt ID:** \`${step.promptId}\``);
+    content.push(`**Handoff note:** ${step.note}`);
+    content.push("");
+
+    if (!prompt) {
+      content.push("_Prompt not found in registry._", "");
+      return;
+    }
+
+    content.push("```");
+    content.push(prompt.content);
+    content.push("```", "");
+  });
+
+  content.push("---", "");
+  content.push(`*From [JeffreysPrompts.com](https://jeffreysprompts.com/workflows/${workflow.id})*`);
+  content.push("");
+
+  return frontmatter + content.join("\n");
+}
+
+/**
  * Generate a unique HEREDOC delimiter that doesn't appear in content
  */
 function getUniqueDelimiter(content: string, base: string = "JFP_SKILL"): string {
@@ -155,16 +211,19 @@ export function generateSkillEntries(prompts: Prompt[]): Array<{ path: string; c
 }
 
 /**
- * Generate a skills manifest for tracking installed skills
+ * Manifest entry for a single installed skill or bundle.
  */
 export interface SkillManifestEntry {
   id: string;
   kind: "prompt" | "bundle";
   version: string;
-  updatedAt: string;
   hash: string;
+  updatedAt: string;
 }
 
+/**
+ * Skills manifest for tracking installed JFP skills.
+ */
 export interface SkillManifest {
   entries: SkillManifestEntry[];
 }
