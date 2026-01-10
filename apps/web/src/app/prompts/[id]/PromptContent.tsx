@@ -30,6 +30,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { RelatedPrompts } from "@/components/RelatedPrompts";
+import { ChangelogAccordion } from "@/components/ChangelogAccordion";
 import {
   renderPrompt,
   extractVariables,
@@ -94,7 +96,7 @@ export function PromptContent({ prompt }: PromptContentProps) {
   }, [renderedContent, success, error]);
 
   const handleInstall = useCallback(async () => {
-    const command = `mkdir -p ~/.config/claude/skills/${prompt.id} && cat > ~/.config/claude/skills/${prompt.id}/SKILL.md << 'EOF'\n${generateSkillMd(prompt)}\nEOF`;
+    const command = `mkdir -p ~/.config/claude/skills/${prompt.id} && cat > ~/.config/claude/skills/${prompt.id}/SKILL.md << 'SKILL_EOF'\n${generateSkillMd(prompt)}\nSKILL_EOF`;
     try {
       await navigator.clipboard.writeText(command);
       success("Install command copied - paste in terminal");
@@ -319,6 +321,10 @@ export function PromptContent({ prompt }: PromptContentProps) {
           </CardContent>
         </Card>
       )}
+
+      <ChangelogAccordion changelog={prompt.changelog} />
+
+      <RelatedPrompts promptId={prompt.id} />
     </div>
   );
 }

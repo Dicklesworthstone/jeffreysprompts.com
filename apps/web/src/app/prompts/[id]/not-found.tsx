@@ -14,7 +14,7 @@ export default function PromptNotFound() {
         <Button asChild>
           <Link href="/" className="gap-2">
             <ArrowLeft className="h-4 w-4" />
-            Back to all prompts
+            Back to prompts
           </Link>
         </Button>
       </div>

@@ -27,7 +27,9 @@ function readMetaFile(metaPath: string): RegistryMeta | null {
 
 function formatAge(isoDate: string | undefined | null): string {
   if (!isoDate) return "unknown";
-  const ms = Date.now() - new Date(isoDate).getTime();
+  const date = new Date(isoDate);
+  if (isNaN(date.getTime())) return "unknown";
+  const ms = Date.now() - date.getTime();
   if (ms < 60000) return "just now";
   if (ms < 3600000) return `${Math.floor(ms / 60000)} min ago`;
   if (ms < 86400000) return `${Math.floor(ms / 3600000)} hours ago`;
