@@ -192,7 +192,7 @@ export function formatFilePath(path: string, maxLength = 60): string {
   }
 
   // Show first part, ellipsis, and last two parts
-  return \`\${parts[0]}/.../\${parts.slice(-2).join("/")}\`;
+  return `${parts[0]}/.../${parts.slice(-2).join("/")}`;
 }
 
 /**
@@ -207,7 +207,7 @@ export function formatBytes(bytes: number): string {
   const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), units.length - 1);
   const value = bytes / Math.pow(k, i);
 
-  return \`\${value.toFixed(i === 0 ? 0 : 1)} \${units[i]}\`;
+  return `${value.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
 }
 
 /**
@@ -223,6 +223,6 @@ export function estimateTokens(text: string): number {
  */
 export function formatNumber(num: number): string {
   if (num < 1000) return num.toString();
-  if (num < 1000000) return \`\${(num / 1000).toFixed(1)}K\`;
-  return \`\${(num / 1000000).toFixed(1)}M\`;
+  if (num < 1000000) return `${(num / 1000).toFixed(1)}K`;
+  return `${(num / 1000000).toFixed(1)}M`;
 }
