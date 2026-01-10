@@ -290,6 +290,7 @@ async function replaceBinary(
 export async function updateCliCommand(options: UpdateCliOptions = {}) {
   const jsonOutput = shouldOutputJson(options);
   const config = loadConfig();
+  let tempPath: string | null = null;
   const result: UpdateResult = {
     currentVersion: version,
     latestVersion: "",
@@ -381,7 +382,7 @@ export async function updateCliCommand(options: UpdateCliOptions = {}) {
       return;
     }
 
-    const tempPath = `${currentPath}.new`;
+    tempPath = `${currentPath}.new`;
     if (!jsonOutput) {
       console.log(chalk.dim("Downloading " + asset.name + "..."));
     }
@@ -438,6 +439,13 @@ export async function updateCliCommand(options: UpdateCliOptions = {}) {
       console.log(chalk.dim("Restart jfp to use the new version"));
     }
   } catch (err) {
+    if (tempPath && existsSync(tempPath)) {
+      try {
+        unlinkSync(tempPath);
+      } catch {
+        // best effort cleanup
+      }
+    }
     result.error = err instanceof Error ? err.message : String(err);
     if (jsonOutput) {
       console.log(JSON.stringify({ ...result, error: result.error }, null, 2));
