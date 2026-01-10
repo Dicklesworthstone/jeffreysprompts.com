@@ -89,7 +89,7 @@ export async function suggestCommand(task: string, options: SuggestOptions) {
   if (shouldOutputJson(options)) {
     const output: SuggestOutput = {
       task,
-      suggestions: results.map((r) => formatSuggestion(r, task)),
+      suggestions: results.map((r) => formatSuggestion(r, task, options.semantic)),
       total: results.length,
     };
     console.log(JSON.stringify(output, null, 2));
@@ -244,13 +244,15 @@ function generateTip(
 /**
  * Format a suggestion for JSON output
  */
-function formatSuggestion(result: SearchResult, task: string): SuggestOutput["suggestions"][0] {
+function formatSuggestion(result: SearchResult, task: string, semantic?: boolean): SuggestOutput["suggestions"][0] {
+  // Normalize relevance to 0-1 scale (semantic scores are 0-1, BM25 scores are ~0-5)
+  const normalizedRelevance = Math.min(1, semantic ? result.score : result.score / 5);
   return {
     id: result.prompt.id,
     title: result.prompt.title,
     description: result.prompt.description,
     category: result.prompt.category,
-    relevance: Math.round(result.score * 100) / 100,
+    relevance: Math.round(normalizedRelevance * 100) / 100,
     matchedFields: result.matchedFields,
     tip: generateTip(result.prompt, task, result.matchedFields),
   };

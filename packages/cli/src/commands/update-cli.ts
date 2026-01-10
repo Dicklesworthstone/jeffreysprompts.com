@@ -178,7 +178,7 @@ async function fetchChecksumForAsset(
     if (response.ok) {
       const text = await response.text();
       const [hash] = text.trim().split(/\s+/, 1);
-      return hash ?? null;
+      return hash || null;
     }
   }
 
