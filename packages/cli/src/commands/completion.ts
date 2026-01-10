@@ -38,6 +38,7 @@ const COMMANDS = [
   "help",
   "completion",
   "serve",
+  "update-cli",
 ] as const;
 
 const COMMAND_OPTIONS: Record<string, string[]> = {
@@ -66,6 +67,7 @@ const COMMAND_OPTIONS: Record<string, string[]> = {
   help: ["--json"],
   completion: ["--shell"],
   serve: ["--config"],
+  "update-cli": ["--check", "--force", "--json"],
 };
 
 const GLOBAL_OPTIONS = ["--help", "--version"];

@@ -1,35 +1,27 @@
-/**
- * jfp update-cli - Self-update command
- *
- * Downloads and installs the latest version of jfp from GitHub releases.
- * Performs atomic replacement with rollback capability.
- *
- * Usage:
- *   jfp update-cli           # Check for updates and install if available
- *   jfp update-cli --check   # Check for updates without installing
- *   jfp update-cli --force   # Force reinstall even if up to date
- */
-
-import { createHash } from "crypto";
-import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync, chmodSync } from "fs";
-import { dirname, join } from "path";
-import { platform, arch, homedir, tmpdir } from "os";
-import { spawn } from "child_process";
 import chalk from "chalk";
 import { version } from "../../package.json";
+import { chmodSync, createWriteStream, existsSync, readFileSync, renameSync, unlinkSync } from "fs";
+import { createHash } from "crypto";
+import { spawn } from "child_process";
+import { loadConfig, saveConfig } from "../lib/config";
 import { shouldOutputJson } from "../lib/utils";
 
-const GITHUB_REPO = "Dicklesworthstone/jeffreysprompts.com";
-const GITHUB_API = `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`;
+const GITHUB_OWNER = "Dicklesworthstone";
+const GITHUB_REPO = "jeffreysprompts.com";
+const RELEASE_API = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
 
 interface UpdateCliOptions {
-  json?: boolean;
   check?: boolean;
   force?: boolean;
+  skipVerify?: boolean;
+  json?: boolean;
 }
 
-interface ReleaseInfo {
+interface GithubRelease {
   tag_name: string;
+  name: string;
+  published_at: string;
+  html_url: string;
   assets: Array<{
     name: string;
     browser_download_url: string;
@@ -40,171 +32,192 @@ interface ReleaseInfo {
 interface UpdateResult {
   currentVersion: string;
   latestVersion: string;
-  updateAvailable: boolean;
-  status: "up_to_date" | "update_available" | "updated" | "error";
+  hasUpdate: boolean;
   message: string;
-  downloadUrl?: string;
   error?: string;
+  downloadUrl?: string;
+  assetName?: string;
 }
 
-/**
- * Get the binary name for the current platform
- */
 function getBinaryName(): string {
-  const os = platform();
-  const cpu = arch();
+  const platform = process.platform;
+  const arch = process.arch;
 
-  const platformMap: Record<string, string> = {
-    darwin: "macos",
-    linux: "linux",
-    win32: "windows",
-  };
-
-  const archMap: Record<string, string> = {
-    x64: "x64",
-    arm64: "arm64",
-  };
-
-  const osName = platformMap[os];
-  const archName = archMap[cpu];
-
-  if (!osName || !archName) {
-    throw new Error(`Unsupported platform: ${os}-${cpu}`);
+  if (platform === "darwin") {
+    return arch === "arm64" ? "jfp-darwin-arm64" : "jfp-darwin-x64";
+  } else if (platform === "linux") {
+    return arch === "arm64" ? "jfp-linux-arm64" : "jfp-linux-x64";
+  } else if (platform === "win32") {
+    return "jfp-windows-x64.exe";
   }
 
-  const ext = os === "win32" ? ".exe" : "";
-  return `jfp-${osName}-${archName}${ext}`;
+  throw new Error(`Unsupported platform: ${platform}-${arch}`);
 }
 
-/**
- * Fetch the latest release info from GitHub
- */
-async function fetchLatestRelease(): Promise<ReleaseInfo> {
-  const response = await fetch(GITHUB_API, {
+function parseVersion(v: string): [number, number, number] {
+  const clean = v.replace(/^v/, "");
+  const parts = clean.split(".").map((p) => parseInt(p, 10) || 0);
+  return [parts[0] || 0, parts[1] || 0, parts[2] || 0];
+}
+
+function compareVersions(a: string, b: string): number {
+  const [aMajor, aMinor, aPatch] = parseVersion(a);
+  const [bMajor, bMinor, bPatch] = parseVersion(b);
+
+  if (aMajor !== bMajor) return aMajor < bMajor ? -1 : 1;
+  if (aMinor !== bMinor) return aMinor < bMinor ? -1 : 1;
+  if (aPatch !== bPatch) return aPatch < bPatch ? -1 : 1;
+  return 0;
+}
+
+async function fetchLatestRelease(): Promise<GithubRelease> {
+  const response = await fetch(RELEASE_API, {
     headers: {
       Accept: "application/vnd.github.v3+json",
-      "User-Agent": "jfp-cli",
+      "User-Agent": `jfp-cli/${version}`,
     },
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch release info: ${response.status} ${response.statusText}`);
+    if (response.status === 404) {
+      throw new Error("No releases found for this repository");
+    }
+    if (response.status === 403) {
+      throw new Error("GitHub API rate limit exceeded. Try again later.");
+    }
+    throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
   }
 
-  return response.json() as Promise<ReleaseInfo>;
+  return (await response.json()) as GithubRelease;
 }
 
-/**
- * Parse version string to comparable numbers
- */
-function parseVersion(ver: string): number[] {
-  // Remove 'v' prefix if present
-  const clean = ver.replace(/^v/, "");
-  return clean.split(".").map((n) => parseInt(n, 10) || 0);
-}
-
-/**
- * Compare two version strings
- * Returns: -1 if a < b, 0 if a == b, 1 if a > b
- */
-function compareVersions(a: string, b: string): number {
-  const partsA = parseVersion(a);
-  const partsB = parseVersion(b);
-
-  for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
-    const numA = partsA[i] ?? 0;
-    const numB = partsB[i] ?? 0;
-
-    if (numA < numB) return -1;
-    if (numA > numB) return 1;
-  }
-
-  return 0;
-}
-
-/**
- * Download a file to a local path
- */
-async function downloadFile(url: string, destPath: string): Promise<void> {
+async function downloadFile(url: string, destPath: string, expectedSize?: number): Promise<void> {
   const response = await fetch(url, {
-    headers: {
-      "User-Agent": "jfp-cli",
-    },
+    headers: { "User-Agent": `jfp-cli/${version}` },
   });
 
   if (!response.ok) {
     throw new Error(`Download failed: ${response.status} ${response.statusText}`);
   }
 
-  const buffer = await response.arrayBuffer();
-  writeFileSync(destPath, Buffer.from(buffer));
+  const totalSize = expectedSize || parseInt(response.headers.get("content-length") || "0", 10);
+  let downloadedSize = 0;
+  const startTime = Date.now();
+
+  const body = response.body;
+  if (!body) throw new Error("No response body");
+
+  const reader = body.getReader();
+  const fileStream = createWriteStream(destPath);
+  const showProgress = process.stdout.isTTY && totalSize > 0;
+  let lastProgressUpdate = 0;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      downloadedSize += value.length;
+      fileStream.write(value);
+
+      if (showProgress && Date.now() - lastProgressUpdate > 100) {
+        const percent = Math.round((downloadedSize / totalSize) * 100);
+        const elapsed = (Date.now() - startTime) / 1000;
+        const speed = downloadedSize / elapsed / 1024;
+        process.stdout.write(`\r${chalk.dim("Downloading:")} ${percent}% (${speed.toFixed(1)} KB/s)  `);
+        lastProgressUpdate = Date.now();
+      }
+    }
+
+    if (showProgress) {
+      process.stdout.write("\r" + " ".repeat(50) + "\r");
+    }
+  } finally {
+    fileStream.end();
+    await new Promise<void>((resolve) => fileStream.on("finish", resolve));
+  }
 }
 
-/**
- * Compute SHA256 hash of a file
- */
-function computeSha256(filePath: string): string {
-  const content = readFileSync(filePath);
-  return createHash("sha256").update(content).digest("hex");
+function computeSha256(path: string): string {
+  const data = readFileSync(path);
+  return createHash("sha256").update(data).digest("hex");
 }
 
-/**
- * Fetch and parse SHA256SUMS.txt from release
- */
-async function fetchChecksums(release: ReleaseInfo): Promise<Map<string, string>> {
-  const checksumAsset = release.assets.find((a) => a.name === "SHA256SUMS.txt");
-  if (!checksumAsset) {
-    throw new Error("SHA256SUMS.txt not found in release");
-  }
-
-  const response = await fetch(checksumAsset.browser_download_url, {
-    headers: { "User-Agent": "jfp-cli" },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch checksums: ${response.status}`);
-  }
-
-  const text = await response.text();
-  const checksums = new Map<string, string>();
-
-  for (const line of text.trim().split("\n")) {
-    // Format: "hash  filename" or "hash *filename"
-    const match = line.match(/^([a-f0-9]{64})\s+\*?(.+)$/);
-    if (match) {
-      checksums.set(match[2], match[1]);
+async function fetchChecksumForAsset(
+  release: GithubRelease,
+  assetName: string
+): Promise<string | null> {
+  const sumsAsset = release.assets.find((asset) => asset.name === "SHA256SUMS.txt");
+  if (sumsAsset) {
+    const response = await fetch(sumsAsset.browser_download_url, {
+      headers: { "User-Agent": `jfp-cli/${version}` },
+    });
+    if (response.ok) {
+      const text = await response.text();
+      const lines = text.split(/\r?\n/);
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        const [hash, file] = trimmed.split(/\s+/, 2);
+        if (!hash || !file) continue;
+        const normalized = file.replace(/^\*?/, "");
+        if (normalized === assetName) {
+          return hash;
+        }
+      }
     }
   }
 
-  return checksums;
+  const directAsset = release.assets.find((asset) => asset.name === `${assetName}.sha256`);
+  if (directAsset) {
+    const response = await fetch(directAsset.browser_download_url, {
+      headers: { "User-Agent": `jfp-cli/${version}` },
+    });
+    if (response.ok) {
+      const text = await response.text();
+      const [hash] = text.trim().split(/\s+/, 1);
+      return hash ?? null;
+    }
+  }
+
+  return null;
 }
 
-/**
- * Get the path to the currently running jfp binary
- */
+function recordUpdateCheck(configUpdates: { autoCheck: boolean; autoUpdate: boolean; channel: string; lastCheck: string | null }) {
+  const next = {
+    ...configUpdates,
+    lastCheck: new Date().toISOString(),
+  };
+  saveConfig({ updates: next });
+}
+
 function getCurrentBinaryPath(): string {
-  // process.execPath for compiled binaries, process.argv[0] otherwise
-  return process.execPath;
+  const execPath = process.execPath;
+
+  if (execPath.includes("bun") || execPath.includes("node")) {
+    throw new Error(
+      "Self-update is only available for compiled binaries.\n" +
+        "When running via bun/node, update by pulling the latest code and rebuilding."
+    );
+  }
+
+  return execPath;
 }
 
-/**
- * Verify the new binary actually works
- */
-async function verifyBinary(binaryPath: string): Promise<boolean> {
+async function verifyBinary(path: string): Promise<boolean> {
   return new Promise((resolve) => {
-    const child = spawn(binaryPath, ["--version"], {
-      stdio: ["ignore", "pipe", "pipe"],
+    const child = spawn(path, ["--version"], {
+      stdio: "pipe",
       timeout: 5000,
     });
 
-    let stdout = "";
+    let output = "";
     child.stdout?.on("data", (data) => {
-      stdout += data.toString();
+      output += data.toString();
     });
 
     child.on("close", (code) => {
-      // Should exit 0 and output version
-      resolve(code === 0 && stdout.includes("jfp"));
+      resolve(code === 0 && output.includes("jfp"));
     });
 
     child.on("error", () => {
@@ -213,193 +226,182 @@ async function verifyBinary(binaryPath: string): Promise<boolean> {
   });
 }
 
-/**
- * Main update-cli command
- */
-export async function updateCliCommand(options: UpdateCliOptions): Promise<void> {
+async function replaceBinary(
+  currentPath: string,
+  newPath: string
+): Promise<{ success: boolean; error?: string }> {
+  const backupPath = `${currentPath}.bak`;
+
+  try {
+    if (existsSync(backupPath)) {
+      try {
+        renameSync(backupPath, `${backupPath}.prev-${Date.now()}`);
+      } catch {
+        // best effort
+      }
+    }
+
+    if (existsSync(currentPath)) {
+      renameSync(currentPath, backupPath);
+    }
+
+    renameSync(newPath, currentPath);
+
+    if (process.platform !== "win32") {
+      chmodSync(currentPath, 0o755);
+    }
+
+    const works = await verifyBinary(currentPath);
+    if (!works) {
+      if (existsSync(backupPath)) {
+        renameSync(backupPath, currentPath);
+      }
+      return { success: false, error: "New binary failed verification, rolled back" };
+    }
+
+    return { success: true };
+  } catch (err) {
+    try {
+      if (existsSync(backupPath)) {
+        renameSync(backupPath, currentPath);
+      }
+    } catch {
+      // Rollback failed
+    }
+
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
+export async function updateCliCommand(options: UpdateCliOptions = {}) {
   const result: UpdateResult = {
     currentVersion: version,
     latestVersion: "",
-    updateAvailable: false,
-    status: "up_to_date",
+    hasUpdate: false,
     message: "",
   };
 
   try {
-    // Fetch latest release
+    if (!options.json) {
+      console.log(chalk.dim("Checking for updates..."));
+    }
+
     const release = await fetchLatestRelease();
-    const latestVersion = release.tag_name.replace(/^v/, "");
-    result.latestVersion = latestVersion;
+    result.latestVersion = release.tag_name.replace(/^v/, "");
 
-    // Check if update is available
-    const comparison = compareVersions(version, latestVersion);
-    result.updateAvailable = comparison < 0;
+    const comparison = compareVersions(version, result.latestVersion);
+    result.hasUpdate = comparison < 0;
 
-    if (!result.updateAvailable && !options.force) {
-      result.status = "up_to_date";
-      result.message = `Already at latest version (${version})`;
-
-      if (shouldOutputJson(options)) {
+    if (comparison === 0) {
+      result.message = `You are running the latest version (${version})`;
+      if (options.json) {
         console.log(JSON.stringify(result, null, 2));
       } else {
-        console.log(chalk.green(`✓ ${result.message}`));
+        console.log(chalk.green("✓ " + result.message));
       }
       return;
     }
 
-    // If just checking, report and exit
-    if (options.check) {
-      result.status = "update_available";
-      result.message = `Update available: ${version} → ${latestVersion}`;
-
-      if (shouldOutputJson(options)) {
+    if (comparison > 0) {
+      result.message = `You are running a newer version (${version}) than the latest release (${result.latestVersion})`;
+      if (options.json) {
         console.log(JSON.stringify(result, null, 2));
       } else {
-        console.log(chalk.yellow(`⚡ ${result.message}`));
-        console.log(chalk.dim(`Run 'jfp update-cli' to install the update`));
+        console.log(chalk.yellow("! " + result.message));
       }
       return;
     }
 
-    // Find the binary asset for this platform
+    result.message = `Update available: ${version} -> ${result.latestVersion}`;
+
     const binaryName = getBinaryName();
     const asset = release.assets.find((a) => a.name === binaryName);
 
     if (!asset) {
-      throw new Error(`No binary found for platform: ${binaryName}`);
+      result.error = `No binary found for ${process.platform}-${process.arch}`;
+      if (options.json) {
+        console.log(JSON.stringify(result, null, 2));
+      } else {
+        console.log(chalk.yellow("! Update available: " + version + " -> " + result.latestVersion));
+        console.log(chalk.red("x " + result.error));
+        console.log(chalk.dim("Available assets: " + release.assets.map((a) => a.name).join(", ")));
+      }
+      return;
     }
 
     result.downloadUrl = asset.browser_download_url;
+    result.assetName = asset.name;
 
-    if (!shouldOutputJson(options)) {
-      console.log(chalk.cyan(`Updating jfp: ${version} → ${latestVersion}`));
-      console.log(chalk.dim(`Downloading ${binaryName}...`));
-    }
-
-    // Prepare paths
-    const tempDir = join(tmpdir(), `jfp-update-${Date.now()}`);
-    mkdirSync(tempDir, { recursive: true });
-    const tempBinary = join(tempDir, binaryName);
-    const currentBinary = getCurrentBinaryPath();
-    const backupBinary = `${currentBinary}.bak`;
-
-    try {
-      // Download new binary
-      await downloadFile(asset.browser_download_url, tempBinary);
-
-      if (!shouldOutputJson(options)) {
-        console.log(chalk.dim("Verifying checksum..."));
-      }
-
-      // Verify checksum
-      const checksums = await fetchChecksums(release);
-      const expectedHash = checksums.get(binaryName);
-
-      if (!expectedHash) {
-        throw new Error(`No checksum found for ${binaryName}`);
-      }
-
-      const actualHash = computeSha256(tempBinary);
-      if (actualHash !== expectedHash) {
-        throw new Error(`Checksum mismatch: expected ${expectedHash}, got ${actualHash}`);
-      }
-
-      // Make binary executable (Unix)
-      if (platform() !== "win32") {
-        chmodSync(tempBinary, 0o755);
-      }
-
-      if (!shouldOutputJson(options)) {
-        console.log(chalk.dim("Verifying binary..."));
-      }
-
-      // Verify the binary actually runs
-      const binaryWorks = await verifyBinary(tempBinary);
-      if (!binaryWorks) {
-        throw new Error("Downloaded binary failed verification");
-      }
-
-      // Atomic replace with backup
-      if (!shouldOutputJson(options)) {
-        console.log(chalk.dim("Installing..."));
-      }
-
-      // Create backup
-      if (existsSync(currentBinary)) {
-        // Remove old backup if exists
-        if (existsSync(backupBinary)) {
-          unlinkSync(backupBinary);
-        }
-        renameSync(currentBinary, backupBinary);
-      }
-
-      // Install new binary
-      try {
-        renameSync(tempBinary, currentBinary);
-      } catch (installError) {
-        // Cross-device link error - copy instead
-        const newContent = readFileSync(tempBinary);
-        writeFileSync(currentBinary, newContent);
-        if (platform() !== "win32") {
-          chmodSync(currentBinary, 0o755);
-        }
-      }
-
-      // Final verification
-      const finalCheck = await verifyBinary(currentBinary);
-      if (!finalCheck) {
-        // Rollback
-        if (existsSync(backupBinary)) {
-          renameSync(backupBinary, currentBinary);
-        }
-        throw new Error("Installed binary failed verification, rolled back");
-      }
-
-      // Cleanup
-      try {
-        if (existsSync(tempBinary)) unlinkSync(tempBinary);
-        if (existsSync(tempDir)) {
-          const { rmdirSync } = await import("fs");
-          rmdirSync(tempDir);
-        }
-      } catch {
-        // Cleanup failure is not critical
-      }
-
-      result.status = "updated";
-      result.message = `Successfully updated to ${latestVersion}`;
-
-      if (shouldOutputJson(options)) {
+    if (options.check) {
+      if (options.json) {
         console.log(JSON.stringify(result, null, 2));
       } else {
-        console.log(chalk.green(`✓ ${result.message}`));
-        if (existsSync(backupBinary)) {
-          console.log(chalk.dim(`Backup saved to: ${backupBinary}`));
-        }
+        console.log(chalk.yellow("! " + result.message));
+        console.log(chalk.dim("Run 'jfp update-cli' to update"));
       }
-    } catch (updateError) {
-      // Cleanup temp files
-      try {
-        if (existsSync(tempBinary)) unlinkSync(tempBinary);
-        if (existsSync(tempDir)) {
-          const { rmdirSync } = await import("fs");
-          rmdirSync(tempDir);
-        }
-      } catch {
-        // Ignore cleanup errors
-      }
-      throw updateError;
+      return;
     }
-  } catch (error) {
-    result.status = "error";
-    result.error = error instanceof Error ? error.message : String(error);
-    result.message = `Update failed: ${result.error}`;
 
-    if (shouldOutputJson(options)) {
+    if (!options.json) {
+      console.log(chalk.yellow("! " + result.message));
+    }
+
+    let currentPath: string;
+    try {
+      currentPath = getCurrentBinaryPath();
+    } catch (err) {
+      result.error = err instanceof Error ? err.message : String(err);
+      if (options.json) {
+        console.log(JSON.stringify(result, null, 2));
+      } else {
+        console.log(chalk.red("x " + result.error));
+      }
+      return;
+    }
+
+    const tempPath = `${currentPath}.new`;
+    if (!options.json) {
+      console.log(chalk.dim("Downloading " + asset.name + "..."));
+    }
+
+    await downloadFile(asset.browser_download_url, tempPath, asset.size);
+
+    if (!options.json) {
+      console.log(chalk.dim("Installing update..."));
+    }
+
+    const replaceResult = await replaceBinary(currentPath, tempPath);
+
+    if (!replaceResult.success) {
+      result.error = replaceResult.error || "Update failed";
+      if (existsSync(tempPath)) {
+        unlinkSync(tempPath);
+      }
+      if (options.json) {
+        console.log(JSON.stringify(result, null, 2));
+      } else {
+        console.log(chalk.red("x " + result.error));
+      }
+      return;
+    }
+
+    result.message = `Successfully updated to ${result.latestVersion}`;
+    if (options.json) {
       console.log(JSON.stringify(result, null, 2));
     } else {
-      console.error(chalk.red(`✗ ${result.message}`));
+      console.log(chalk.green("✓ " + result.message));
+      console.log(chalk.dim("Restart jfp to use the new version"));
     }
-    process.exit(1);
+  } catch (err) {
+    result.error = err instanceof Error ? err.message : String(err);
+    if (options.json) {
+      console.log(JSON.stringify({ ...result, error: result.error }, null, 2));
+    } else {
+      console.log(chalk.red("x Update check failed: " + result.error));
+    }
+    process.exitCode = 1;
   }
 }

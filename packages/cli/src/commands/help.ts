@@ -73,6 +73,7 @@ function getHelpData() {
         { name: "doctor", description: "Check environment for issues", options: ["--json"] },
         { name: "about", description: "About this tool", options: ["--json"] },
         { name: "completion", description: "Generate shell completion script", options: ["--shell"] },
+        { name: "update-cli", description: "Update CLI to latest version", options: ["--check", "--force", "--json"] },
         { name: "i / interactive", description: "Interactive fzf-style picker", options: [] },
       ],
     },
@@ -154,6 +155,7 @@ JeffreysPrompts CLI v${version}
   sections.push(formatCommand("doctor", "Check environment for issues"));
   sections.push(formatCommand("about", "About this tool"));
   sections.push(formatCommand("completion", "Generate shell completion script"));
+  sections.push(formatCommand("update-cli", "Update CLI to latest version"));
   sections.push(formatCommand("i, interactive", "Interactive fzf-style picker"));
   sections.push("");
 
