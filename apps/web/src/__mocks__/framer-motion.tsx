@@ -50,6 +50,10 @@ export const motion = {
   ),
 };
 
+motion.div.displayName = "MotionDiv";
+motion.span.displayName = "MotionSpan";
+motion.button.displayName = "MotionButton";
+
 // AnimatePresence that immediately unmounts exiting children
 export function AnimatePresence({
   children,
