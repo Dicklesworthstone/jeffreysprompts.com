@@ -23,11 +23,24 @@ const originalWarn = console.warn;
 const originalExit = process.exit;
 let originalFetch: typeof fetch | undefined;
 
+// Module imports - assigned in beforeAll after JFP_HOME is set
+let statusCommand: typeof import("../../src/commands/registry").statusCommand;
+let refreshCommand: typeof import("../../src/commands/registry").refreshCommand;
+let getConfigDir: typeof import("../../src/lib/config").getConfigDir;
+
 // Create temp directory and set JFP_HOME before importing commands
-beforeAll(() => {
+beforeAll(async () => {
   testDir = mkdtempSync(join(tmpdir(), "jfp-registry-test-"));
   originalJfpHome = process.env.JFP_HOME;
   process.env.JFP_HOME = testDir;
+
+  // Import AFTER JFP_HOME is set so modules use correct config path
+  const registry = await import("../../src/commands/registry");
+  statusCommand = registry.statusCommand;
+  refreshCommand = registry.refreshCommand;
+
+  const config = await import("../../src/lib/config");
+  getConfigDir = config.getConfigDir;
 });
 
 afterAll(() => {
@@ -45,10 +58,6 @@ afterAll(() => {
     console.error("Failed to cleanup test dir:", e);
   }
 });
-
-// Dynamically import commands after setting JFP_HOME
-const { statusCommand, refreshCommand } = await import("../../src/commands/registry");
-const { getConfigDir } = await import("../../src/lib/config");
 
 function getCachePath(): string {
   return join(getConfigDir(), "registry.json");
