@@ -33,25 +33,20 @@ function FloatingOrb({
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay, duration: 1, ease: "easeOut" }}
+      animate={{
+        opacity: 1,
+        scale: 1,
+        y: [0, -20, 0],
+        x: [0, 10, 0],
+      }}
+      transition={{
+        opacity: { delay, duration: 1, ease: "easeOut" },
+        scale: { delay, duration: 1, ease: "easeOut" },
+        y: { duration: 8, repeat: Infinity, ease: "easeInOut", delay },
+        x: { duration: 8, repeat: Infinity, ease: "easeInOut", delay },
+      }}
       className={cn("absolute rounded-full blur-3xl", className)}
-    >
-      <motion.div
-        animate={{
-          y: [0, -20, 0],
-          x: [0, 10, 0],
-          scale: [1, 1.1, 1],
-        }}
-        transition={{
-          duration: 8,
-          repeat: Infinity,
-          ease: "easeInOut",
-          delay,
-        }}
-        className="w-full h-full rounded-full"
-      />
-    </motion.div>
+    />
   );
 }
 
