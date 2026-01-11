@@ -885,3 +885,210 @@ describe("CLI E2E: Project-local vs Personal Skill Installation", () => {
     log("cleanup", "All test skills uninstalled and project directory removed");
   });
 });
+
+describe("CLI E2E: Invalid Input and Edge Case Handling", () => {
+  /**
+   * Tests the CLI's handling of:
+   * - Invalid prompt/skill IDs
+   * - Non-existent resources
+   * - Empty/malformed input
+   * - Edge cases in search
+   * - Invalid command arguments
+   */
+
+  it("show command with non-existent prompt ID", async () => {
+    log("invalid-show", "Testing show with non-existent prompt ID");
+
+    const { stdout, stderr, exitCode } = await runCli("show nonexistent-prompt-xyz --json");
+
+    // Should fail gracefully with error in JSON
+    expect(exitCode).not.toBe(0);
+
+    const result = parseJson<{ error: string }>(stdout);
+    expect(result).not.toBeNull();
+    expect(result!.error).toBeDefined();
+
+    log("invalid-show", "Non-existent prompt handled correctly");
+  });
+
+  it("install command with non-existent prompt ID", async () => {
+    log("invalid-install", "Testing install with non-existent prompt ID");
+
+    const { stdout, exitCode } = await runCli("install fake-nonexistent-prompt --json");
+
+    // Should fail with error
+    expect(exitCode).not.toBe(0);
+
+    const result = parseJson<{
+      success: boolean;
+      failed: string[];
+    }>(stdout);
+
+    expect(result).not.toBeNull();
+    expect(result!.success).toBe(false);
+    expect(result!.failed).toContain("fake-nonexistent-prompt");
+
+    log("invalid-install", "Non-existent prompt install handled correctly");
+  });
+
+  it("search command requires a query argument", async () => {
+    log("empty-search", "Testing search with no query (should fail)");
+
+    // Empty search should fail - query is required
+    const { exitCode } = await runCli("search --json");
+
+    expect(exitCode).not.toBe(0);
+
+    log("empty-search", "Empty search correctly rejected");
+  });
+
+  it("search with very specific non-matching query", async () => {
+    log("no-results-search", "Testing search with non-matching query");
+
+    const { stdout, exitCode } = await runCli("search xyznonexistentquerythatmatchesnothing123 --json");
+
+    expect(exitCode).toBe(0);
+
+    // Search returns an array directly when using --json
+    const results = parseJson<Array<{ id: string }>>(stdout);
+
+    expect(results).not.toBeNull();
+    expect(results!.length).toBe(0);
+
+    log("no-results-search", "No results handled correctly");
+  });
+
+  it("uninstall with invalid skill ID format", async () => {
+    log("invalid-uninstall-id", "Testing uninstall with invalid ID format");
+
+    // IDs with invalid characters should be rejected
+    const { stdout, stderr, exitCode } = await runCli("uninstall ../../../etc/passwd --confirm --json");
+
+    // Should fail with exit code indicating invalid ID
+    expect(exitCode).not.toBe(0);
+
+    log("invalid-uninstall-id", "Invalid ID format rejected");
+  });
+
+  it("copy command with non-existent prompt ID", async () => {
+    log("invalid-copy", "Testing copy with non-existent prompt ID");
+
+    const { stdout, exitCode } = await runCli("copy fake-nonexistent-prompt --json");
+
+    // Should fail gracefully
+    expect(exitCode).not.toBe(0);
+
+    log("invalid-copy", "Non-existent prompt copy handled correctly");
+  });
+
+  it("installed command with no skills installed", async () => {
+    log("empty-installed", "Testing installed command with clean state");
+
+    // Use a fresh home directory with no skills
+    const freshHome = "/tmp/jfp-e2e-fresh-home";
+    if (existsSync(freshHome)) {
+      rmSync(freshHome, { recursive: true });
+    }
+    mkdirSync(join(freshHome, ".config", "claude", "skills"), { recursive: true });
+
+    try {
+      const proc = Bun.spawn(["bun", `${PROJECT_ROOT}/jfp.ts`, "installed", "--json"], {
+        cwd: PROJECT_ROOT,
+        env: { ...process.env, HOME: freshHome },
+      });
+
+      const stdout = await new Response(proc.stdout).text();
+      const exitCode = await proc.exited;
+
+      expect(exitCode).toBe(0);
+
+      const result = parseJson<{
+        installed: Array<{ id: string }>;
+        count: number;
+      }>(stdout);
+
+      expect(result).not.toBeNull();
+      expect(result!.count).toBe(0);
+      expect(result!.installed).toEqual([]);
+
+      log("empty-installed", "Empty installed list handled correctly");
+    } finally {
+      rmSync(freshHome, { recursive: true, force: true });
+    }
+  });
+
+  it("search with special characters in query", async () => {
+    log("special-chars", "Testing search with special characters");
+
+    // Use direct Bun.spawn to pass query with special chars as single arg
+    try {
+      const proc = Bun.spawn(["bun", `${PROJECT_ROOT}/jfp.ts`, "search", "test & query", "--json"], {
+        cwd: PROJECT_ROOT,
+        env: { ...process.env, HOME: "/tmp/jfp-e2e-home" },
+      });
+
+      const stdout = await new Response(proc.stdout).text();
+      const exitCode = await proc.exited;
+
+      expect(exitCode).toBe(0);
+
+      // Search returns an array
+      const results = parseJson<Array<{ id: string }>>(stdout);
+
+      expect(results).not.toBeNull();
+      // Should not crash, just return 0 or some results
+      expect(results!.length).toBeGreaterThanOrEqual(0);
+
+      log("special-chars", "Special characters handled safely");
+    } catch (error) {
+      // Should not throw
+      expect(error).toBeNull();
+    }
+  });
+
+  it("export command with non-existent prompt ID", async () => {
+    log("invalid-export", "Testing export with non-existent prompt ID");
+
+    const { stdout, exitCode } = await runCli("export nonexistent-prompt-xyz --json");
+
+    // Should fail gracefully
+    expect(exitCode).not.toBe(0);
+
+    log("invalid-export", "Non-existent prompt export handled correctly");
+  });
+
+  it("show command with very long ID", async () => {
+    log("long-id", "Testing show with excessively long ID");
+
+    const longId = "a".repeat(500);
+    const { stdout, exitCode } = await runCli(`show ${longId} --json`);
+
+    // Should handle gracefully without crashing
+    expect(exitCode).not.toBe(0);
+
+    log("long-id", "Long ID handled gracefully");
+  });
+
+  it("multiple invalid prompt IDs in install command", async () => {
+    log("multi-invalid", "Testing install with multiple non-existent IDs");
+
+    const { stdout, exitCode } = await runCli("install fake-id-1 fake-id-2 fake-id-3 --json");
+
+    expect(exitCode).not.toBe(0);
+
+    const result = parseJson<{
+      success: boolean;
+      installed: string[];
+      failed: string[];
+    }>(stdout);
+
+    expect(result).not.toBeNull();
+    expect(result!.success).toBe(false);
+    expect(result!.failed).toContain("fake-id-1");
+    expect(result!.failed).toContain("fake-id-2");
+    expect(result!.failed).toContain("fake-id-3");
+    expect(result!.installed).toEqual([]);
+
+    log("multi-invalid", "Multiple invalid IDs handled correctly");
+  });
+});
