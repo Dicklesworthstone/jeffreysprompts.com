@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronDown,
@@ -351,7 +351,7 @@ export function EnhancedTimeline({
   };
 
   // Get messages for a section, filtered by search query
-  const getSectionMessages = (section: TranscriptSection) => {
+  const getSectionMessages = useCallback((section: TranscriptSection) => {
     const sectionMessages = messages.slice(section.startIndex, section.endIndex + 1);
 
     if (!searchQuery.trim()) {
@@ -366,13 +366,13 @@ export function EnhancedTimeline({
         (typeof tc.input?.file_path === "string" && tc.input.file_path.toLowerCase().includes(query))
       )
     );
-  };
+  }, [messages, searchQuery]);
 
   // Check if any section has matching messages (for UI feedback)
   const hasSearchResults = useMemo(() => {
     if (!searchQuery.trim()) return true;
     return sections.some((section) => getSectionMessages(section).length > 0);
-  }, [searchQuery, sections, messages]);
+  }, [searchQuery, sections, getSectionMessages]);
 
   return (
     <div className="relative" id="timeline">

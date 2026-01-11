@@ -13,7 +13,7 @@ import {
   Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useCountUp, easings } from "@/hooks/useCountUp";
+import { useCountUp } from "@/hooks/useCountUp";
 
 interface EnhancedHeroProps {
   duration: string;
