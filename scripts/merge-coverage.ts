@@ -18,6 +18,11 @@ import { join, resolve } from "path";
 
 const ROOT = resolve(import.meta.dir, "..");
 const OUTPUT_DIR = join(ROOT, "coverage", "combined");
+const COVERAGE_THRESHOLDS = {
+  lines: 50,
+  functions: 50,
+  branches: 50,
+};
 
 interface CoverageSource {
   name: string;
@@ -70,6 +75,11 @@ function formatPercent(hit: number, found: number): string {
   if (found === 0) return "N/A";
   const pct = (hit / found) * 100;
   return `${pct.toFixed(1)}%`;
+}
+
+function calcPercent(hit: number, found: number): number {
+  if (found === 0) return 0;
+  return (hit / found) * 100;
 }
 
 function main(): void {
@@ -167,10 +177,28 @@ function main(): void {
   console.log(`  ${summaryPath}`);
   console.log("\n" + summaryText);
 
-  // Exit with appropriate code based on coverage
-  const lineCoverage = totals.lines.found > 0 ? (totals.lines.hit / totals.lines.found) * 100 : 0;
-  if (lineCoverage < 50) {
-    console.log(`\nWarning: Combined line coverage (${lineCoverage.toFixed(1)}%) is below 50% threshold.`);
+  // Enforce combined coverage thresholds
+  const combinedCoverage = {
+    lines: calcPercent(totals.lines.hit, totals.lines.found),
+    functions: calcPercent(totals.functions.hit, totals.functions.found),
+    branches: calcPercent(totals.branches.hit, totals.branches.found),
+  };
+
+  const failures: string[] = [];
+  for (const [key, threshold] of Object.entries(COVERAGE_THRESHOLDS)) {
+    const metric = key as keyof typeof combinedCoverage;
+    const value = combinedCoverage[metric];
+    if (value < threshold) {
+      failures.push(`${key}: ${value.toFixed(1)}% < ${threshold}%`);
+    }
+  }
+
+  if (failures.length > 0) {
+    console.error("\nCoverage thresholds not met:");
+    for (const failure of failures) {
+      console.error(`  - ${failure}`);
+    }
+    process.exit(1);
   }
 }
 

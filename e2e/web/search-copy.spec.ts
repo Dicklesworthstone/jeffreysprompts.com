@@ -298,9 +298,22 @@ test.describe("Error States", () => {
       await expect(page.getByText(/showing cached prompts/i)).toBeVisible({ timeout: 5000 });
     });
 
+    await logger.step("dismiss offline banner", async () => {
+      const dismissButton = page.getByRole("button", { name: /dismiss offline notification/i });
+      await expect(dismissButton).toBeVisible();
+      await dismissButton.click();
+      await expect(page.getByText(/showing cached prompts/i)).not.toBeVisible({ timeout: 3000 });
+    });
+
     await logger.step("restore online", async () => {
       await context.setOffline(false);
       await page.evaluate(() => window.dispatchEvent(new Event("online")));
+    });
+
+    await logger.step("go offline again and ensure banner returns", async () => {
+      await context.setOffline(true);
+      await page.evaluate(() => window.dispatchEvent(new Event("offline")));
+      await expect(page.getByText(/showing cached prompts/i)).toBeVisible({ timeout: 5000 });
     });
   });
 });

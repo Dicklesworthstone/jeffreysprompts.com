@@ -48,16 +48,32 @@ jobs:
         run: bun run build
 
       # E2E test gates
-      - name: Install Playwright browsers
-        run: bunx playwright install --with-deps chromium
       - name: Run CLI E2E tests
         run: bun run test:e2e:cli
-      - name: Run Web E2E tests
-        run: bun run test:e2e:web
+
+  pre-release-e2e-web:
+    name: Pre-Release Web E2E (${{ matrix.project }})
+    runs-on: ubuntu-latest
+    needs: pre-release-tests
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [chromium, firefox, webkit]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Install Playwright browsers
+        run: bunx playwright install --with-deps ${{ matrix.project }}
+      - name: Run Web E2E tests (${{ matrix.project }})
+        run: bun run test:e2e:web -- --project ${{ matrix.project }}
 
   build:
     name: Build (${{ matrix.target }})
-    needs: pre-release-tests
+    needs: [pre-release-tests, pre-release-e2e-web]
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
