@@ -5,7 +5,7 @@
  * Falls back gracefully for unauthenticated users.
  */
 
-import { getAccessToken, getCurrentUser, type Credentials } from "./credentials";
+import { getAccessToken, getCurrentUser } from "./credentials";
 
 // Premium API base URL - use env var if available, otherwise default
 const PREMIUM_API_URL = process.env.JFP_PREMIUM_API_URL ?? "https://pro.jeffreysprompts.com/api";

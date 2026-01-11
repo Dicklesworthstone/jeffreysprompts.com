@@ -1,6 +1,7 @@
 // Registry loader with stale-while-revalidate pattern
 
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync, renameSync, unlinkSync } from "fs";
+import { randomBytes } from "crypto";
 import { dirname, join } from "path";
 import type { Prompt } from "@jeffreysprompts/core/prompts/types";
 import { prompts as bundledPrompts } from "@jeffreysprompts/core/prompts";
@@ -35,9 +36,30 @@ function readJsonFile<T>(path: string): T | null {
   }
 }
 
+/**
+ * Write JSON to file atomically using temp file + rename pattern.
+ * Prevents corruption if process crashes mid-write.
+ */
 function writeJsonFile(path: string, value: unknown): void {
   mkdirSync(dirname(path), { recursive: true });
-  writeFileSync(path, JSON.stringify(value, null, 2));
+  const suffix = randomBytes(8).toString("hex");
+  const tempPath = `${path}.${suffix}.tmp`;
+  const content = JSON.stringify(value, null, 2);
+
+  try {
+    writeFileSync(tempPath, content);
+    renameSync(tempPath, path);
+  } catch (err) {
+    // Clean up temp file on failure
+    try {
+      if (existsSync(tempPath)) {
+        unlinkSync(tempPath);
+      }
+    } catch {
+      // Ignore cleanup errors
+    }
+    throw err;
+  }
 }
 
 function getPromptArray(value: unknown): Prompt[] | null {
