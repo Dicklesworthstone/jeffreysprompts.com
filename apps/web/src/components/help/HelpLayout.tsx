@@ -55,7 +55,7 @@ export function HelpLayout({
                     href={`/help/${category}`}
                     className="hover:text-zinc-900 dark:hover:text-white capitalize"
                   >
-                    {category.replace("-", " ")}
+                    {category.replace(/-/g, " ")}
                   </Link>
                 </>
               )}
