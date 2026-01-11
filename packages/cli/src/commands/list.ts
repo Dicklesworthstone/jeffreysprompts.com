@@ -4,6 +4,12 @@ import chalk from "chalk";
 import { apiClient, isAuthError, requiresPremium } from "../lib/api-client";
 import { isLoggedIn } from "../lib/credentials";
 import { shouldOutputJson } from "../lib/utils";
+import {
+  hasOfflineLibrary,
+  readOfflineLibrary,
+  readSyncMeta,
+  formatSyncAge,
+} from "../lib/offline";
 
 interface ListOptions {
   category?: string;
@@ -65,57 +71,153 @@ function applyFilters(results: Prompt[], options: ListOptions): Prompt[] {
   return filtered;
 }
 
+interface FetchResult {
+  prompts: Prompt[];
+  offline?: boolean;
+  offlineAge?: string;
+}
+
+/**
+ * Convert offline library prompts to Prompt format
+ */
+function offlineLibraryToPrompts(): Prompt[] {
+  const offlinePrompts = readOfflineLibrary();
+  return offlinePrompts.map((p) => ({
+    id: p.id,
+    title: p.title,
+    description: p.description || "",
+    content: p.content,
+    category: p.category || "uncategorized",
+    tags: p.tags || [],
+    author: "",
+    version: "1.0.0",
+    created: p.saved_at,
+  }));
+}
+
+/**
+ * Check if error looks like a network error
+ */
+function isNetworkError(error: string | undefined): boolean {
+  if (!error) return false;
+  const errorLower = error.toLowerCase();
+  return (
+    errorLower.includes("network") ||
+    errorLower.includes("fetch") ||
+    errorLower.includes("econnrefused") ||
+    errorLower.includes("timeout") ||
+    errorLower.includes("enotfound")
+  );
+}
+
 async function fetchPromptList(
   endpoint: string,
   options: ListOptions,
   contextLabel: string,
   allowFailure: boolean
-): Promise<Prompt[]> {
-  const response = await apiClient.get<unknown>(endpoint);
+): Promise<FetchResult> {
+  try {
+    const response = await apiClient.get<unknown>(endpoint);
 
-  if (response.ok) {
-    return normalizePromptPayload(response.data);
-  }
-
-  if (allowFailure) {
-    if (!shouldOutputJson(options)) {
-      console.log(chalk.yellow(`Warning: Could not load ${contextLabel}. Showing public prompts only.`));
+    if (response.ok) {
+      return { prompts: normalizePromptPayload(response.data) };
     }
-    return [];
-  }
 
-  if (isAuthError(response)) {
+    if (allowFailure) {
+      // Check for network error and try offline fallback
+      if (isNetworkError(response.error) && hasOfflineLibrary()) {
+        const meta = readSyncMeta();
+        if (!shouldOutputJson(options)) {
+          console.log(chalk.cyan(`📡 Offline mode (synced ${formatSyncAge(meta?.lastSync)})`));
+        }
+        return {
+          prompts: offlineLibraryToPrompts(),
+          offline: true,
+          offlineAge: formatSyncAge(meta?.lastSync),
+        };
+      }
+      if (!shouldOutputJson(options)) {
+        console.log(chalk.yellow(`Warning: Could not load ${contextLabel}. Showing public prompts only.`));
+      }
+      return { prompts: [] };
+    }
+
+    if (isAuthError(response)) {
+      if (shouldOutputJson(options)) {
+        writeJsonError("not_authenticated", "You must be logged in to list personal prompts");
+      } else {
+        console.log(chalk.yellow("You must be logged in to list personal prompts."));
+        console.log(chalk.dim("Run 'jfp login' to sign in."));
+      }
+      process.exit(1);
+    }
+
+    if (requiresPremium(response)) {
+      if (shouldOutputJson(options)) {
+        writeJsonError("premium_required", "Listing personal prompts requires a Premium subscription");
+      } else {
+        console.log(chalk.yellow("Listing personal prompts requires a Premium subscription."));
+        console.log(chalk.dim("Upgrade at https://pro.jeffreysprompts.com"));
+      }
+      process.exit(1);
+    }
+
+    // Check for network error with strict mode
+    if (isNetworkError(response.error) && hasOfflineLibrary()) {
+      const meta = readSyncMeta();
+      if (!shouldOutputJson(options)) {
+        console.log(chalk.cyan(`📡 Offline mode (synced ${formatSyncAge(meta?.lastSync)})`));
+      }
+      return {
+        prompts: offlineLibraryToPrompts(),
+        offline: true,
+        offlineAge: formatSyncAge(meta?.lastSync),
+      };
+    }
+
     if (shouldOutputJson(options)) {
-      writeJsonError("not_authenticated", "You must be logged in to list personal prompts");
+      writeJsonError("api_error", response.error || "Failed to load personal prompts", {
+        status: response.status,
+      });
     } else {
-      console.log(chalk.yellow("You must be logged in to list personal prompts."));
-      console.log(chalk.dim("Run 'jfp login' to sign in."));
+      console.log(chalk.red(`Failed to load ${contextLabel}: ${response.error || "Unknown error"}`));
+    }
+    process.exit(1);
+  } catch (err) {
+    // Network error - try offline fallback
+    if (hasOfflineLibrary()) {
+      const meta = readSyncMeta();
+      if (!shouldOutputJson(options)) {
+        console.log(chalk.cyan(`📡 Offline mode (synced ${formatSyncAge(meta?.lastSync)})`));
+      }
+      return {
+        prompts: offlineLibraryToPrompts(),
+        offline: true,
+        offlineAge: formatSyncAge(meta?.lastSync),
+      };
+    }
+
+    if (allowFailure) {
+      if (!shouldOutputJson(options)) {
+        console.log(chalk.yellow(`Warning: Could not load ${contextLabel}.`));
+      }
+      return { prompts: [] };
+    }
+
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    if (shouldOutputJson(options)) {
+      writeJsonError("api_error", errorMsg);
+    } else {
+      console.log(chalk.red(`Failed to load ${contextLabel}: ${errorMsg}`));
     }
     process.exit(1);
   }
-
-  if (requiresPremium(response)) {
-    if (shouldOutputJson(options)) {
-      writeJsonError("premium_required", "Listing personal prompts requires a Premium subscription");
-    } else {
-      console.log(chalk.yellow("Listing personal prompts requires a Premium subscription."));
-      console.log(chalk.dim("Upgrade at https://pro.jeffreysprompts.com"));
-    }
-    process.exit(1);
-  }
-
-  if (shouldOutputJson(options)) {
-    writeJsonError("api_error", response.error || "Failed to load personal prompts", {
-      status: response.status,
-    });
-  } else {
-    console.log(chalk.red(`Failed to load ${contextLabel}: ${response.error || "Unknown error"}`));
-  }
-  process.exit(1);
 }
 
 export async function listCommand(options: ListOptions) {
   let results = publicPrompts;
+  let isOfflineMode = false;
+  let offlineAge: string | undefined;
 
   const wantsMine = options.mine === true;
   const wantsSaved = options.saved === true;
@@ -136,36 +238,56 @@ export async function listCommand(options: ListOptions) {
       const sources: Prompt[] = [];
 
       if (wantsMine) {
-        sources.push(
-          ...await fetchPromptList("/cli/prompts/mine", options, "your prompts", false)
-        );
+        const result = await fetchPromptList("/cli/prompts/mine", options, "your prompts", false);
+        sources.push(...result.prompts);
+        if (result.offline) {
+          isOfflineMode = true;
+          offlineAge = result.offlineAge;
+        }
       }
 
       if (wantsSaved) {
-        sources.push(
-          ...await fetchPromptList("/cli/prompts/saved", options, "saved prompts", false)
-        );
+        const result = await fetchPromptList("/cli/prompts/saved", options, "saved prompts", false);
+        sources.push(...result.prompts);
+        if (result.offline) {
+          isOfflineMode = true;
+          offlineAge = result.offlineAge;
+        }
       }
 
       results = mergePrompts([], sources);
     } else {
-      const personalPrompts = await fetchPromptList(
+      const result = await fetchPromptList(
         "/cli/prompts/mine",
         options,
         "your prompts",
         true
       );
-      results = mergePrompts(results, personalPrompts);
+      results = mergePrompts(results, result.prompts);
+      if (result.offline) {
+        isOfflineMode = true;
+        offlineAge = result.offlineAge;
+      }
     }
   }
 
   results = applyFilters(results, options);
 
   if (shouldOutputJson(options)) {
-    writeJson({
+    const output: {
+      prompts: Prompt[];
+      count: number;
+      offline?: boolean;
+      offlineAge?: string;
+    } = {
       prompts: results,
       count: results.length,
-    });
+    };
+    if (isOfflineMode) {
+      output.offline = true;
+      output.offlineAge = offlineAge;
+    }
+    writeJson(output);
     return;
   }
 
@@ -184,6 +306,5 @@ export async function listCommand(options: ListOptions) {
   }
 
   console.log(table.toString());
-  console.log(chalk.dim(`
-Found ${results.length} prompts`));
+  console.log(chalk.dim(`\nFound ${results.length} prompts`));
 }

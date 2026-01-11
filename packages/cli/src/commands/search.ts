@@ -15,6 +15,13 @@ import chalk from "chalk";
 import { shouldOutputJson } from "../lib/utils";
 import { apiClient, isAuthError } from "../lib/api-client";
 import { isLoggedIn, loadCredentials } from "../lib/credentials";
+import {
+  hasOfflineLibrary,
+  searchOfflineLibrary,
+  readSyncMeta,
+  formatSyncAge,
+  type SyncedPrompt,
+} from "../lib/offline";
 
 function writeJson(payload: Record<string, unknown>): void {
   console.log(JSON.stringify(payload, null, 2));
@@ -72,12 +79,29 @@ function searchLocal(query: string, limit: number): MergedSearchResult[] {
 }
 
 /**
- * Search personal prompts via API
+ * Search the offline library cache
+ */
+function searchOffline(query: string, limit: number): MergedSearchResult[] {
+  const prompts = searchOfflineLibrary(query, limit);
+  return prompts.map((p) => ({
+    id: p.id,
+    title: p.title,
+    description: p.description || "",
+    category: p.category || "uncategorized",
+    tags: p.tags || [],
+    score: 1, // Offline results don't have scores, use 1
+    source: "saved" as const, // Offline library is saved prompts
+  }));
+}
+
+/**
+ * Search personal prompts via API with offline fallback
  */
 async function searchPersonal(
   query: string,
-  options: { mine?: boolean; saved?: boolean; all?: boolean }
-): Promise<{ results: MergedSearchResult[]; error?: string }> {
+  options: { mine?: boolean; saved?: boolean; all?: boolean },
+  limit: number
+): Promise<{ results: MergedSearchResult[]; error?: string; offline?: boolean }> {
   try {
     const endpoints: Array<{ endpoint: string; source: "mine" | "saved" | "collection" }> = [];
 
@@ -99,6 +123,7 @@ async function searchPersonal(
     );
 
     const results: MergedSearchResult[] = [];
+    let hasNetworkError = false;
 
     for (const { response, source } of responses) {
       if (response.ok && response.data) {
@@ -115,11 +140,44 @@ async function searchPersonal(
         }
       } else if (isAuthError(response)) {
         return { results: [], error: "auth_expired" };
+      } else {
+        // Check if this looks like a network error
+        const errorMsg = response.error?.toLowerCase() || "";
+        if (
+          errorMsg.includes("network") ||
+          errorMsg.includes("fetch") ||
+          errorMsg.includes("econnrefused") ||
+          errorMsg.includes("timeout") ||
+          response.status === 0
+        ) {
+          hasNetworkError = true;
+        }
       }
+    }
+
+    // If we got network errors and have an offline library, use it
+    if (hasNetworkError && results.length === 0 && hasOfflineLibrary()) {
+      const offlineResults = searchOffline(query, limit);
+      const meta = readSyncMeta();
+      return {
+        results: offlineResults,
+        error: `offline (synced ${formatSyncAge(meta?.lastSync)})`,
+        offline: true,
+      };
     }
 
     return { results };
   } catch (err) {
+    // Network error - try offline fallback
+    if (hasOfflineLibrary()) {
+      const offlineResults = searchOffline(query, limit);
+      const meta = readSyncMeta();
+      return {
+        results: offlineResults,
+        error: `offline (synced ${formatSyncAge(meta?.lastSync)})`,
+        offline: true,
+      };
+    }
     return { results: [], error: err instanceof Error ? err.message : "Unknown error" };
   }
 }
@@ -210,6 +268,7 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
   let localResults: MergedSearchResult[] = [];
   let personalResults: MergedSearchResult[] = [];
   let personalError: string | undefined;
+  let isOfflineMode = false;
 
   // Search local registry
   if (shouldSearchLocal) {
@@ -218,13 +277,18 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
 
   // Search personal prompts if applicable
   if (shouldSearchPersonal) {
-    const { results, error } = await searchPersonal(query, {
-      mine: searchMine || searchAll,
-      saved: searchSaved || searchAll,
-      all: searchAll,
-    });
+    const { results, error, offline } = await searchPersonal(
+      query,
+      {
+        mine: searchMine || searchAll,
+        saved: searchSaved || searchAll,
+        all: searchAll,
+      },
+      limit
+    );
     personalResults = results;
     personalError = error;
+    isOfflineMode = offline === true;
   }
 
   const authExpired = personalError === "auth_expired";
@@ -246,6 +310,7 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
       results: MergedSearchResult[];
       query: string;
       authenticated: boolean;
+      offline?: boolean;
       warning?: string;
     } = {
       results,
@@ -253,7 +318,10 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
       authenticated: loggedIn,
     };
 
-    if (personalError && !authExpired) {
+    if (isOfflineMode) {
+      output.offline = true;
+      output.warning = personalError;
+    } else if (personalError && !authExpired) {
       output.warning = `Personal search failed: ${personalError}`;
     }
     if (authExpired) {
@@ -265,7 +333,9 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
   }
 
   // Human-readable output
-  if (authExpired) {
+  if (isOfflineMode) {
+    console.log(chalk.cyan(`📡 Offline mode: ${personalError}\n`));
+  } else if (authExpired) {
     console.log(chalk.yellow("Warning: Personal search unavailable (session expired). Showing local results only.\n"));
   } else if (personalError) {
     console.log(chalk.yellow(`Warning: Personal search unavailable (${personalError})\n`));
