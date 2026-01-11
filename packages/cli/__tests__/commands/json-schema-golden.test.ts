@@ -336,16 +336,16 @@ describe("search --json golden tests", () => {
 // ============================================================================
 
 describe("show --json golden tests", () => {
-  it("outputs a single prompt object (not array)", () => {
-    showCommand("idea-wizard", { json: true });
+  it("outputs a single prompt object (not array)", async () => {
+    await showCommand("idea-wizard", { json: true });
     const json = getJsonOutput<unknown>();
 
     expect(typeof json).toBe("object");
     expect(Array.isArray(json)).toBe(false);
   });
 
-  it("prompt has all required fields", () => {
-    showCommand("idea-wizard", { json: true });
+  it("prompt has all required fields", async () => {
+    await showCommand("idea-wizard", { json: true });
     const json = getJsonOutput<Record<string, unknown>>();
 
     for (const field of EXPECTED_PROMPT_SCHEMA.requiredFields) {
@@ -353,8 +353,8 @@ describe("show --json golden tests", () => {
     }
   });
 
-  it("fields have correct types", () => {
-    showCommand("idea-wizard", { json: true });
+  it("fields have correct types", async () => {
+    await showCommand("idea-wizard", { json: true });
     const prompt = getJsonOutput<Record<string, unknown>>();
 
     expect(typeof prompt.id).toBe("string");
@@ -363,8 +363,8 @@ describe("show --json golden tests", () => {
     expect(Array.isArray(prompt.tags)).toBe(true);
   });
 
-  it("content field contains actual prompt text", () => {
-    showCommand("idea-wizard", { json: true });
+  it("content field contains actual prompt text", async () => {
+    await showCommand("idea-wizard", { json: true });
     const prompt = getJsonOutput<{ content: string }>();
 
     expect(prompt.content.length).toBeGreaterThan(100); // Real prompts are substantial
@@ -377,16 +377,16 @@ describe("show --json golden tests", () => {
 // ============================================================================
 
 describe("error payload golden tests", () => {
-  it("show --json returns exact error schema for missing prompt", () => {
-    expect(() => showCommand("nonexistent-prompt-xyz", { json: true })).toThrow();
+  it("show --json returns exact error schema for missing prompt", async () => {
+    await expect(async () => await showCommand("nonexistent-prompt-xyz", { json: true })).toThrow();
     const json = getJsonOutput<{ error: string }>();
 
     // This is the EXACT expected error payload
     expect(json).toEqual(EXPECTED_ERROR_SCHEMA.notFound);
   });
 
-  it("show error payload has 'error' key (not 'message' or 'msg')", () => {
-    expect(() => showCommand("nonexistent-prompt-xyz", { json: true })).toThrow();
+  it("show error payload has 'error' key (not 'message' or 'msg')", async () => {
+    await expect(async () => await showCommand("nonexistent-prompt-xyz", { json: true })).toThrow();
     const json = getJsonOutput<Record<string, unknown>>();
 
     expect(json).toHaveProperty("error");
@@ -394,13 +394,13 @@ describe("error payload golden tests", () => {
     expect(json).not.toHaveProperty("msg");
   });
 
-  it("show error exits with code 1", () => {
-    expect(() => showCommand("nonexistent-prompt-xyz", { json: true })).toThrow();
+  it("show error exits with code 1", async () => {
+    await expect(async () => await showCommand("nonexistent-prompt-xyz", { json: true })).toThrow();
     expect(exitCode).toBe(1);
   });
 
-  it("search with no results returns empty array, not error", () => {
-    searchCommand("zzzznonexistent999", { json: true });
+  it("search with no results returns empty array, not error", async () => {
+    await searchCommand("zzzznonexistent999", { json: true });
     const json = getJsonOutput<unknown>();
 
     // Empty results should NOT be an error object
@@ -408,8 +408,8 @@ describe("error payload golden tests", () => {
     expect(json).toEqual([]);
   });
 
-  it("list with no matches returns empty array, not error", () => {
-    listCommand({ json: true, category: "nonexistent-category" as never });
+  it("list with no matches returns empty array, not error", async () => {
+    await listCommand({ json: true, category: "nonexistent-category" as never });
     const json = getJsonOutput<unknown>();
 
     expect(Array.isArray(json)).toBe(true);
