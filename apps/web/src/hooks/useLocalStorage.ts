@@ -160,31 +160,43 @@ export function useLocalStorage<T>(
   // Setter with debounced persistence
   const setValue = useCallback(
     (value: T | ((prev: T) => T)) => {
-      const valueToStore = value instanceof Function ? value(readValue()) : value;
-      let serializedValue: string | null = null;
-      try {
-        serializedValue = JSON.stringify(valueToStore);
-      } catch (error) {
-        console.warn(`Error setting localStorage key "${key}":`, error);
+    const valueToStore = value instanceof Function ? value(readValue()) : value;
+    let serializedValue: string | null = null;
+    let shouldRemove = false;
+    try {
+      if (typeof valueToStore === "undefined") {
+        shouldRemove = true;
+      } else {
+        const nextSerialized = JSON.stringify(valueToStore) as string | undefined;
+        if (typeof nextSerialized === "string") {
+          serializedValue = nextSerialized;
+        } else {
+          shouldRemove = true;
+        }
       }
-      latestValueRef.current = valueToStore;
-      latestKeyRef.current = key;
-      hasLatestValueRef.current = true;
-      latestSerializedRef.current = serializedValue;
+    } catch (error) {
+      console.warn(`Error setting localStorage key "${key}":`, error);
+    }
+    latestValueRef.current = valueToStore;
+    latestKeyRef.current = key;
+    hasLatestValueRef.current = true;
+    latestSerializedRef.current = shouldRemove ? null : serializedValue;
 
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
       }
 
-      debounceRef.current = setTimeout(() => {
-        try {
-          if (serializedValue !== null) {
-            window.localStorage.setItem(key, serializedValue);
-          }
-        } catch (error) {
-          console.warn(`Error setting localStorage key "${key}":`, error);
+    debounceRef.current = setTimeout(() => {
+      try {
+        if (shouldRemove) {
+          window.localStorage.removeItem(key);
+        } else if (serializedValue !== null) {
+          window.localStorage.setItem(key, serializedValue);
         }
-      }, debounceMs);
+      } catch (error) {
+        console.warn(`Error setting localStorage key "${key}":`, error);
+      }
+    }, debounceMs);
 
       notifyListeners();
     },

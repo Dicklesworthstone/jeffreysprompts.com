@@ -130,6 +130,23 @@ describe("useLocalStorage", () => {
       // Only final value should be persisted
       expect(localStorage.getItem("rapid-test")).toBe(JSON.stringify(3));
     });
+
+    it("clears storage when setting undefined", () => {
+      const { result } = renderHook(() =>
+        useLocalStorage<string | undefined>("undefined-test", "initial")
+      );
+
+      act(() => {
+        result.current[1](undefined);
+      });
+
+      act(() => {
+        vi.advanceTimersByTime(350);
+      });
+
+      expect(localStorage.getItem("undefined-test")).toBeNull();
+      expect(result.current[0]).toBeUndefined();
+    });
   });
 
   describe("removeValue", () => {
