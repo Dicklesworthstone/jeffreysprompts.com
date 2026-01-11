@@ -2,7 +2,7 @@
 
 import { useCallback, useState, useRef, useEffect } from "react";
 import { motion, useAnimation, AnimatePresence } from "framer-motion";
-import { Copy, Check, ShoppingBag, Plus } from "lucide-react";
+import { Copy, Check, ShoppingBag, Plus, Heart, MoreHorizontal, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PromptCard } from "@/components/PromptCard";
 import { useSwipeGesture } from "@/hooks/useSwipeGesture";
@@ -17,10 +17,13 @@ interface SwipeablePromptCardProps {
   index?: number;
   onCopy?: (prompt: Prompt) => void;
   onClick?: (prompt: Prompt) => void;
+  onSave?: (prompt: Prompt) => void;
 }
 
 const SWIPE_THRESHOLD = 80;
 const SWIPE_COMPLETE_THRESHOLD = 120;
+const DOUBLE_TAP_DELAY = 300;
+const LONG_PRESS_DELAY = 500;
 
 /**
  * SwipeablePromptCard - Mobile-optimized card with swipe gestures.
@@ -28,6 +31,8 @@ const SWIPE_COMPLETE_THRESHOLD = 120;
  * Features:
  * - Swipe left: Copy to clipboard (blue reveal)
  * - Swipe right: Add to basket (indigo reveal)
+ * - Double-tap: Quick save/favorite with heart animation
+ * - Long-press: Opens quick actions menu
  * - Spring-back animation on incomplete swipe
  * - Velocity-based dismissal threshold
  * - Haptic feedback at key points
@@ -39,6 +44,7 @@ const SWIPE_COMPLETE_THRESHOLD = 120;
  * <SwipeablePromptCard
  *   prompt={prompt}
  *   onCopy={(p) => console.log("Copied:", p.title)}
+ *   onSave={(p) => console.log("Saved:", p.title)}
  * />
  * ```
  */
@@ -47,15 +53,21 @@ export function SwipeablePromptCard({
   index = 0,
   onCopy,
   onClick,
+  onSave,
 }: SwipeablePromptCardProps) {
   const [isMobile, setIsMobile] = useState(false);
-  const [actionTriggered, setActionTriggered] = useState<"copy" | "basket" | null>(null);
+  const [actionTriggered, setActionTriggered] = useState<"copy" | "basket" | "save" | null>(null);
+  const [showQuickActions, setShowQuickActions] = useState(false);
+  const [showHeartAnimation, setShowHeartAnimation] = useState(false);
   const controls = useAnimation();
   const haptic = useHaptic();
   const { success, error } = useToast();
   const { addItem, isInBasket } = useBasket();
   const inBasket = isInBasket(prompt.id);
   const lastHapticThreshold = useRef(0);
+  const lastTapTime = useRef(0);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tapCount = useRef(0);
 
   // Detect mobile viewport
   useEffect(() => {
@@ -90,6 +102,68 @@ export function SwipeablePromptCard({
     setActionTriggered("basket");
     setTimeout(() => setActionTriggered(null), 1500);
   }, [prompt, inBasket, addItem, haptic, success]);
+
+  // Handle double-tap to save/favorite
+  const handleDoubleTap = useCallback(() => {
+    setShowHeartAnimation(true);
+    haptic.success();
+    trackEvent("prompt_save", { id: prompt.id, source: "double_tap" });
+    onSave?.(prompt);
+    setActionTriggered("save");
+    setTimeout(() => {
+      setShowHeartAnimation(false);
+      setActionTriggered(null);
+    }, 1000);
+  }, [prompt, onSave, haptic]);
+
+  // Handle long-press to show quick actions
+  const handleLongPress = useCallback(() => {
+    haptic.heavy();
+    setShowQuickActions(true);
+  }, [haptic]);
+
+  // Touch handlers for double-tap and long-press detection
+  const handleTouchStart = useCallback(() => {
+    const now = Date.now();
+    const timeSinceLastTap = now - lastTapTime.current;
+
+    // Start long-press timer
+    longPressTimer.current = setTimeout(() => {
+      handleLongPress();
+    }, LONG_PRESS_DELAY);
+
+    // Check for double-tap
+    if (timeSinceLastTap < DOUBLE_TAP_DELAY) {
+      tapCount.current++;
+      if (tapCount.current >= 2) {
+        // Clear long-press timer on double-tap
+        if (longPressTimer.current) {
+          clearTimeout(longPressTimer.current);
+        }
+        handleDoubleTap();
+        tapCount.current = 0;
+      }
+    } else {
+      tapCount.current = 1;
+    }
+    lastTapTime.current = now;
+  }, [handleDoubleTap, handleLongPress]);
+
+  const handleTouchEnd = useCallback(() => {
+    // Clear long-press timer
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }, []);
+
+  const handleTouchMove = useCallback(() => {
+    // Cancel long-press on move
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }, []);
 
   const { handlers, state } = useSwipeGesture(
     {

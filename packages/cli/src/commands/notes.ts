@@ -41,6 +41,14 @@ interface NoteActionResponse {
   message?: string;
 }
 
+function writeJson(payload: Record<string, unknown>): void {
+  console.log(JSON.stringify(payload));
+}
+
+function writeJsonError(code: string, message: string, extra: Record<string, unknown> = {}): void {
+  writeJson({ error: true, code, message, ...extra });
+}
+
 /**
  * Notes command - view, add, or delete notes on prompts
  */
@@ -49,11 +57,7 @@ export async function notesCommand(promptId: string, options: NotesOptions = {})
   const token = await getAccessToken();
   if (!token) {
     if (shouldOutputJson(options)) {
-      console.log(JSON.stringify({
-        success: false,
-        error: "not_authenticated",
-        message: "You must be logged in to manage notes",
-      }));
+      writeJsonError("not_authenticated", "You must be logged in to manage notes");
     } else {
       console.log(chalk.yellow("You must be logged in to manage notes"));
       console.log(chalk.dim("Run 'jfp login' to sign in"));
@@ -65,11 +69,7 @@ export async function notesCommand(promptId: string, options: NotesOptions = {})
   const prompt = getPrompt(promptId);
   if (!prompt) {
     if (shouldOutputJson(options)) {
-      console.log(JSON.stringify({
-        success: false,
-        error: "prompt_not_found",
-        message: `Prompt not found: ${promptId}`,
-      }));
+      writeJsonError("prompt_not_found", `Prompt not found: ${promptId}`);
     } else {
       console.log(chalk.red(`Prompt not found: ${promptId}`));
       console.log(chalk.dim("Use 'jfp search <query>' to find prompts"));
@@ -105,12 +105,11 @@ async function listNotes(promptId: string, options: NotesOptions): Promise<void>
   const { notes } = response.data!;
 
   if (shouldOutputJson(options)) {
-    console.log(JSON.stringify({
-      success: true,
+    writeJson({
       prompt_id: promptId,
       notes,
       count: notes.length,
-    }));
+    });
     return;
   }
 
@@ -140,11 +139,7 @@ async function listNotes(promptId: string, options: NotesOptions): Promise<void>
 async function addNote(promptId: string, content: string, options: NotesOptions): Promise<void> {
   if (!content.trim()) {
     if (shouldOutputJson(options)) {
-      console.log(JSON.stringify({
-        success: false,
-        error: "empty_note",
-        message: "Note content cannot be empty",
-      }));
+      writeJsonError("empty_note", "Note content cannot be empty");
     } else {
       console.log(chalk.red("Note content cannot be empty"));
     }
@@ -163,12 +158,11 @@ async function addNote(promptId: string, content: string, options: NotesOptions)
   const { note } = response.data!;
 
   if (shouldOutputJson(options)) {
-    console.log(JSON.stringify({
-      success: true,
-      action: "added",
+    writeJson({
+      added: true,
       prompt_id: promptId,
       note,
-    }));
+    });
     return;
   }
 
@@ -189,12 +183,11 @@ async function deleteNote(promptId: string, noteId: string, options: NotesOption
   }
 
   if (shouldOutputJson(options)) {
-    console.log(JSON.stringify({
-      success: true,
-      action: "deleted",
+    writeJson({
+      deleted: true,
       prompt_id: promptId,
       note_id: noteId,
-    }));
+    });
     return;
   }
 
@@ -207,11 +200,7 @@ async function deleteNote(promptId: string, noteId: string, options: NotesOption
 function handleApiError(response: { ok: boolean; status: number; error?: string }, options: NotesOptions): void {
   if (isAuthError(response)) {
     if (shouldOutputJson(options)) {
-      console.log(JSON.stringify({
-        success: false,
-        error: "authentication_required",
-        message: "Session expired. Please run 'jfp login' to sign in again.",
-      }));
+      writeJsonError("authentication_required", "Session expired. Please run 'jfp login' to sign in again.");
     } else {
       console.log(chalk.yellow("Session expired. Please run 'jfp login' to sign in again."));
     }
@@ -220,11 +209,7 @@ function handleApiError(response: { ok: boolean; status: number; error?: string 
 
   if (requiresPremium(response)) {
     if (shouldOutputJson(options)) {
-      console.log(JSON.stringify({
-        success: false,
-        error: "premium_required",
-        message: "Notes require a Premium subscription",
-      }));
+      writeJsonError("premium_required", "Notes require a Premium subscription");
     } else {
       console.log(chalk.yellow("Notes require a Premium subscription"));
       console.log(chalk.dim("Upgrade at https://pro.jeffreysprompts.com"));
@@ -234,12 +219,9 @@ function handleApiError(response: { ok: boolean; status: number; error?: string 
 
   // Generic error
   if (shouldOutputJson(options)) {
-    console.log(JSON.stringify({
-      success: false,
-      error: "api_error",
+    writeJsonError("api_error", response.error || "An error occurred", {
       status: response.status,
-      message: response.error || "An error occurred",
-    }));
+    });
   } else {
     console.log(chalk.red("Error: " + (response.error || "An error occurred")));
   }

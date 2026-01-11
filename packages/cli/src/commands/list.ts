@@ -13,6 +13,14 @@ interface ListOptions {
   saved?: boolean;
 }
 
+function writeJson(payload: Record<string, unknown>): void {
+  console.log(JSON.stringify(payload));
+}
+
+function writeJsonError(code: string, message: string, extra: Record<string, unknown> = {}): void {
+  writeJson({ error: true, code, message, ...extra });
+}
+
 function normalizePromptPayload(payload: unknown): Prompt[] {
   if (!payload) return [];
   if (Array.isArray(payload)) {
@@ -78,11 +86,7 @@ async function fetchPromptList(
 
   if (isAuthError(response)) {
     if (shouldOutputJson(options)) {
-      console.log(JSON.stringify({
-        success: false,
-        error: "not_authenticated",
-        message: "You must be logged in to list personal prompts",
-      }));
+      writeJsonError("not_authenticated", "You must be logged in to list personal prompts");
     } else {
       console.log(chalk.yellow("You must be logged in to list personal prompts."));
       console.log(chalk.dim("Run 'jfp login' to sign in."));
@@ -92,11 +96,7 @@ async function fetchPromptList(
 
   if (requiresPremium(response)) {
     if (shouldOutputJson(options)) {
-      console.log(JSON.stringify({
-        success: false,
-        error: "premium_required",
-        message: "Listing personal prompts requires a Premium subscription",
-      }));
+      writeJsonError("premium_required", "Listing personal prompts requires a Premium subscription");
     } else {
       console.log(chalk.yellow("Listing personal prompts requires a Premium subscription."));
       console.log(chalk.dim("Upgrade at https://pro.jeffreysprompts.com"));
@@ -105,12 +105,9 @@ async function fetchPromptList(
   }
 
   if (shouldOutputJson(options)) {
-    console.log(JSON.stringify({
-      success: false,
-      error: "api_error",
+    writeJsonError("api_error", response.error || "Failed to load personal prompts", {
       status: response.status,
-      message: response.error || "Failed to load personal prompts",
-    }));
+    });
   } else {
     console.log(chalk.red(`Failed to load ${contextLabel}: ${response.error || "Unknown error"}`));
   }
@@ -126,11 +123,7 @@ export async function listCommand(options: ListOptions) {
 
   if ((wantsMine || wantsSaved) && !loggedIn) {
     if (shouldOutputJson(options)) {
-      console.log(JSON.stringify({
-        success: false,
-        error: "not_authenticated",
-        message: "You must be logged in to list personal prompts",
-      }));
+      writeJsonError("not_authenticated", "You must be logged in to list personal prompts");
     } else {
       console.log(chalk.yellow("You must be logged in to list personal prompts."));
       console.log(chalk.dim("Run 'jfp login' to sign in."));
@@ -169,7 +162,10 @@ export async function listCommand(options: ListOptions) {
   results = applyFilters(results, options);
 
   if (shouldOutputJson(options)) {
-    console.log(JSON.stringify(results, null, 2));
+    writeJson({
+      prompts: results,
+      count: results.length,
+    });
     return;
   }
 
