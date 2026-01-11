@@ -29,6 +29,7 @@ import { loginCommand } from "./commands/login";
 import { logoutCommand, whoamiCommand } from "./commands/auth";
 import { notesCommand } from "./commands/notes";
 import { saveCommand } from "./commands/save";
+import { syncCommand } from "./commands/sync";
 import { collectionsCommand, collectionShowCommand } from "./commands/collections";
 
 export const cli = cac("jfp");
@@ -163,6 +164,13 @@ cli
   .command("save <prompt-id>", "Save prompt to your premium account")
   .option("--json", "Output JSON")
   .action(saveCommand);
+
+cli
+  .command("sync", "Sync your premium library for offline access")
+  .option("--force", "Force full re-sync (ignore cache)")
+  .option("--status", "Show sync status")
+  .option("--json", "Output JSON")
+  .action(syncCommand);
 
 cli
   .command("notes <prompt-id>", "Manage personal notes on prompts")
