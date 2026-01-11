@@ -250,19 +250,22 @@ describe("list --json golden tests", () => {
 // ============================================================================
 
 describe("search --json golden tests", () => {
-  it("outputs an array of search results", async () => {
+  it("outputs wrapped response with results array", async () => {
     await searchCommand("idea", { json: true });
-    const json = getJsonOutput<unknown[]>();
+    const json = getJsonOutput<{ results: unknown[]; query: string; authenticated: boolean }>();
 
-    expect(Array.isArray(json)).toBe(true);
-    expect(json.length).toBeGreaterThan(0);
+    expect(json).toHaveProperty("results");
+    expect(json).toHaveProperty("query");
+    expect(json).toHaveProperty("authenticated");
+    expect(Array.isArray(json.results)).toBe(true);
+    expect(json.results.length).toBeGreaterThan(0);
   });
 
-  it("each result has all required SearchResult fields", async () => {
+  it("each result has all required fields", async () => {
     await searchCommand("wizard", { json: true });
-    const json = getJsonOutput<Record<string, unknown>[]>();
+    const json = getJsonOutput<{ results: Record<string, unknown>[] }>();
 
-    for (const result of json) {
+    for (const result of json.results) {
       for (const field of EXPECTED_SEARCH_RESULT_SCHEMA.requiredFields) {
         expect(result).toHaveProperty(field);
       }
@@ -271,34 +274,38 @@ describe("search --json golden tests", () => {
 
   it("SearchResult fields have correct types", async () => {
     await searchCommand("wizard", { json: true });
-    const json = getJsonOutput<Record<string, unknown>[]>();
-    const result = json[0];
+    const json = getJsonOutput<{ results: Record<string, unknown>[] }>();
+    const result = json.results[0];
 
-    expect(typeof result.prompt).toBe("object");
+    expect(typeof result.id).toBe("string");
+    expect(typeof result.title).toBe("string");
     expect(typeof result.score).toBe("number");
-    expect(Array.isArray(result.matchedFields)).toBe(true);
+    expect(typeof result.source).toBe("string");
   });
 
-  it("nested prompt has full Prompt schema", async () => {
+  it("result has full prompt fields (flat structure)", async () => {
     await searchCommand("wizard", { json: true });
-    const json = getJsonOutput<{ prompt: Record<string, unknown> }[]>();
-    const prompt = json[0].prompt;
+    const json = getJsonOutput<{ results: Record<string, unknown>[] }>();
+    const result = json.results[0];
 
-    for (const field of EXPECTED_PROMPT_SCHEMA.requiredFields) {
-      expect(prompt).toHaveProperty(field);
-    }
+    // Flat structure - prompt fields are directly on result
+    expect(result).toHaveProperty("id");
+    expect(result).toHaveProperty("title");
+    expect(result).toHaveProperty("description");
+    expect(result).toHaveProperty("category");
+    expect(result).toHaveProperty("tags");
   });
 
   it("score is a non-negative number", async () => {
     await searchCommand("documentation", { json: true });
-    const json = getJsonOutput<{ score: number }[]>();
+    const json = getJsonOutput<{ results: { score: number }[] }>();
 
-    for (const result of json) {
+    for (const result of json.results) {
       expect(result.score).toBeGreaterThanOrEqual(0);
     }
   });
 
-  it("matchedFields contains valid field names", async () => {
+  it("matchedFields contains valid field names when present", async () => {
     const validFields = [
       "title",
       "description",
@@ -309,31 +316,44 @@ describe("search --json golden tests", () => {
     ];
 
     await searchCommand("documentation", { json: true });
-    const json = getJsonOutput<{ matchedFields: string[] }[]>();
+    const json = getJsonOutput<{ results: { matchedFields?: string[] }[] }>();
 
-    for (const result of json) {
-      for (const field of result.matchedFields) {
-        expect(validFields).toContain(field);
+    for (const result of json.results) {
+      if (result.matchedFields) {
+        for (const field of result.matchedFields) {
+          expect(validFields).toContain(field);
+        }
       }
     }
   });
 
-  it("empty results return empty array, not error", async () => {
+  it("empty results return wrapped response with empty array", async () => {
     await searchCommand("xyznonexistent123456789", { json: true });
-    const json = getJsonOutput<unknown[]>();
+    const json = getJsonOutput<{ results: unknown[] }>();
 
-    expect(Array.isArray(json)).toBe(true);
-    expect(json).toEqual([]);
+    expect(json).toHaveProperty("results");
+    expect(Array.isArray(json.results)).toBe(true);
+    expect(json.results).toEqual([]);
   });
 
   it("results are ordered by score descending", async () => {
     await searchCommand("documentation readme", { json: true });
-    const json = getJsonOutput<{ score: number }[]>();
+    const json = getJsonOutput<{ results: { score: number }[] }>();
 
-    if (json.length > 1) {
-      for (let i = 1; i < json.length; i++) {
-        expect(json[i - 1].score).toBeGreaterThanOrEqual(json[i].score);
+    if (json.results.length > 1) {
+      for (let i = 1; i < json.results.length; i++) {
+        expect(json.results[i - 1].score).toBeGreaterThanOrEqual(json.results[i].score);
       }
+    }
+  });
+
+  it("source field indicates result origin", async () => {
+    await searchCommand("wizard", { json: true });
+    const json = getJsonOutput<{ results: { source: string }[] }>();
+
+    const validSources = ["local", "mine", "saved", "collection"];
+    for (const result of json.results) {
+      expect(validSources).toContain(result.source);
     }
   });
 });
@@ -406,13 +426,14 @@ describe("error payload golden tests", () => {
     expect(exitCode).toBe(1);
   });
 
-  it("search with no results returns empty array, not error", async () => {
+  it("search with no results returns wrapped response with empty results", async () => {
     await searchCommand("zzzznonexistent999", { json: true });
-    const json = getJsonOutput<unknown>();
+    const json = getJsonOutput<{ results: unknown[] }>();
 
-    // Empty results should NOT be an error object
-    expect(Array.isArray(json)).toBe(true);
-    expect(json).toEqual([]);
+    // Empty results should be wrapped response with empty array
+    expect(json).toHaveProperty("results");
+    expect(Array.isArray(json.results)).toBe(true);
+    expect(json.results).toEqual([]);
   });
 
   it("list with no matches returns empty array, not error", async () => {
@@ -454,24 +475,23 @@ describe("cross-command schema consistency", () => {
     expect(fromList.content).toBe(fromShow.content);
   });
 
-  it("search result prompt matches show output", async () => {
+  it("search result fields match show output", async () => {
     // Get a prompt from search using a query that will definitely match
     await searchCommand("wizard", { json: true });
-    const searchOutput = getJsonOutput<{ prompt: Record<string, unknown> }[]>();
+    const searchOutput = getJsonOutput<{ results: Record<string, unknown>[] }>();
 
     // Find idea-wizard in results (may not be first)
-    const searchResult = searchOutput.find((r) => r.prompt.id === "idea-wizard");
+    const searchResult = searchOutput.results.find((r) => r.id === "idea-wizard");
     expect(searchResult).toBeDefined();
-    const fromSearch = searchResult!.prompt;
 
     // Reset and get same prompt from show
     output = [];
     await showCommand("idea-wizard", { json: true });
     const fromShow = getJsonOutput<Record<string, unknown>>();
 
-    // Values should match
-    expect(fromSearch.id).toBe(fromShow.id);
-    expect(fromSearch.title).toBe(fromShow.title);
-    expect(fromSearch.content).toBe(fromShow.content);
+    // Values should match (search has flat structure now)
+    expect(searchResult!.id).toBe(fromShow.id);
+    expect(searchResult!.title).toBe(fromShow.title);
+    expect(searchResult!.description).toBe(fromShow.description);
   });
 });

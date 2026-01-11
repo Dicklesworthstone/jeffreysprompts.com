@@ -312,6 +312,33 @@ test.describe("Prompt Detail Page - Direct Navigation", () => {
     });
   });
 
+  test("related prompts section navigates to another prompt", async ({ page, logger }) => {
+    let relatedTitle = "";
+
+    await logger.step("navigate to prompt page", async () => {
+      await page.goto("/prompts/idea-wizard");
+      await page.waitForLoadState("networkidle");
+    });
+
+    await logger.step("open first related prompt", async () => {
+      const relatedSection = page.locator("section", { hasText: "Related Prompts" });
+      await expect(relatedSection.getByRole("heading", { name: "Related Prompts" })).toBeVisible({ timeout: 10000 });
+
+      const relatedLink = relatedSection.getByRole("link").first();
+      relatedTitle = (await relatedLink.locator("h3").first().innerText()).trim();
+
+      await Promise.all([
+        page.waitForURL((url) => url.pathname.startsWith("/prompts/") && url.pathname !== "/prompts/idea-wizard"),
+        relatedLink.click(),
+      ]);
+    });
+
+    await logger.step("verify new prompt page", async () => {
+      await expect(page).not.toHaveURL("/prompts/idea-wizard");
+      await expect(page.getByRole("heading", { name: relatedTitle })).toBeVisible({ timeout: 10000 });
+    });
+  });
+
   test("back to prompts link navigates home", async ({ page, logger }) => {
     await logger.step("navigate to prompt page", async () => {
       await page.goto("/prompts/idea-wizard");
