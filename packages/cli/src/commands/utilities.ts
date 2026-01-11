@@ -9,7 +9,8 @@ import boxen from "boxen";
 import { spawn } from "child_process";
 import { existsSync } from "fs";
 import { join } from "path";
-import { homedir, platform } from "os";
+import { platform } from "os";
+import { getHomeDir } from "../lib/config";
 
 interface JsonOptions {
   json?: boolean;
@@ -118,7 +119,7 @@ export async function doctorCommand(options: JsonOptions): Promise<void> {
   const results: DoctorResult[] = [];
 
   // Check personal skills directory
-  const personalSkillsDir = join(homedir(), ".config", "claude", "skills");
+  const personalSkillsDir = join(getHomeDir(), ".config", "claude", "skills");
   if (existsSync(personalSkillsDir)) {
     results.push({
       check: "Personal skills directory",

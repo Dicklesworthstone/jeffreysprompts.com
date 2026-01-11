@@ -6,7 +6,7 @@ import chalk from "chalk";
 import boxen from "boxen";
 import { existsSync, mkdirSync, writeFileSync } from "fs";
 import { join, resolve } from "path";
-import { homedir } from "os";
+import { getHomeDir } from "../lib/config";
 import {
   readManifest,
   writeManifest,
@@ -94,7 +94,7 @@ function displayPrompt(prompt: Prompt): void {
 async function installPrompt(prompt: Prompt, toProject: boolean): Promise<void> {
   const targetRoot = toProject
     ? resolve(process.cwd(), ".claude/skills")
-    : join(homedir(), ".config/claude/skills");
+    : join(getHomeDir(), ".config/claude/skills");
 
   if (!isSafeSkillId(prompt.id)) {
     console.log(chalk.red(`Error: Unsafe prompt id "${prompt.id}".`));

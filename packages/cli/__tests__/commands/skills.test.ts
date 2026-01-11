@@ -53,7 +53,6 @@ const { installCommand } = await import("../../src/commands/install");
 const { uninstallCommand } = await import("../../src/commands/uninstall");
 const { installedCommand } = await import("../../src/commands/installed");
 const { updateCommand } = await import("../../src/commands/update");
-const { loadConfig, createDefaultConfig } = await import("../../src/lib/config");
 
 function getPersonalSkillsDir(): string {
   return join(testDir, ".config", "claude", "skills");
