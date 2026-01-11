@@ -45,6 +45,10 @@ cli
 cli
   .command("search <query>", "Fuzzy search prompts")
   .option("--limit <n>", "Max results (default: 10)")
+  .option("--mine", "Search only your personal prompts")
+  .option("--saved", "Search only your saved prompts")
+  .option("--all", "Search everything (public + personal)")
+  .option("--local", "Search only local registry")
   .option("--json", "Output JSON")
   .action(searchCommand);
 
