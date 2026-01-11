@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { WifiOff, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -25,15 +25,12 @@ export function OfflineBanner({ className }: OfflineBannerProps) {
   const { isOffline, isRegistered } = useServiceWorker();
   const [dismissed, setDismissed] = useState(false);
 
-  // Reset dismissed state when going back online (so it shows again if offline later)
-  useEffect(() => {
-    if (!isOffline) {
-      setDismissed(false);
-    }
-  }, [isOffline]);
+  if (!isOffline || !isRegistered) {
+    return null;
+  }
 
-  // Don't show if online, dismissed, or SW not registered
-  const shouldShow = isOffline && !dismissed && isRegistered;
+  // Don't show if dismissed while offline
+  const shouldShow = !dismissed;
 
   return (
     <AnimatePresence>

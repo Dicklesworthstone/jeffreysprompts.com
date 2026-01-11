@@ -151,13 +151,13 @@ export function useEnhancedToast() {
   const context = React.useContext(ToastContext);
   if (!context) {
     return {
-      toast: (_toast: Omit<Toast, "id">) => "",
-      success: (_title: string, _message?: string, _options?: Partial<Toast>) => "",
-      error: (_title: string, _message?: string, _options?: Partial<Toast>) => "",
-      info: (_title: string, _message?: string, _options?: Partial<Toast>) => "",
-      warning: (_title: string, _message?: string, _options?: Partial<Toast>) => "",
-      dismiss: (_id: string) => {},
-      update: (_id: string, _updates: Partial<Omit<Toast, "id">>) => {},
+      toast: () => "",
+      success: () => "",
+      error: () => "",
+      info: () => "",
+      warning: () => "",
+      dismiss: () => {},
+      update: () => {},
     };
   }
 

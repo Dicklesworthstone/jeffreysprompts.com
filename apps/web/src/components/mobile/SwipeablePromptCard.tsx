@@ -2,7 +2,7 @@
 
 import { useCallback, useState, useRef, useEffect } from "react";
 import { motion, useAnimation, AnimatePresence } from "framer-motion";
-import { Copy, Check, ShoppingBag, Plus, Heart, MoreHorizontal, X } from "lucide-react";
+import { Copy, Check, ShoppingBag, Plus, Heart, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PromptCard } from "@/components/PromptCard";
 import { useSwipeGesture } from "@/hooks/useSwipeGesture";
@@ -78,8 +78,9 @@ export function SwipeablePromptCard({
         clearTimeout(longPressTimer.current);
       }
       // Clear all action timers
-      actionTimers.current.forEach((timer) => clearTimeout(timer));
-      actionTimers.current.clear();
+      const timers = actionTimers.current;
+      timers.forEach((timer) => clearTimeout(timer));
+      timers.clear();
     };
   }, []);
 

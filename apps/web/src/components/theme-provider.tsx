@@ -46,32 +46,22 @@ export function ThemeProvider({
   children,
   defaultTheme = "system",
 }: ThemeProviderProps) {
-  const [theme, setThemeState] = useState<Theme>(defaultTheme);
-  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
-  const [mounted, setMounted] = useState(false);
-
-  // Load stored theme on mount
-  useEffect(() => {
-    const stored = getStoredTheme();
-    if (stored) {
-      setThemeState(stored);
-    }
-    setMounted(true);
-  }, []);
+  const [theme, setThemeState] = useState<Theme>(
+    () => getStoredTheme() ?? defaultTheme
+  );
+  const [systemTheme, setSystemTheme] = useState<"light" | "dark">(() =>
+    getSystemTheme()
+  );
+  const resolvedTheme = theme === "system" ? systemTheme : theme;
 
   // Update resolved theme and apply to document with smooth transition
   useEffect(() => {
-    if (!mounted) return;
-
-    const resolved = theme === "system" ? getSystemTheme() : theme;
-    setResolvedTheme(resolved);
-
     const root = document.documentElement;
 
     // Enable theme transition temporarily
     root.classList.add("theme-transitioning");
     root.classList.remove("light", "dark");
-    root.classList.add(resolved);
+    root.classList.add(resolvedTheme);
 
     // Remove transition class after animation completes
     const timeout = setTimeout(() => {
@@ -79,19 +69,15 @@ export function ThemeProvider({
     }, 300);
 
     return () => clearTimeout(timeout);
-  }, [theme, mounted]);
+  }, [resolvedTheme]);
 
   // Listen for system theme changes when using system preference
   useEffect(() => {
-    if (!mounted || theme !== "system") return;
+    if (theme !== "system") return;
 
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     const handleChange = (e: MediaQueryListEvent) => {
-      const newTheme = e.matches ? "dark" : "light";
-      setResolvedTheme(newTheme);
-      const root = document.documentElement;
-      root.classList.remove("light", "dark");
-      root.classList.add(newTheme);
+      setSystemTheme(e.matches ? "dark" : "light");
     };
 
     mediaQuery.addEventListener("change", handleChange);

@@ -87,6 +87,11 @@ export function PromptDetailModal({
   const { success, error } = useToast();
   const [copied, setCopied] = useState(false);
   const [context, setContext] = useState("");
+  const handleClose = useCallback(() => {
+    setCopied(false);
+    setContext("");
+    onClose();
+  }, [onClose]);
 
   // Store variable values per prompt ID in localStorage
   const storageKey = prompt ? `jfp-vars-${prompt.id}` : "";
@@ -184,14 +189,6 @@ export function PromptDetailModal({
     success("Downloaded", `${prompt.id}.md`);
     trackEvent("export", { id: prompt.id, format: "md", source: "modal" });
   }, [prompt, renderedContent, success]);
-
-  // Reset state when modal closes
-  useEffect(() => {
-    if (!open) {
-      setCopied(false);
-      setContext("");
-    }
-  }, [open]);
 
   useEffect(() => {
     if (open && prompt) {
@@ -390,14 +387,14 @@ export function PromptDetailModal({
   // Render based on device type
   if (isMobile) {
     return (
-      <BottomSheet open={open} onClose={onClose} title={prompt.title}>
+      <BottomSheet open={open} onClose={handleClose} title={prompt.title}>
         {modalContent}
       </BottomSheet>
     );
   }
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
       <DialogContent size="xl" className="max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader separated>
           <DialogTitle className="flex items-center gap-2">

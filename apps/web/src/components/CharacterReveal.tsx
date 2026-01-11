@@ -135,7 +135,7 @@ export function CharacterReveal({
     >
       {words.map((word, wordIndex) => (
         <span key={wordIndex} className="inline-flex">
-          {word.map((char, charIdx) => {
+          {word.map((char) => {
             const currentIndex = charIndex++;
             return (
               <motion.span

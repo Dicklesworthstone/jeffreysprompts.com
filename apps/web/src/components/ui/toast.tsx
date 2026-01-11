@@ -57,11 +57,11 @@ export function useToast() {
   if (!context) {
     // Return a no-op implementation if context is not available
     return {
-      toast: (_toast: Omit<Toast, "id">) => {},
-      success: (_title: string, _message?: string, _duration?: number) => {},
-      error: (_title: string, _message?: string, _duration?: number) => {},
-      info: (_title: string, _message?: string, _duration?: number) => {},
-      warning: (_title: string, _message?: string, _duration?: number) => {},
+      toast: () => {},
+      success: () => {},
+      error: () => {},
+      info: () => {},
+      warning: () => {},
     };
   }
 

@@ -72,7 +72,7 @@ export function BasketSidebar({ isOpen, onClose }: BasketSidebarProps) {
         message: `${basketPrompts.length} prompt${basketPrompts.length > 1 ? "s" : ""} exported as Markdown`,
       });
       trackEvent("export", { format: "md", count: basketPrompts.length, source: "basket" });
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: "Export failed",
         message: "Could not generate markdown files",
@@ -102,7 +102,7 @@ export function BasketSidebar({ isOpen, onClose }: BasketSidebarProps) {
         message: `${basketPrompts.length} skill${basketPrompts.length > 1 ? "s" : ""} ready to install`,
       });
       trackEvent("export", { format: "skill", count: basketPrompts.length, source: "basket" });
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: "Export failed",
         message: "Could not generate skill files",
@@ -129,7 +129,7 @@ export function BasketSidebar({ isOpen, onClose }: BasketSidebarProps) {
       });
       trackEvent("skill_install", { count: basketPrompts.length, source: "basket" });
       setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: "Copy failed",
         message: "Could not copy to clipboard",
