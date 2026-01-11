@@ -1,6 +1,5 @@
 "use client";
 
-import { useRef } from "react";
 import { motion } from "framer-motion";
 import { ChevronRight, Sparkles } from "lucide-react";
 import { PromptCard } from "@/components/PromptCard";
@@ -19,8 +18,6 @@ export function FeaturedPromptsSection({
   onPromptClick,
   onPromptCopy,
 }: FeaturedPromptsSectionProps) {
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-
   // Take first 6 prompts (featured ones should be at the front)
   const featuredPrompts = prompts.slice(0, 6);
 
@@ -53,10 +50,7 @@ export function FeaturedPromptsSection({
         </motion.div>
 
         {/* Mobile: Horizontal scroll */}
-        <div
-          ref={scrollContainerRef}
-          className="lg:hidden -mx-4 px-4 overflow-x-auto scrollbar-hide"
-        >
+        <div className="lg:hidden -mx-4 px-4 overflow-x-auto scrollbar-hide">
           <div className="flex gap-4 pb-4" style={{ width: "max-content" }}>
             {featuredPrompts.map((prompt, index) => (
               <motion.div

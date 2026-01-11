@@ -34,6 +34,7 @@ export function Hero({
   // Detect platform and update modifier key on client-side only
   useEffect(() => {
     if (typeof navigator !== "undefined" && navigator.platform?.includes("Mac")) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- client-only platform detection
       setModifierKey("⌘");
     }
   }, []);
