@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { useFilterState } from "@/hooks/useFilterState";
 import { trackEvent } from "@/lib/analytics";
+import { toast } from "@/components/ui/toast";
 import type { Prompt, PromptCategory } from "@jeffreysprompts/core/prompts/types";
 
 function PromptGridFallback({ onRefresh }: { onRefresh: () => void }) {
@@ -113,8 +114,7 @@ function HomeContent() {
   }, []);
 
   const handlePromptCopy = useCallback((prompt: Prompt) => {
-    // TODO: Show toast notification
-    console.log("Copied prompt:", prompt.id);
+    toast.success("Copied!", `"${prompt.title}" copied to clipboard`);
   }, []);
 
   const handleRefresh = useCallback(() => {

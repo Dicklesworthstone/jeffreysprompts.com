@@ -90,6 +90,28 @@ export function useDragControls() {
   return { start: () => {} };
 }
 
+export function useReducedMotion() {
+  return false;
+}
+
+export function useMotionTemplate(strings: TemplateStringsArray, ...values: unknown[]) {
+  // Combine template strings with values
+  let result = strings[0];
+  for (let i = 0; i < values.length; i++) {
+    result += String(values[i]) + (strings[i + 1] || "");
+  }
+  return result;
+}
+
+export function useScroll() {
+  return {
+    scrollY: useMotionValue(0),
+    scrollX: useMotionValue(0),
+    scrollYProgress: useMotionValue(0),
+    scrollXProgress: useMotionValue(0),
+  };
+}
+
 export const MotionConfig = ({ children }: { children: React.ReactNode }) => <>{children}</>;
 export const LazyMotion = ({ children }: { children: React.ReactNode }) => <>{children}</>;
 export const domAnimation = {};

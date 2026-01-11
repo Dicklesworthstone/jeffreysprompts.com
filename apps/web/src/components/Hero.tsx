@@ -114,7 +114,7 @@ export function Hero({
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
-      // TODO: Open spotlight search
+      // SpotlightSearch handles this globally via document listener
     }
   }, []);
 

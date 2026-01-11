@@ -4,13 +4,15 @@
 
 /**
  * Escape a string for safe use in a YAML double-quoted array element.
- * Handles backslashes, double quotes, and newlines.
+ * Handles backslashes, double quotes, newlines, tabs, and carriage returns.
  */
 export function escapeYamlArrayItem(value: string): string {
   return value
     .replace(/\\/g, "\\\\")
     .replace(/"/g, '\\"')
-    .replace(/\n/g, "\\n");
+    .replace(/\n/g, "\\n")
+    .replace(/\r/g, "\\r")
+    .replace(/\t/g, "\\t");
 }
 
 // YAML 1.1 boolean values that need quoting
@@ -41,11 +43,13 @@ export function escapeYamlValue(value: string): string {
     return '""';
   }
 
-  // Check if value needs quoting (contains special chars, newlines, or starts/contains special chars)
+  // Check if value needs quoting (contains special chars, control chars, or reserved patterns)
   if (
     value.includes(":") ||
     value.includes("#") ||
     value.includes("\n") ||
+    value.includes("\r") ||   // Carriage return
+    value.includes("\t") ||   // Tab character
     value.includes('"') ||
     value.includes("'") ||
     value.includes("[") ||
@@ -56,8 +60,8 @@ export function escapeYamlValue(value: string): string {
     value.includes("|") ||
     value.includes("\\") ||
     value.includes(",") ||    // Flow context separator
-    value.startsWith(" ") ||
-    value.endsWith(" ") ||
+    /^\s/.test(value) ||      // Leading whitespace (space, tab, etc.)
+    /\s$/.test(value) ||      // Trailing whitespace
     value.startsWith("@") ||
     value.startsWith("!") ||
     value.startsWith("&") ||

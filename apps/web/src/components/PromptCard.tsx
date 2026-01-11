@@ -9,10 +9,19 @@
  * - Touch-friendly targets (44px minimum on mobile)
  * - Smooth GPU-accelerated transitions
  * - Responsive typography that's readable at all sizes
+ * - Cursor-tracking glow effect (desktop)
+ * - Preview expansion on hover
  */
 
-import { useState, useCallback, type MouseEvent } from "react";
-import { motion } from "framer-motion";
+import { useState, useCallback, useRef, type MouseEvent } from "react";
+import {
+  motion,
+  useMotionTemplate,
+  useMotionValue,
+  useReducedMotion,
+  useSpring,
+  useTransform,
+} from "framer-motion";
 import {
   Copy,
   Check,
@@ -66,9 +75,37 @@ const difficultyConfig: Record<
 
 export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardProps) {
   const [copied, setCopied] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
+  const cardRef = useRef<HTMLDivElement>(null);
   const { success, error } = useToast();
   const { isInBasket, addItem, removeItem } = useBasket();
   const inBasket = isInBasket(prompt.id);
+
+  // Cursor-tracking glow effect (desktop only)
+  const mouseX = useMotionValue(50);
+  const mouseY = useMotionValue(50);
+  const springConfig = { stiffness: 300, damping: 30 };
+  const glowX = useSpring(mouseX, springConfig);
+  const glowY = useSpring(mouseY, springConfig);
+  const glow = useMotionTemplate`radial-gradient(240px circle at ${glowX}% ${glowY}%, rgba(99,102,241,0.18), rgba(99,102,241,0.06) 45%, transparent 70%)`;
+
+  // Transform for 3D tilt effect
+  const rotateX = useTransform(mouseY, [0, 100], [2, -2]);
+  const rotateY = useTransform(mouseX, [0, 100], [-2, 2]);
+
+  const handleMouseMove = useCallback((e: MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    mouseX.set(x);
+    mouseY.set(y);
+  }, [mouseX, mouseY]);
+
+  const handleMouseLeave = useCallback(() => {
+    mouseX.set(50);
+    mouseY.set(50);
+  }, [mouseX, mouseY]);
 
   const handleCopy = useCallback(
     async (e: MouseEvent) => {
@@ -108,14 +145,24 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
 
   return (
     <motion.div
+      ref={cardRef}
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
+      whileHover={prefersReducedMotion ? undefined : { scale: 1.02 }}
       transition={{
         duration: 0.3,
         delay: Math.min(index * 0.04, 0.2),
         ease: [0.25, 0.1, 0.25, 1],
+        scale: { type: "spring", stiffness: 400, damping: 25 },
       }}
+      onMouseMove={prefersReducedMotion ? undefined : handleMouseMove}
+      onMouseLeave={prefersReducedMotion ? undefined : handleMouseLeave}
       className="h-full"
+      style={
+        prefersReducedMotion
+          ? { transformStyle: "preserve-3d" }
+          : { rotateX, rotateY, transformPerspective: 1000, transformStyle: "preserve-3d" }
+      }
     >
       <Card
         className={cn(
@@ -133,6 +180,14 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
         )}
         onClick={handleClick}
       >
+        {/* Cursor glow */}
+        {!prefersReducedMotion && (
+          <motion.div
+            aria-hidden
+            className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-300 hidden md:block"
+            style={{ background: glow }}
+          />
+        )}
         {/* Featured indicator - subtle top accent */}
         {prompt.featured && (
           <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-amber-400 via-orange-400 to-amber-400" />
@@ -200,16 +255,16 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
         <CardFooter className="pt-0 pb-4 px-4 mt-auto">
           {/* Content preview - improved typography */}
           <div className="w-full space-y-3">
-            <div className="relative rounded-lg overflow-hidden bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-100 dark:border-zinc-800">
+            <div className="relative rounded-lg overflow-hidden bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-100 dark:border-zinc-800 transition-colors duration-300 group-hover:border-indigo-200/70 dark:group-hover:border-indigo-900/50 group-hover:bg-white/80 dark:group-hover:bg-zinc-800/60">
               <div className="p-3 h-[72px] overflow-hidden">
-                <p className="font-mono text-xs leading-relaxed text-zinc-600 dark:text-zinc-400 whitespace-pre-wrap">
+                <p className="font-mono text-xs leading-relaxed text-zinc-600 dark:text-zinc-400 whitespace-pre-wrap transition-transform duration-300 group-hover:-translate-y-1">
                   {prompt.content.length > 180
                     ? `${prompt.content.slice(0, 180)}...`
                     : prompt.content}
                 </p>
               </div>
               {/* Fade overlay */}
-              <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-zinc-50 dark:from-zinc-800/40 to-transparent pointer-events-none" />
+              <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-zinc-50 dark:from-zinc-800/40 to-transparent pointer-events-none transition-all duration-300 group-hover:h-4" />
             </div>
 
             {/* Actions row */}

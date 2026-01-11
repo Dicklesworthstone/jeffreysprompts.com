@@ -15,10 +15,13 @@ const STOPWORDS = new Set([
 ]);
 
 /**
- * Tokenize text into lowercase words, removing stopwords and punctuation
+ * Tokenize text into lowercase words, removing stopwords and punctuation.
+ * Uses NFC normalization to ensure consistent matching for Unicode characters
+ * (e.g., "café" composed vs "cafe\u0301" decomposed are treated identically).
  */
 export function tokenize(text: string): string[] {
   return text
+    .normalize("NFC") // Normalize Unicode to composed form for consistent matching
     .toLowerCase()
     .replace(/[^\w\s-]/g, " ") // Remove punctuation except hyphens
     .split(/\s+/)
@@ -26,10 +29,12 @@ export function tokenize(text: string): string[] {
 }
 
 /**
- * Tokenize without removing stopwords (for exact matching)
+ * Tokenize without removing stopwords (for exact matching).
+ * Uses NFC normalization for consistent Unicode handling.
  */
 export function tokenizeRaw(text: string): string[] {
   return text
+    .normalize("NFC")
     .toLowerCase()
     .replace(/[^\w\s-]/g, " ")
     .split(/\s+/)
