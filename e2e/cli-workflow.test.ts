@@ -923,10 +923,10 @@ describe("CLI E2E: TTY vs Pipe Output Mode Switching", () => {
 
     expect(exitCode).toBe(0);
 
-    // Should be valid JSON since we're in a non-TTY context
-    const result = parseJson<unknown[]>(stdout);
+    // Should be valid JSON since we're in a non-TTY context - wrapped response
+    const result = parseJson<{ prompts: unknown[]; count: number }>(stdout);
     expect(result).not.toBeNull();
-    expect(Array.isArray(result)).toBe(true);
+    expect(Array.isArray(result!.prompts)).toBe(true);
 
     log("tty-pipe", "Piped output correctly defaults to JSON");
   });
@@ -938,10 +938,10 @@ describe("CLI E2E: TTY vs Pipe Output Mode Switching", () => {
 
     expect(exitCode).toBe(0);
 
-    // Should definitely be JSON with explicit flag
-    const result = parseJson<unknown[]>(stdout);
+    // Should definitely be JSON with explicit flag - wrapped response
+    const result = parseJson<{ prompts: unknown[]; count: number }>(stdout);
     expect(result).not.toBeNull();
-    expect(Array.isArray(result)).toBe(true);
+    expect(Array.isArray(result!.prompts)).toBe(true);
 
     log("tty-json-flag", "Explicit --json produces valid JSON");
   });
@@ -969,10 +969,10 @@ describe("CLI E2E: TTY vs Pipe Output Mode Switching", () => {
 
     expect(exitCode).toBe(0);
 
-    // Should be JSON array of search results
-    const result = parseJson<unknown[]>(stdout);
+    // Should be wrapped JSON with results array
+    const result = parseJson<{ results: unknown[]; query: string; authenticated: boolean }>(stdout);
     expect(result).not.toBeNull();
-    expect(Array.isArray(result)).toBe(true);
+    expect(Array.isArray(result!.results)).toBe(true);
 
     log("tty-search", "Search command outputs JSON in piped mode");
   });
