@@ -11,6 +11,15 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BasketProvider, useBasketContext } from "./basket-context";
 
+const safeParse = (value: string | null): string[] => {
+  if (!value) return [];
+  try {
+    return JSON.parse(value) as string[];
+  } catch {
+    return [];
+  }
+};
+
 describe("BasketContext", () => {
   beforeEach(() => {
     localStorage.clear();
@@ -200,8 +209,9 @@ describe("BasketContext", () => {
 
       const stored = localStorage.getItem("jfp-basket");
       expect(stored).not.toBeNull();
-      expect(JSON.parse(stored!)).toContain("prompt-1");
-      expect(JSON.parse(stored!)).toContain("prompt-2");
+      const parsed = safeParse(stored);
+      expect(parsed).toContain("prompt-1");
+      expect(parsed).toContain("prompt-2");
     });
   });
 });

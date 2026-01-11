@@ -38,7 +38,7 @@ const requiredCspDirectives = [
 ];
 
 test.describe("Security Headers - Public Pages", () => {
-  test("homepage returns all security headers", async ({ page, logger, request }) => {
+  test("homepage returns all security headers", async ({ logger, request }) => {
     const response = await logger.step("fetch homepage", async () => {
       return await request.get("/");
     });
@@ -232,11 +232,11 @@ test.describe("CSP Directive Validation", () => {
 
     const csp = response.headers()["content-security-policy"];
 
-    await logger.step("verify Plausible origin allowed in script-src", async () => {
-      // Either plausible.io or a custom Plausible origin should be allowed
-      const hasPlausible = csp.includes("plausible.io") || csp.includes("script-src");
-      expect(hasPlausible).toBe(true);
-    });
+    await logger.step("verify Plausible origin allowed in script-src and connect-src", async () => {
+      // plausible.io (or custom origin) should be in both script-src and connect-src
+      // With default config, this is https://plausible.io
+      expect(csp).toContain("plausible.io");
+    }, { data: { csp } });
   });
 
   test("CSP restricts unsafe sources appropriately", async ({ logger, request }) => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, useRef, useEffect } from "react";
+import { useCallback, useState, useRef, useEffect, type ReactNode } from "react";
 import { motion, useAnimation, AnimatePresence } from "framer-motion";
 import { Copy, Check, ShoppingBag, Plus, Heart, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -69,6 +69,45 @@ export function SwipeablePromptCard({
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tapCount = useRef(0);
   const actionTimers = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+
+  let basketRevealContent: ReactNode;
+  if (actionTriggered === "basket") {
+    basketRevealContent = (
+      <motion.div
+        key="added"
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        exit={{ scale: 0 }}
+        className="flex flex-col items-center gap-1 text-white"
+      >
+        <Check className="w-6 h-6" />
+        <span className="text-xs font-medium">Added!</span>
+      </motion.div>
+    );
+  } else if (inBasket) {
+    basketRevealContent = (
+      <motion.div
+        key="in-basket"
+        className="flex flex-col items-center gap-1 text-white/70"
+      >
+        <ShoppingBag className="w-6 h-6" />
+        <span className="text-xs font-medium">In Basket</span>
+      </motion.div>
+    );
+  } else {
+    basketRevealContent = (
+      <motion.div
+        key="add"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="flex flex-col items-center gap-1 text-white"
+      >
+        <Plus className="w-6 h-6" />
+        <span className="text-xs font-medium">Add</span>
+      </motion.div>
+    );
+  }
 
   // Cleanup timers on unmount
   useEffect(() => {
@@ -312,37 +351,7 @@ export function SwipeablePromptCard({
         }}
       >
         <AnimatePresence mode="wait">
-          {actionTriggered === "basket" ? (
-            <motion.div
-              key="added"
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0 }}
-              className="flex flex-col items-center gap-1 text-white"
-            >
-              <Check className="w-6 h-6" />
-              <span className="text-xs font-medium">Added!</span>
-            </motion.div>
-          ) : inBasket ? (
-            <motion.div
-              key="in-basket"
-              className="flex flex-col items-center gap-1 text-white/70"
-            >
-              <ShoppingBag className="w-6 h-6" />
-              <span className="text-xs font-medium">In Basket</span>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="add"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex flex-col items-center gap-1 text-white"
-            >
-              <Plus className="w-6 h-6" />
-              <span className="text-xs font-medium">Add</span>
-            </motion.div>
-          )}
+          {basketRevealContent}
         </AnimatePresence>
       </motion.div>
 
