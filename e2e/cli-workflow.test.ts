@@ -148,21 +148,21 @@ describe("CLI E2E: Discovery Flow", () => {
 
     expect(exitCode).toBe(0);
 
-    const results = parseJson<{ prompt: { id: string }; score: number }[]>(stdout);
-    expect(results).not.toBeNull();
-    expect(Array.isArray(results)).toBe(true);
-    expect(results!.length).toBeGreaterThan(0);
+    const response = parseJson<{ results: { id: string; score: number }[]; query: string; authenticated: boolean }>(stdout);
+    expect(response).not.toBeNull();
+    expect(Array.isArray(response!.results)).toBe(true);
+    expect(response!.results.length).toBeGreaterThan(0);
 
     // idea-wizard should be in results
-    const hasWizard = results!.some((r) => r.prompt.id === "idea-wizard");
+    const hasWizard = response!.results.some((r) => r.id === "idea-wizard");
     expect(hasWizard).toBe(true);
 
     // Results should be ordered by score
-    for (let i = 1; i < results!.length; i++) {
-      expect(results![i - 1].score).toBeGreaterThanOrEqual(results![i].score);
+    for (let i = 1; i < response!.results.length; i++) {
+      expect(response!.results[i - 1].score).toBeGreaterThanOrEqual(response!.results[i].score);
     }
 
-    log("search", `Found ${results!.length} results, scores descending verified`);
+    log("search", `Found ${response!.results.length} results, scores descending verified`);
   });
 
   it("Step 4: show specific prompt", async () => {
@@ -363,15 +363,22 @@ describe("CLI E2E: JSON Schema Stability", () => {
     }
   });
 
-  it("search schema: array of results with prompt, score, matchedFields", async () => {
+  it("search schema: wrapped response with results array having flat structure", async () => {
     const { stdout } = await runCli("search idea --json");
-    const results = parseJson<Record<string, unknown>[]>(stdout)!;
+    const response = parseJson<{ results: Record<string, unknown>[]; query: string; authenticated: boolean }>(stdout)!;
 
-    expect(results[0]).toHaveProperty("prompt");
-    expect(results[0]).toHaveProperty("score");
-    expect(results[0]).toHaveProperty("matchedFields");
-    expect(typeof results[0].score).toBe("number");
-    expect(Array.isArray(results[0].matchedFields)).toBe(true);
+    // Wrapped response structure
+    expect(response).toHaveProperty("results");
+    expect(response).toHaveProperty("query");
+    expect(response).toHaveProperty("authenticated");
+    expect(Array.isArray(response.results)).toBe(true);
+
+    // Flat result structure (no nested prompt object)
+    expect(response.results[0]).toHaveProperty("id");
+    expect(response.results[0]).toHaveProperty("title");
+    expect(response.results[0]).toHaveProperty("score");
+    expect(response.results[0]).toHaveProperty("source");
+    expect(typeof response.results[0].score).toBe("number");
   });
 
   it("show schema: single prompt object with content", async () => {
@@ -1093,11 +1100,11 @@ describe("CLI E2E: Invalid Input and Edge Case Handling", () => {
 
     expect(exitCode).toBe(0);
 
-    // Search returns an array directly when using --json
-    const results = parseJson<Array<{ id: string }>>(stdout);
+    // Search returns wrapped response with results array
+    const response = parseJson<{ results: Array<{ id: string }>; query: string; authenticated: boolean }>(stdout);
 
-    expect(results).not.toBeNull();
-    expect(results!.length).toBe(0);
+    expect(response).not.toBeNull();
+    expect(response!.results.length).toBe(0);
 
     log("no-results-search", "No results handled correctly");
   });
