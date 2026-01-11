@@ -89,15 +89,14 @@ export async function openCommand(id: string): Promise<void> {
   const url = `https://jeffreysprompts.com/prompts/${prompt.id}`;
 
   // Platform-specific browser open command
-  const cmd =
-    platform() === "darwin"
-      ? "open"
-      : platform() === "win32"
-        ? "start"
-        : "xdg-open";
+  // Note: On Windows, 'start' is a shell built-in, so we use cmd.exe
+  // The empty string after 'start' prevents it from treating the URL as window title
+  const isWindows = platform() === "win32";
+  const cmd = platform() === "darwin" ? "open" : isWindows ? "cmd" : "xdg-open";
+  const args = isWindows ? ["/c", "start", "", url] : [url];
 
   try {
-    spawn(cmd, [url], { detached: true, stdio: "ignore" }).unref();
+    spawn(cmd, args, { detached: true, stdio: "ignore" }).unref();
     console.log(chalk.green(`Opening ${chalk.bold(prompt.title)} in browser...`));
     console.log(chalk.dim(url));
   } catch {
