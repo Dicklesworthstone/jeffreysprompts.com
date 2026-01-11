@@ -192,7 +192,7 @@ export async function doctorCommand(options: JsonOptions): Promise<void> {
     message: `${prompts.length} prompts loaded`,
   });
 
-  if (options.json) {
+  if (shouldOutputJson(options)) {
     console.log(JSON.stringify({ results }, null, 2));
     return;
   }
@@ -231,7 +231,7 @@ export async function aboutCommand(options: JsonOptions): Promise<void> {
     tags: tags.length,
   };
 
-  if (options.json) {
+  if (shouldOutputJson(options)) {
     console.log(JSON.stringify(info, null, 2));
     return;
   }

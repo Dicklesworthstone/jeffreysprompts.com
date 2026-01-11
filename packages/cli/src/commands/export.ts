@@ -3,6 +3,7 @@ import { getPrompt, prompts } from "@jeffreysprompts/core/prompts";
 import { generateSkillMd } from "@jeffreysprompts/core/export/skills";
 import { generatePromptMarkdown } from "@jeffreysprompts/core/export/markdown";
 import chalk from "chalk";
+import { shouldOutputJson } from "../lib/utils";
 
 interface ExportOptions {
   format?: "skill" | "md";
@@ -49,7 +50,7 @@ export function exportCommand(ids: string[], options: ExportOptions) {
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         failed.push({ id: prompt.id, error: message });
-        if (!options.json) {
+        if (!shouldOutputJson(options)) {
           console.error(chalk.red(`Failed to write ${filename}: ${message}`));
         }
       }
@@ -57,7 +58,7 @@ export function exportCommand(ids: string[], options: ExportOptions) {
   }
 
   if (!options.stdout) {
-    if (options.json) {
+    if (shouldOutputJson(options)) {
       console.log(JSON.stringify({
         success: failed.length === 0,
         exported: results,

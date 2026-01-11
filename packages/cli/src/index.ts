@@ -25,6 +25,7 @@ import {
 import { helpCommand } from "./commands/help";
 import { serveCommand } from "./commands/serve";
 import { updateCliCommand } from "./commands/update-cli";
+import { loginCommand } from "./commands/login";
 
 export const cli = cac("jfp");
 
@@ -129,6 +130,13 @@ cli
   .command("refresh", "Refresh registry cache from remote")
   .option("--json", "Output JSON")
   .action(refreshCommand);
+
+cli
+  .command("login", "Sign in to JeffreysPrompts Premium")
+  .option("--remote", "Use device code flow (for headless/SSH)")
+  .option("--timeout <ms>", "Timeout in milliseconds (default: 120000)")
+  .option("--json", "Output JSON")
+  .action(loginCommand);
 
 cli
   .command("i", "Interactive mode - fzf-style prompt picker")

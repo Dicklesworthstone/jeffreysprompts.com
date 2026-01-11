@@ -8,7 +8,7 @@ import {
   removeManifestEntry,
   findManifestEntry,
 } from "../lib/manifest";
-import { isSafeSkillId, resolveSafeChildPath } from "../lib/utils";
+import { isSafeSkillId, resolveSafeChildPath, shouldOutputJson } from "../lib/utils";
 
 interface UninstallOptions {
   project?: boolean;
@@ -66,7 +66,7 @@ export function uninstallCommand(ids: string[], options: UninstallOptions) {
     const dirExists = existsSync(skillDir);
 
     if (!manifestEntry && !dirExists) {
-      if (!options.json) {
+      if (!shouldOutputJson(options)) {
         console.warn(chalk.yellow("Warning: Skill '" + id + "' not found. Skipping."));
       }
       notFound.push(id);
@@ -86,7 +86,7 @@ export function uninstallCommand(ids: string[], options: UninstallOptions) {
 
       removed.push(id);
 
-      if (!options.json) {
+      if (!shouldOutputJson(options)) {
         console.log(chalk.green("✓") + " Uninstalled " + chalk.bold(id));
       }
     } catch (err) {
@@ -101,7 +101,7 @@ export function uninstallCommand(ids: string[], options: UninstallOptions) {
       writeManifest(targetRoot, manifest);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      if (options.json) {
+      if (shouldOutputJson(options)) {
         console.log(JSON.stringify({
           success: false,
           removed,
@@ -118,7 +118,7 @@ export function uninstallCommand(ids: string[], options: UninstallOptions) {
     }
   }
 
-  if (options.json) {
+  if (shouldOutputJson(options)) {
     console.log(
       JSON.stringify(
         {
