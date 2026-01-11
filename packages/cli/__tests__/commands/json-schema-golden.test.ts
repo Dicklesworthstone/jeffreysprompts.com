@@ -126,16 +126,16 @@ const EXPECTED_ERROR_SCHEMA = {
 // ============================================================================
 
 describe("list --json golden tests", () => {
-  it("outputs an array of prompts", () => {
-    listCommand({ json: true });
+  it("outputs an array of prompts", async () => {
+    await listCommand({ json: true });
     const json = getJsonOutput<unknown[]>();
 
     expect(Array.isArray(json)).toBe(true);
     expect(json.length).toBeGreaterThan(0);
   });
 
-  it("each prompt has all required fields", () => {
-    listCommand({ json: true });
+  it("each prompt has all required fields", async () => {
+    await listCommand({ json: true });
     const json = getJsonOutput<Record<string, unknown>[]>();
 
     for (const prompt of json) {
@@ -145,8 +145,8 @@ describe("list --json golden tests", () => {
     }
   });
 
-  it("required fields have correct types", () => {
-    listCommand({ json: true });
+  it("required fields have correct types", async () => {
+    await listCommand({ json: true });
     const json = getJsonOutput<Record<string, unknown>[]>();
     const prompt = json[0];
 
@@ -162,8 +162,8 @@ describe("list --json golden tests", () => {
     expect(typeof prompt.created).toBe("string");
   });
 
-  it("tags array contains only strings", () => {
-    listCommand({ json: true });
+  it("tags array contains only strings", async () => {
+    await listCommand({ json: true });
     const json = getJsonOutput<{ tags: unknown[] }[]>();
 
     for (const prompt of json) {
@@ -173,7 +173,7 @@ describe("list --json golden tests", () => {
     }
   });
 
-  it("category is a valid PromptCategory value", () => {
+  it("category is a valid PromptCategory value", async () => {
     const validCategories = [
       "ideation",
       "documentation",
@@ -185,7 +185,7 @@ describe("list --json golden tests", () => {
       "communication",
     ];
 
-    listCommand({ json: true });
+    await listCommand({ json: true });
     const json = getJsonOutput<{ category: string }[]>();
 
     for (const prompt of json) {
@@ -193,8 +193,8 @@ describe("list --json golden tests", () => {
     }
   });
 
-  it("version follows semver format", () => {
-    listCommand({ json: true });
+  it("version follows semver format", async () => {
+    await listCommand({ json: true });
     const json = getJsonOutput<{ version: string }[]>();
 
     const semverRegex = /^\d+\.\d+\.\d+$/;
@@ -203,8 +203,8 @@ describe("list --json golden tests", () => {
     }
   });
 
-  it("id follows kebab-case format", () => {
-    listCommand({ json: true });
+  it("id follows kebab-case format", async () => {
+    await listCommand({ json: true });
     const json = getJsonOutput<{ id: string }[]>();
 
     const kebabCaseRegex = /^[a-z0-9]+(-[a-z0-9]+)*$/;
@@ -213,8 +213,8 @@ describe("list --json golden tests", () => {
     }
   });
 
-  it("created date is ISO 8601 format", () => {
-    listCommand({ json: true });
+  it("created date is ISO 8601 format", async () => {
+    await listCommand({ json: true });
     const json = getJsonOutput<{ created: string }[]>();
 
     for (const prompt of json) {
@@ -224,9 +224,9 @@ describe("list --json golden tests", () => {
     }
   });
 
-  it("filters preserve schema structure", () => {
+  it("filters preserve schema structure", async () => {
     // Test with category filter
-    listCommand({ json: true, category: "documentation" });
+    await listCommand({ json: true, category: "documentation" });
     const filtered = getJsonOutput<Record<string, unknown>[]>();
 
     expect(filtered.length).toBeGreaterThan(0);
@@ -243,16 +243,16 @@ describe("list --json golden tests", () => {
 // ============================================================================
 
 describe("search --json golden tests", () => {
-  it("outputs an array of search results", () => {
-    searchCommand("idea", { json: true });
+  it("outputs an array of search results", async () => {
+    await searchCommand("idea", { json: true });
     const json = getJsonOutput<unknown[]>();
 
     expect(Array.isArray(json)).toBe(true);
     expect(json.length).toBeGreaterThan(0);
   });
 
-  it("each result has all required SearchResult fields", () => {
-    searchCommand("wizard", { json: true });
+  it("each result has all required SearchResult fields", async () => {
+    await searchCommand("wizard", { json: true });
     const json = getJsonOutput<Record<string, unknown>[]>();
 
     for (const result of json) {
@@ -262,8 +262,8 @@ describe("search --json golden tests", () => {
     }
   });
 
-  it("SearchResult fields have correct types", () => {
-    searchCommand("wizard", { json: true });
+  it("SearchResult fields have correct types", async () => {
+    await searchCommand("wizard", { json: true });
     const json = getJsonOutput<Record<string, unknown>[]>();
     const result = json[0];
 
@@ -272,8 +272,8 @@ describe("search --json golden tests", () => {
     expect(Array.isArray(result.matchedFields)).toBe(true);
   });
 
-  it("nested prompt has full Prompt schema", () => {
-    searchCommand("wizard", { json: true });
+  it("nested prompt has full Prompt schema", async () => {
+    await searchCommand("wizard", { json: true });
     const json = getJsonOutput<{ prompt: Record<string, unknown> }[]>();
     const prompt = json[0].prompt;
 
@@ -282,8 +282,8 @@ describe("search --json golden tests", () => {
     }
   });
 
-  it("score is a non-negative number", () => {
-    searchCommand("documentation", { json: true });
+  it("score is a non-negative number", async () => {
+    await searchCommand("documentation", { json: true });
     const json = getJsonOutput<{ score: number }[]>();
 
     for (const result of json) {
@@ -291,7 +291,7 @@ describe("search --json golden tests", () => {
     }
   });
 
-  it("matchedFields contains valid field names", () => {
+  it("matchedFields contains valid field names", async () => {
     const validFields = [
       "title",
       "description",
@@ -301,7 +301,7 @@ describe("search --json golden tests", () => {
       "id",
     ];
 
-    searchCommand("documentation", { json: true });
+    await searchCommand("documentation", { json: true });
     const json = getJsonOutput<{ matchedFields: string[] }[]>();
 
     for (const result of json) {
@@ -311,16 +311,16 @@ describe("search --json golden tests", () => {
     }
   });
 
-  it("empty results return empty array, not error", () => {
-    searchCommand("xyznonexistent123456789", { json: true });
+  it("empty results return empty array, not error", async () => {
+    await searchCommand("xyznonexistent123456789", { json: true });
     const json = getJsonOutput<unknown[]>();
 
     expect(Array.isArray(json)).toBe(true);
     expect(json).toEqual([]);
   });
 
-  it("results are ordered by score descending", () => {
-    searchCommand("documentation readme", { json: true });
+  it("results are ordered by score descending", async () => {
+    await searchCommand("documentation readme", { json: true });
     const json = getJsonOutput<{ score: number }[]>();
 
     if (json.length > 1) {
