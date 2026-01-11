@@ -425,3 +425,184 @@ describe("CLI E2E: Export Flow", () => {
     log("export-stdout", `Exported markdown length: ${stdout.length} chars`);
   });
 });
+
+describe("CLI E2E: Skill Lifecycle", () => {
+  /**
+   * Tests the full skill lifecycle:
+   * 1. Install a skill
+   * 2. Verify installed
+   * 3. Update skills
+   * 4. Uninstall the skill
+   * 5. Verify uninstalled
+   */
+  const TEST_SKILL_ID = "idea-wizard";
+  const SKILLS_DIR = "/tmp/jfp-e2e-home/.config/claude/skills";
+
+  it("Step 1: Install a skill", async () => {
+    log("install", `Running: jfp install ${TEST_SKILL_ID} --json`);
+
+    const { stdout, exitCode } = await runCli(`install ${TEST_SKILL_ID} --json`);
+
+    expect(exitCode).toBe(0);
+
+    const result = parseJson<{
+      success: boolean;
+      installed: string[];
+      targetDir: string;
+    }>(stdout);
+
+    expect(result).not.toBeNull();
+    expect(result!.success).toBe(true);
+    expect(result!.installed).toContain(TEST_SKILL_ID);
+
+    // Verify file exists on disk
+    const skillPath = join(SKILLS_DIR, TEST_SKILL_ID, "SKILL.md");
+    expect(existsSync(skillPath)).toBe(true);
+
+    log("install", `Skill installed to: ${result!.targetDir}`);
+  });
+
+  it("Step 2: List installed skills", async () => {
+    log("installed", "Running: jfp installed --json");
+
+    const { stdout, exitCode } = await runCli("installed --json");
+
+    expect(exitCode).toBe(0);
+
+    const result = parseJson<{
+      installed: { id: string; version: string; location: string }[];
+      count: number;
+    }>(stdout);
+
+    expect(result).not.toBeNull();
+
+    // Should find our installed skill
+    const hasSkill = result!.installed.some((s) => s.id === TEST_SKILL_ID);
+    expect(hasSkill).toBe(true);
+
+    log("installed", `Found ${result!.count} installed skills`);
+  });
+
+  it("Step 3: Update skills (dry-run)", async () => {
+    log("update", "Running: jfp update --personal --dry-run --json");
+
+    const { stdout, exitCode } = await runCli("update --personal --dry-run --json");
+
+    expect(exitCode).toBe(0);
+
+    const result = parseJson<{
+      success: boolean;
+      dryRun: boolean;
+      updated: { id: string }[];
+      unchanged: { id: string }[];
+      skipped: { id: string }[];
+      failed: { id: string }[];
+    }>(stdout);
+
+    expect(result).not.toBeNull();
+    expect(result!.dryRun).toBe(true);
+
+    // All results should be in one of the result arrays
+    const allResults = [
+      ...(result!.updated || []),
+      ...(result!.unchanged || []),
+      ...(result!.skipped || []),
+    ];
+
+    // Our skill should appear in one of the arrays (likely unchanged since just installed)
+    const hasSkill = allResults.some((r) => r.id === TEST_SKILL_ID);
+    expect(hasSkill).toBe(true);
+
+    log("update", `Update dry-run completed`);
+  });
+
+  it("Step 4: Uninstall the skill", async () => {
+    log("uninstall", `Running: jfp uninstall ${TEST_SKILL_ID} --confirm --json`);
+
+    const { stdout, exitCode } = await runCli(`uninstall ${TEST_SKILL_ID} --confirm --json`);
+
+    expect(exitCode).toBe(0);
+
+    const result = parseJson<{
+      success: boolean;
+      removed: string[];
+      targetDir: string;
+    }>(stdout);
+
+    expect(result).not.toBeNull();
+    expect(result!.success).toBe(true);
+    expect(result!.removed).toContain(TEST_SKILL_ID);
+
+    log("uninstall", `Skill uninstalled from: ${result!.targetDir}`);
+  });
+
+  it("Step 5: Verify skill is uninstalled", async () => {
+    log("verify-uninstall", "Running: jfp installed --json");
+
+    const { stdout, exitCode } = await runCli("installed --json");
+
+    expect(exitCode).toBe(0);
+
+    const result = parseJson<{
+      installed: { id: string }[];
+      count: number;
+    }>(stdout);
+
+    expect(result).not.toBeNull();
+
+    // Skill should no longer be in the list
+    const hasSkill = result!.installed.some((s) => s.id === TEST_SKILL_ID);
+    expect(hasSkill).toBe(false);
+
+    // Verify file is removed from disk
+    const skillPath = join(SKILLS_DIR, TEST_SKILL_ID, "SKILL.md");
+    expect(existsSync(skillPath)).toBe(false);
+
+    log("verify-uninstall", "Skill confirmed removed");
+  });
+
+  it("Step 6: Reinstall with --force", async () => {
+    // First install
+    await runCli(`install ${TEST_SKILL_ID} --json`);
+
+    // Force reinstall
+    log("force-install", `Running: jfp install ${TEST_SKILL_ID} --force --json`);
+
+    const { stdout, exitCode } = await runCli(`install ${TEST_SKILL_ID} --force --json`);
+
+    expect(exitCode).toBe(0);
+
+    const result = parseJson<{
+      success: boolean;
+      installed: string[];
+    }>(stdout);
+
+    expect(result).not.toBeNull();
+    expect(result!.success).toBe(true);
+    expect(result!.installed).toContain(TEST_SKILL_ID);
+
+    log("force-install", "Force reinstall successful");
+
+    // Cleanup
+    await runCli(`uninstall ${TEST_SKILL_ID} --confirm --json`);
+  });
+
+  it("Step 7: Uninstall non-existent skill shows not found", async () => {
+    log("uninstall-notfound", "Running: jfp uninstall fake-skill-xyz --confirm --json");
+
+    const { stdout, exitCode } = await runCli("uninstall fake-skill-xyz --confirm --json");
+
+    // Still exits 0 but with notFound
+    expect(exitCode).toBe(0);
+
+    const result = parseJson<{
+      success: boolean;
+      notFound: string[];
+    }>(stdout);
+
+    expect(result).not.toBeNull();
+    expect(result!.notFound).toContain("fake-skill-xyz");
+
+    log("uninstall-notfound", "Not found handled correctly");
+  });
+});
