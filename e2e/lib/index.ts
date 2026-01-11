@@ -10,3 +10,4 @@
 export { TestLogger, createCliLogger, createWebLogger, type LogLevel } from "./test-logger";
 export { CliRunner, createCliRunner, type CommandResult, type CliRunnerOptions } from "./cli-runner";
 export { PlaywrightLogger, test, expect, type StepOptions } from "./playwright-logger";
+export * from "./theme-helpers";
