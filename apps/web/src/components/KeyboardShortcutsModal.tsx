@@ -199,7 +199,6 @@ function ShortcutKeys({ keys }: { keys: string }) {
   }
 
   // Handle combinations (e.g., "cmd+k")
-  const formatted = formatShortcut(keys);
   const parts = keys.split("+");
 
   return (

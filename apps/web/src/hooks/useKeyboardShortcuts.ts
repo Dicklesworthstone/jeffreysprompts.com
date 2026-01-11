@@ -131,6 +131,10 @@ function matchesKeys(
  * - Automatic input element detection
  * - Platform-aware display (shows Cmd on Mac, Ctrl elsewhere)
  *
+ * Limitations:
+ * - Multiple sequence shortcuts sharing a prefix (e.g., "g h" and "g b")
+ *   may not work correctly. The first matching prefix takes precedence.
+ *
  * @example
  * ```tsx
  * function App() {
