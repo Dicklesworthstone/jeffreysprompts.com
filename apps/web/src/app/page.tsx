@@ -1,8 +1,7 @@
 "use client";
 
-import { Suspense, useMemo, useCallback, useState, useEffect } from "react";
-import { AlertTriangle, Sparkles, ChevronDown, ArrowDown } from "lucide-react";
-import { motion } from "framer-motion";
+import { Suspense, useMemo, useCallback, useState, useEffect, useRef } from "react";
+import { AlertTriangle, Sparkles } from "lucide-react";
 import { prompts, categories, tags } from "@jeffreysprompts/core/prompts/registry";
 import { searchPrompts } from "@jeffreysprompts/core/search/engine";
 import { Hero } from "@/components/Hero";
@@ -13,15 +12,8 @@ import { PromptDetailModal } from "@/components/PromptDetailModal";
 import { Button } from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { useFilterState } from "@/hooks/useFilterState";
-import { trackEvent } from "@/lib/analytics";
 import { toast } from "@/components/ui/toast";
-import {
-  FeaturesSection,
-  HowItWorksSection,
-  TestimonialsSection,
-  PricingPreviewSection,
-  FinalCtaSection,
-} from "@/components/landing";
+import { FeaturedPromptsSection } from "@/components/landing";
 import type { Prompt, PromptCategory } from "@jeffreysprompts/core/prompts/types";
 
 function PromptGridFallback({ onRefresh }: { onRefresh: () => void }) {
@@ -48,6 +40,7 @@ function HomeContent() {
   // Modal state for viewing prompt details
   const [selectedPrompt, setSelectedPrompt] = useState<Prompt | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const modalCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Compute category counts
   const categoryCounts = useMemo(() => {
@@ -67,6 +60,15 @@ function HomeContent() {
       }
     }
     return counts;
+  }, []);
+
+  // Get featured prompts (featured first, then by creation date)
+  const featuredPrompts = useMemo(() => {
+    const featured = prompts.filter((p) => p.featured);
+    if (featured.length >= 6) return featured.slice(0, 6);
+    // Fill with non-featured prompts if not enough featured
+    const nonFeatured = prompts.filter((p) => !p.featured);
+    return [...featured, ...nonFeatured].slice(0, 6);
   }, []);
 
   // Filter prompts based on search, category, and tags
@@ -97,19 +99,6 @@ function HomeContent() {
     return results;
   }, [filters]);
 
-  useEffect(() => {
-    const query = filters.query.trim();
-    if (!query) return;
-    const timer = setTimeout(() => {
-      trackEvent("search", {
-        queryLength: query.length,
-        resultCount: filteredPrompts.length,
-        source: "homepage",
-      });
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [filters.query, filteredPrompts.length]);
-
   const handlePromptClick = useCallback((prompt: Prompt) => {
     setSelectedPrompt(prompt);
     setIsModalOpen(true);
@@ -118,7 +107,21 @@ function HomeContent() {
   const handleModalClose = useCallback(() => {
     setIsModalOpen(false);
     // Delay clearing selected prompt for exit animation
-    setTimeout(() => setSelectedPrompt(null), 200);
+    if (modalCloseTimerRef.current) {
+      clearTimeout(modalCloseTimerRef.current);
+    }
+    modalCloseTimerRef.current = setTimeout(() => {
+      setSelectedPrompt(null);
+      modalCloseTimerRef.current = null;
+    }, 200);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (modalCloseTimerRef.current) {
+        clearTimeout(modalCloseTimerRef.current);
+      }
+    };
   }, []);
 
   const handlePromptCopy = useCallback((prompt: Prompt) => {
@@ -128,13 +131,6 @@ function HomeContent() {
   const handleRefresh = useCallback(() => {
     if (typeof window !== "undefined") {
       window.location.reload();
-    }
-  }, []);
-
-  const scrollToPrompts = useCallback(() => {
-    const promptsSection = document.getElementById("prompts-section");
-    if (promptsSection) {
-      promptsSection.scrollIntoView({ behavior: "smooth" });
     }
   }, []);
 
@@ -150,38 +146,13 @@ function HomeContent() {
         selectedCategory={filters.category}
       />
 
-      {/* Marketing Sections */}
-      <FeaturesSection />
-      <HowItWorksSection />
-      <TestimonialsSection />
-      <PricingPreviewSection />
-
-      {/* Transition to Prompt Browser */}
-      <section className="py-16 bg-gradient-to-b from-zinc-50 to-white dark:from-zinc-900 dark:to-zinc-950">
-        <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-          >
-            <h2 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white mb-4">
-              Ready to explore?
-            </h2>
-            <p className="text-zinc-600 dark:text-zinc-400 mb-6 max-w-xl mx-auto">
-              Browse our curated collection of {prompts.length} battle-tested prompts below.
-            </p>
-            <Button
-              size="lg"
-              onClick={scrollToPrompts}
-              className="gap-2"
-            >
-              Browse Prompts
-              <ArrowDown className="w-4 h-4" />
-            </Button>
-          </motion.div>
-        </div>
-      </section>
+      {/* Featured Prompts - Immediate value */}
+      <FeaturedPromptsSection
+        prompts={featuredPrompts}
+        totalCount={prompts.length}
+        onPromptClick={handlePromptClick}
+        onPromptCopy={handlePromptCopy}
+      />
 
       {/* Prompt Browser Section */}
       <main id="prompts-section" className="container-wide px-4 sm:px-6 lg:px-8 py-12">
@@ -247,63 +218,55 @@ function HomeContent() {
         </ErrorBoundary>
       </main>
 
-      {/* Pro Teaser & FAQ Section */}
-      <section className="border-t dark:border-zinc-800 bg-zinc-100/50 dark:bg-zinc-900/50">
-        <div className="container-wide px-4 sm:px-6 lg:px-8 py-12">
-          <div className="max-w-3xl mx-auto space-y-12">
-            {/* Pro Teaser */}
-            <div className="flex flex-col sm:flex-row items-center gap-6 p-6 rounded-xl bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 border border-indigo-100 dark:border-indigo-900/50">
-              <div className="flex-shrink-0 p-3 rounded-full bg-indigo-100 dark:bg-indigo-900/50">
-                <Sparkles className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
-              </div>
-              <div className="flex-1 text-center sm:text-left">
-                <h3 className="text-base font-semibold text-zinc-900 dark:text-white mb-1">
-                  Pro mode (optional)
-                </h3>
-                <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                  Keep your favorites, add notes, and access early prompts. Everything on the public site stays free and open-source.
-                </p>
-              </div>
+      {/* Minimal Footer */}
+      <footer className="border-t dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900">
+        <div className="container-wide px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+            {/* Brand & Links */}
+            <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-sm text-zinc-600 dark:text-zinc-400">
+              <span className="font-medium text-zinc-900 dark:text-white">Jeffrey&apos;s Prompts</span>
               <a
-                href="https://pro.jeffreysprompts.com"
+                href="https://github.com/Dicklesworthstone/jeffreysprompts.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-shrink-0 inline-flex items-center justify-center h-10 px-4 rounded-lg text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 transition-colors"
+                className="hover:text-zinc-900 dark:hover:text-white transition-colors"
               >
-                See Pro features
+                GitHub
+              </a>
+              <a href="/help" className="hover:text-zinc-900 dark:hover:text-white transition-colors">
+                Help
+              </a>
+              <a href="/contribute" className="hover:text-zinc-900 dark:hover:text-white transition-colors">
+                Contribute
               </a>
             </div>
 
-            {/* FAQ */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">
-                Frequently Asked Questions
-              </h3>
-              <details className="group rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
-                <summary className="flex items-center justify-between gap-4 px-5 py-4 cursor-pointer list-none text-sm font-medium text-zinc-900 dark:text-white hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
-                  <span>Is the public site free and open-source?</span>
-                  <ChevronDown className="h-4 w-4 text-zinc-500 transition-transform group-open:rotate-180" />
-                </summary>
-                <div className="px-5 pb-4 text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                  Yes. The core prompt library and browsing experience are completely free and{" "}
-                  <a
-                    href="https://github.com/Dicklesworthstone/jeffreysprompts.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-indigo-600 dark:text-indigo-400 hover:underline"
-                  >
-                    open-source
-                  </a>
-                  . Pro is optional and adds personal features like bookmarks, notes, and early-access prompts.
-                </div>
-              </details>
-            </div>
+            {/* Pro Badge (subtle) */}
+            <a
+              href="https://pro.jeffreysprompts.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors"
+            >
+              <Sparkles className="w-3 h-3" />
+              Try Pro
+            </a>
+          </div>
+
+          {/* Copyright */}
+          <div className="mt-6 pt-6 border-t border-zinc-200 dark:border-zinc-800 text-center text-xs text-zinc-500 dark:text-zinc-500">
+            Free and open-source. Made by{" "}
+            <a
+              href="https://twitter.com/doodlestein"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-indigo-600 dark:text-indigo-400 hover:underline"
+            >
+              @doodlestein
+            </a>
           </div>
         </div>
-      </section>
-
-      {/* Final CTA */}
-      <FinalCtaSection />
+      </footer>
 
       {/* Prompt Detail Modal */}
       <PromptDetailModal

@@ -160,20 +160,21 @@ export function AnnotatedGuide({
                         </div>
                       )}
 
-                      {(step.planPanel || step.revisions?.length) && (
+                      {((step.planPanels && step.planPanels.length > 0) || step.revisions?.length) && (
                         <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
                           <span className="font-semibold uppercase tracking-wide text-zinc-400">
-                            Plan revisions
+                            Planning passes
                           </span>
-                          {step.planPanel && (
+                          {step.planPanels?.map((panel) => (
                             <a
-                              href="#planning-revisions"
+                              key={panel.id}
+                              href={`#${panel.id}`}
                               className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-emerald-700 transition hover:border-emerald-300 hover:text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-200"
                             >
                               <Sparkles className="h-3 w-3" />
-                              GPT Pro plan review
+                              {panel.label}
                             </a>
-                          )}
+                          ))}
                           {step.revisions?.map((revision) => (
                             <a
                               key={revision.id}

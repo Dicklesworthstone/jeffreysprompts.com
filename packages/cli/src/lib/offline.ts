@@ -6,6 +6,7 @@
 
 import { existsSync, readFileSync } from "fs";
 import { join } from "path";
+import type { PromptCategory } from "@jeffreysprompts/core/prompts";
 import { getConfigDir } from "./config";
 
 export interface SyncedPrompt {
@@ -22,6 +23,27 @@ interface SyncMeta {
   lastSync: string;
   promptCount: number;
   version: string;
+}
+
+const promptCategoryValues: PromptCategory[] = [
+  "ideation",
+  "documentation",
+  "automation",
+  "refactoring",
+  "testing",
+  "debugging",
+  "workflow",
+  "communication",
+];
+
+const promptCategorySet = new Set(promptCategoryValues);
+
+export function normalizePromptCategory(category?: string): PromptCategory {
+  if (!category) return "workflow";
+  const normalized = category.toLowerCase();
+  return promptCategorySet.has(normalized as PromptCategory)
+    ? (normalized as PromptCategory)
+    : "workflow";
 }
 
 /**

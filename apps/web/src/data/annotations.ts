@@ -105,7 +105,7 @@ export interface GuideStep {
   outcomes: string[];
   artifacts: string[];
   revisions?: Array<{ id: string; label: string }>;
-  planPanel?: boolean;
+  planPanels?: Array<{ id: string; label: string }>;
   xRefs?: string[];
 }
 
@@ -123,10 +123,11 @@ export const guideSteps: GuideStep[] = [
   {
     sectionId: "section-0",
     narrative:
-      "We started by translating the original prompt tweets into a full product brief, then locked the plan before writing code. This is the signature move: spend the human effort up front so execution is fast, aligned, and low-drama. It is deliberately different from the typical \"just start coding\" approach — the plan is the product spec, and the prompts are the operating system.",
+      "We began by turning the original prompt ideas into a formal plan, then ran a GPT Pro revision pass before any code landed. The Idea Wizard prompt helped expand and prune scope options, while the plan itself became the product spec. This planning-first discipline is the signature move: spend human effort up front so execution is fast, aligned, and low-drama. It is deliberately different from the usual \"just start coding\" approach — prompts are the operating system that drives the build.",
     excerpts: [
-      "The first move is to turn the prompt tweets into a real scope document.",
-      "Planning is treated as the highest leverage phase, not a formality.",
+      "Started by re-reading AGENTS and README to lock constraints before coding.",
+      "Ran bv triage to pick the highest-leverage bead after the plan was set.",
+      "Used a GPT Pro pass to critique the markdown plan before execution.",
     ],
     outcomes: [
       "Mapped prompt tweets into a full product scope (web + CLI).",
@@ -137,7 +138,10 @@ export const guideSteps: GuideStep[] = [
       "PLAN_TO_MAKE_JEFFREYSPROMPTS_WEBAPP_AND_CLI_TOOL.md",
       "AGENTS.md",
     ],
-    planPanel: true,
+    planPanels: [
+      { id: "planning-revisions", label: "Multi-model plan review" },
+      { id: "planning-revisions-gpt-pro", label: "GPT Pro session" },
+    ],
     revisions: [
       { id: "packages-core", label: "Shared core package" },
       { id: "bm25-search", label: "BM25 search ranking" },
@@ -146,19 +150,20 @@ export const guideSteps: GuideStep[] = [
       { id: "yaml-safe", label: "YAML-safe frontmatter" },
     ],
     xRefs: [
-      "2008027253817712704",
-      "2008813484348153961",
-      "1999969044561375694",
-      "1999979218378297623",
+      "2007588870662107197",
+      "2007609050683306421",
+      "2007737826394120664",
+      "2007600632354521356",
     ],
   },
   {
     sectionId: "section-1",
     narrative:
-      "Prompts became typed TypeScript objects so the registry is the source of truth for every surface (web, CLI, exports). The \"data is code\" choice avoids brittle markdown parsing and keeps changes precise, which matters when prompts are the product itself. This is different from most prompt libraries that treat content as static files.",
+      "Prompts became typed TypeScript objects so the registry is the source of truth for every surface (web, CLI, exports). The \"data is code\" choice avoids brittle markdown parsing and keeps changes precise, which matters when prompts are the product itself. Most prompt libraries stay file-based; this one treats the registry like a real API.",
     excerpts: [
-      "The registry is a real code module, not a folder of markdown files.",
-      "Types lock in categories, metadata, and prompt shape early.",
+      "Split shared logic into packages/core so web + CLI never diverge.",
+      "Defined prompt types early to lock categories and metadata.",
+      "Made the registry a real module, not a pile of markdown files.",
     ],
     outcomes: [
       "Established the monorepo layout for core, CLI, and web packages.",
@@ -171,6 +176,7 @@ export const guideSteps: GuideStep[] = [
       "packages/core/src/index.ts",
     ],
     revisions: [{ id: "packages-core", label: "Shared core package" }],
+    planPanels: [{ id: "planning-revisions-gpt-pro", label: "GPT Pro session" }],
     xRefs: ["1939000599242252607"],
   },
   {
@@ -178,8 +184,9 @@ export const guideSteps: GuideStep[] = [
     narrative:
       "Search relevance was solved early with deterministic BM25 scoring. We deliberately avoided embeddings here because the catalog needs stable, explainable ranking that agents can trust across runs. This is part of the broader philosophy: build mechanical systems first, then add fancy layers only if needed.",
     excerpts: [
-      "Weighted fields make the system surface what humans actually care about.",
-      "Deterministic search beats fuzzy guesses when prompts are code.",
+      "Implemented weighted BM25 so titles and tags outrank raw body text.",
+      "Kept semantic reranking optional to preserve deterministic defaults.",
+      "Search became a reusable core primitive, not a UI-specific hack.",
     ],
     outcomes: [
       "Implemented BM25 scoring with weighted fields for better relevance.",
@@ -192,14 +199,16 @@ export const guideSteps: GuideStep[] = [
       "packages/core/src/export/markdown.ts",
     ],
     revisions: [{ id: "bm25-search", label: "BM25 search ranking" }],
+    planPanels: [{ id: "planning-revisions-gpt-pro", label: "GPT Pro session" }],
   },
   {
     sectionId: "section-3",
     narrative:
       "The web app was built quickly but intentionally: strong hero, clear navigation, and a UI system tuned for prompt browsing. The UI/UX prompt used in other projects shows up here too — iterate aggressively on layout and polish so the interface feels deliberate rather than template-driven.",
     excerpts: [
-      "Layout and hero came first so the rest of the UI had a visual anchor.",
-      "Reusable components were designed to scale across search and cards.",
+      "Bootstrapped the App Router, Tailwind 4, and shadcn primitives.",
+      "Built hero + nav first so the rest of the UI had an anchor.",
+      "Iterated on cards, spacing, and motion using the UI/UX prompt.",
     ],
     outcomes: [
       "Bootstrapped the Next.js 16 App Router foundation.",
@@ -211,15 +220,20 @@ export const guideSteps: GuideStep[] = [
       "apps/web/src/components/Nav.tsx",
       "apps/web/src/components/Hero.tsx",
     ],
-    xRefs: ["2007194101448573036"],
+    xRefs: [
+      "2007194101448573036",
+      "2007198623847854556",
+      "1938439318533513714",
+    ],
   },
   {
     sectionId: "section-4",
     narrative:
-      "The CLI is treated as a first-class agent surface, not a secondary tool: fuzzy search, JSON/markdown modes, and skill installation are all tuned for automation and token efficiency. This is where the Robot-Mode prompt philosophy shows up — build tools the agents can run reliably, then let them scale the work.",
+      "The CLI is treated as a first-class agent surface, not a secondary tool: fuzzy search, JSON/markdown modes, and skill installation are all tuned for automation and token efficiency. This is where the Robot-Mode Maker prompt shows up — build tools the agents can run reliably, then let them scale the work.",
     excerpts: [
-      "The CLI defaults to agent-friendly output, not human-friendly verbosity.",
-      "Skill install/export workflows are designed for automated pipelines.",
+      "Defaulted to JSON when piped to keep the CLI agent-first.",
+      "Used CAC to make command parsing + help output reliable.",
+      "Designed skill install/export to be automation-friendly.",
     ],
     outcomes: [
       "Built the `jfp` CLI entrypoint and command registry.",
@@ -236,11 +250,10 @@ export const guideSteps: GuideStep[] = [
       { id: "prompt-variables", label: "Prompt templating" },
       { id: "skill-manifest", label: "Skill manifest hashing" },
     ],
+    planPanels: [{ id: "planning-revisions-gpt-pro", label: "GPT Pro session" }],
     xRefs: [
-      "1984344027576033619",
-      "2006261780218265758",
+      "2007601404865548602",
       "2006557029964607785",
-      "1995863013987868954",
     ],
   },
   {
@@ -248,8 +261,9 @@ export const guideSteps: GuideStep[] = [
     narrative:
       "User-facing workflows snapped into place: Spotlight search, prompt cards, and the basket flow for bulk export. The goal is throughput — letting you explore, collect, and ship prompts quickly without the friction most catalogs impose.",
     excerpts: [
-      "Spotlight became the primary discovery mechanism to keep search fast.",
-      "The basket flow makes multi-prompt export a single gesture.",
+      "Spotlight search (Cmd+K) became the default discovery surface.",
+      "Prompt cards shipped with fast copy and quick actions.",
+      "The basket flow turned bulk export into one gesture.",
     ],
     outcomes: [
       "Shipped SpotlightSearch (Cmd+K) for prompt discovery.",
@@ -267,10 +281,11 @@ export const guideSteps: GuideStep[] = [
   {
     sectionId: "section-6",
     narrative:
-      "The final stretch was about trust and portability: hardening tests, refining docs, and producing a single-file CLI binary. This is the less flashy part of the workflow, but it is what lets agents (and humans) rely on the tooling without surprises.",
+      "The final stretch was about trust and portability: hardening tests, refining docs, and producing a single-file CLI binary. The README Reviser prompt helps keep documentation aligned with reality instead of chasing drift. This is the less flashy part of the workflow, but it is what lets agents (and humans) rely on the tooling without surprises.",
     excerpts: [
-      "Test coverage and docs were tightened before calling it done.",
-      "The binary build step was treated like a core product feature.",
+      "Ran tests and lint to catch edge cases before shipping.",
+      "Docs were tightened with a dedicated README revision pass.",
+      "Single-file Bun builds were treated as a core deliverable.",
     ],
     outcomes: [
       "Expanded tests and hardened edge cases before shipping.",
@@ -286,47 +301,52 @@ export const guideSteps: GuideStep[] = [
       { id: "health-endpoints", label: "Health endpoints" },
       { id: "yaml-safe", label: "YAML-safe frontmatter" },
     ],
+    planPanels: [{ id: "planning-revisions", label: "Multi-model plan review" }],
+    xRefs: [
+      "1938656137387397277",
+      "1937957831803654324",
+    ],
   },
 ];
 
 export const workflowPosts: WorkflowPost[] = [
   {
-    id: "2008027253817712704",
-    date: "Jan 5, 2026",
-    title: "Planning first prevents slop",
+    id: "2007588870662107197",
+    date: "Jan 3, 2026",
+    title: "GPT Pro plan revision pass",
     summary:
-      "Emphasizes that most of the human effort is front-loaded into planning so the execution phase stays clean and predictable.",
-    tags: ["planning", "quality"],
-    stepIds: ["section-0"],
-    tone: "planning",
-  },
-  {
-    id: "2008813484348153961",
-    date: "Jan 7, 2026",
-    title: "What makes a great markdown plan",
-    summary:
-      "Breaks down how a strong plan document is crafted and why it dominates the overall workflow.",
-    tags: ["planning", "process"],
-    stepIds: ["section-0"],
-    tone: "planning",
-  },
-  {
-    id: "1999969044561375694",
-    date: "Dec 13, 2025",
-    title: "Idea to plan to multi-model revision",
-    summary:
-      "Describes the loop of capturing a new idea, producing a plan fast, then refining it with GPT Pro and other models.",
+      "Paste the full markdown plan into GPT-5.2 Pro for critique before any code is written.",
     tags: ["planning", "revisions"],
     stepIds: ["section-0"],
     tone: "planning",
   },
   {
-    id: "1999979218378297623",
-    date: "Dec 13, 2025",
-    title: "Dedicated plan revision pass",
+    id: "2007609050683306421",
+    date: "Jan 4, 2026",
+    title: "Comprehensive plan beats skeleton",
     summary:
-      "Highlights the separate plan-rewrite phase to ensure all feedback is integrated before execution starts.",
+      "The model performs best when it sees one detailed, end-to-end plan instead of a thin scaffold.",
     tags: ["planning", "quality"],
+    stepIds: ["section-0"],
+    tone: "planning",
+  },
+  {
+    id: "2007737826394120664",
+    date: "Jan 4, 2026",
+    title: "Multi-model plan fusion",
+    summary:
+      "Collect plans from multiple frontier models, then fuse them in GPT Pro for a single revision pass.",
+    tags: ["planning", "coordination"],
+    stepIds: ["section-0"],
+    tone: "planning",
+  },
+  {
+    id: "2007600632354521356",
+    date: "Jan 3, 2026",
+    title: "GPT Pro writes the first plan",
+    summary:
+      "Generate the initial markdown plan with GPT Pro or Claude web before handing execution to agents.",
+    tags: ["planning", "prompts"],
     stepIds: ["section-0"],
     tone: "planning",
   },
@@ -335,7 +355,7 @@ export const workflowPosts: WorkflowPost[] = [
     date: "Jun 28, 2025",
     title: "Best-practices doc as a contract",
     summary:
-      "Shows how a detailed stack guide becomes the shared ruleset the plan and prompts align to.",
+      "Use a detailed stack guide as the ruleset that every agent and plan must align to.",
     tags: ["architecture", "standards"],
     stepIds: ["section-1"],
     tone: "planning",
@@ -343,51 +363,71 @@ export const workflowPosts: WorkflowPost[] = [
   {
     id: "2007194101448573036",
     date: "Jan 2, 2026",
-    title: "UI/UX prompt for Next.js 16",
+    title: "UI/UX upgrade prompt",
     summary:
-      "Documents the UI polish prompt used to push layout, spacing, and motion beyond defaults.",
+      "The UI polish prompt used to push layout, spacing, and motion beyond defaults.",
     tags: ["ux", "prompting"],
     stepIds: ["section-3", "section-5"],
     tone: "ux",
   },
   {
-    id: "1984344027576033619",
-    date: "Oct 31, 2025",
-    title: "Messaging changes agent workflow",
+    id: "2007198623847854556",
+    date: "Jan 2, 2026",
+    title: "Prompt in action",
     summary:
-      "Explains how agent-to-agent messaging and GPT Pro plan reviews unlocked a new execution cadence.",
-    tags: ["coordination", "planning"],
-    stepIds: ["section-4"],
-    tone: "coordination",
+      "A public example of the UI/UX prompt producing a fast, polished site in ~2 days.",
+    tags: ["ux", "results"],
+    stepIds: ["section-3"],
+    tone: "ux",
   },
   {
-    id: "2006261780218265758",
-    date: "Dec 31, 2025",
-    title: "Agent Mail + beads + bv stack",
+    id: "1938439318533513714",
+    date: "Jun 27, 2025",
+    title: "Workflow for web apps",
     summary:
-      "Argues that Agent Mail plus beads and bv eliminates coordination footguns in multi-agent work.",
-    tags: ["coordination", "tools"],
-    stepIds: ["section-4"],
-    tone: "coordination",
+      "A full-stack workflow for building web apps with Claude Code and similar agents.",
+    tags: ["workflow", "planning"],
+    stepIds: ["section-3"],
+    tone: "planning",
   },
   {
     id: "2006557029964607785",
     date: "Jan 1, 2026",
-    title: "Beads accelerate execution",
+    title: "Beads + bv accelerate execution",
     summary:
-      "Notes that structured task graphs (beads) enable much larger builds at higher speed.",
+      "Structured task graphs plus bv triage remove coordination drag in multi-agent builds.",
     tags: ["coordination", "execution"],
     stepIds: ["section-4"],
     tone: "coordination",
   },
   {
-    id: "1995863013987868954",
-    date: "Dec 2, 2025",
-    title: "cass for fast session recall",
+    id: "2007601404865548602",
+    date: "Jan 3, 2026",
+    title: "AGENTS.md teaches the stack",
     summary:
-      "Introduces cass as the search layer that keeps agent history and decisions retrievable.",
-    tags: ["tools", "workflow"],
+      "AGENTS.md is the way tools like beads become part of the agent's operating context.",
+    tags: ["coordination", "tools"],
     stepIds: ["section-4"],
+    tone: "coordination",
+  },
+  {
+    id: "1938656137387397277",
+    date: "Jun 27, 2025",
+    title: "Multi-agent bug-fix pass",
+    summary:
+      "Spin up parallel Claude Code instances to clear bugs and type errors in one sweep.",
+    tags: ["coordination", "quality"],
+    stepIds: ["section-6"],
+    tone: "coordination",
+  },
+  {
+    id: "1937957831803654324",
+    date: "Jun 25, 2025",
+    title: "Lint-first refinement loop",
+    summary:
+      "Run lint first, then feed the exact failures into the agent for surgical fixes.",
+    tags: ["workflow", "quality"],
+    stepIds: ["section-6"],
     tone: "prompting",
   },
 ];

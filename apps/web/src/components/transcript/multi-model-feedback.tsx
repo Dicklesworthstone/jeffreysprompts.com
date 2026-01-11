@@ -149,6 +149,13 @@ interface PlanningRevisionItem {
   stepId: string;
 }
 
+interface GptProSessionItem {
+  id: string;
+  label: string;
+  implemented: boolean;
+  stepId: string;
+}
+
 const planningChanges: PlanningRevisionItem[] = [
   {
     id: "packages-core",
@@ -208,6 +215,60 @@ const planningRevisions: PlanningRevisionItem[] = [
     implemented: false,
     category: "feature",
     stepId: "section-5",
+  },
+];
+
+const gptProSessionInputs: GptProSessionItem[] = [
+  {
+    id: "gpt-pro-plan-pass",
+    label: "Paste the full markdown plan into GPT Pro for critique",
+    implemented: true,
+    stepId: "section-0",
+  },
+  {
+    id: "gpt-pro-merge",
+    label: "Merge competing model plans into a single revision pass",
+    implemented: true,
+    stepId: "section-0",
+  },
+  {
+    id: "gpt-pro-constraints",
+    label: "Codify execution constraints in AGENTS.md",
+    implemented: true,
+    stepId: "section-0",
+  },
+  {
+    id: "gpt-pro-coordination",
+    label: "Lock in beads + bv + Agent Mail as the coordination stack",
+    implemented: true,
+    stepId: "section-4",
+  },
+];
+
+const gptProSessionOutputs: GptProSessionItem[] = [
+  {
+    id: "gpt-pro-core",
+    label: "Split shared logic into packages/core for registry + search",
+    implemented: true,
+    stepId: "section-1",
+  },
+  {
+    id: "gpt-pro-bm25",
+    label: "Deterministic BM25 ranking with weighted fields",
+    implemented: true,
+    stepId: "section-2",
+  },
+  {
+    id: "gpt-pro-cli",
+    label: "Agent-first CLI defaults (JSON when piped, quick-start UX)",
+    implemented: true,
+    stepId: "section-4",
+  },
+  {
+    id: "gpt-pro-quality",
+    label: "Quality gates + doc revision pass before shipping",
+    implemented: true,
+    stepId: "section-6",
   },
 ];
 
@@ -291,7 +352,7 @@ function FeedbackCard({
                 : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
             )}
           >
-            {item.source === "gpt" ? "GPT-4" : "Gemini"}
+            {item.source === "gpt" ? "GPT Pro" : "Gemini"}
           </span>
         </div>
       </div>
@@ -311,6 +372,10 @@ export function MultiModelFeedback() {
     (item) => item.implemented
   ).length;
   const revisionsTotal = planningChanges.length + planningRevisions.length;
+  const gptProImplemented = [...gptProSessionInputs, ...gptProSessionOutputs].filter(
+    (item) => item.implemented
+  ).length;
+  const gptProTotal = gptProSessionInputs.length + gptProSessionOutputs.length;
 
   return (
     <section className="mx-auto max-w-5xl px-4 py-12">
@@ -326,7 +391,7 @@ export function MultiModelFeedback() {
           Refined by Multiple AI Models
         </h2>
         <p className="text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto">
-          After Claude created the initial plan, it was reviewed by GPT-4 and
+          After Claude created the initial plan, it was reviewed by GPT Pro and
           Gemini for architectural improvements, bug fixes, and feature ideas.
         </p>
       </div>
@@ -495,6 +560,115 @@ export function MultiModelFeedback() {
                     )}
                     <span>{item.label}</span>
                   </a>
+                  <a
+                    href={`#guide-${item.stepId}`}
+                    className="rounded-full border border-violet-200 px-2 py-0.5 text-xs text-violet-600 dark:border-violet-500/30 dark:text-violet-300"
+                  >
+                    Guide step
+                  </a>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* GPT Pro planning session */}
+      <div
+        id="planning-revisions-gpt-pro"
+        className="mt-10 rounded-2xl border border-emerald-200/50 bg-white/80 p-6 shadow-lg shadow-emerald-500/10 backdrop-blur dark:border-emerald-500/20 dark:bg-zinc-900/70"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200">
+              <Sparkles className="h-3.5 w-3.5" />
+              GPT Pro planning session
+            </div>
+            <h3 className="mt-3 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+              GPT Pro plan fusion (web session)
+            </h3>
+            <p className="mt-2 max-w-2xl text-sm text-zinc-600 dark:text-zinc-400">
+              This was the dedicated GPT Pro pass that merged multiple model plans,
+              tightened constraints, and locked the execution rules before build-out.
+            </p>
+          </div>
+          <div className="flex items-center gap-3 text-sm text-zinc-500 dark:text-zinc-400">
+            <div className="text-center">
+              <div className="text-2xl font-semibold text-emerald-500">
+                {gptProImplemented}
+              </div>
+              <div className="text-xs uppercase tracking-wide">Applied</div>
+            </div>
+            <div className="h-8 w-px bg-zinc-200 dark:bg-zinc-700" />
+            <div className="text-center">
+              <div className="text-2xl font-semibold text-zinc-400">
+                {gptProTotal - gptProImplemented}
+              </div>
+              <div className="text-xs uppercase tracking-wide">Deferred</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6 grid gap-6 sm:grid-cols-2">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm font-semibold text-zinc-700 dark:text-zinc-200">
+              <MessageSquare className="h-4 w-4 text-emerald-500" />
+              Session inputs
+            </div>
+            <div className="space-y-2">
+              {gptProSessionInputs.map((item) => (
+                <div
+                  key={item.id}
+                  className={cn(
+                    "flex flex-wrap items-center gap-2 rounded-xl border px-3 py-2 text-sm",
+                    item.implemented
+                      ? "border-emerald-200 bg-emerald-50/70 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-200"
+                      : "border-zinc-200 bg-zinc-50 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-300"
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    {item.implemented ? (
+                      <CheckCircle2 className="h-4 w-4" />
+                    ) : (
+                      <Circle className="h-4 w-4" />
+                    )}
+                    <span>{item.label}</span>
+                  </div>
+                  <a
+                    href={`#guide-${item.stepId}`}
+                    className="rounded-full border border-emerald-200 px-2 py-0.5 text-xs text-emerald-700 dark:border-emerald-500/30 dark:text-emerald-200"
+                  >
+                    Guide step
+                  </a>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm font-semibold text-zinc-700 dark:text-zinc-200">
+              <Zap className="h-4 w-4 text-violet-500" />
+              Plan outputs
+            </div>
+            <div className="space-y-2">
+              {gptProSessionOutputs.map((item) => (
+                <div
+                  key={item.id}
+                  className={cn(
+                    "flex flex-wrap items-center gap-2 rounded-xl border px-3 py-2 text-sm",
+                    item.implemented
+                      ? "border-violet-200 bg-violet-50/70 text-violet-700 dark:border-violet-500/30 dark:bg-violet-950/40 dark:text-violet-200"
+                      : "border-zinc-200 bg-zinc-50 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-300"
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    {item.implemented ? (
+                      <CheckCircle2 className="h-4 w-4" />
+                    ) : (
+                      <Circle className="h-4 w-4" />
+                    )}
+                    <span>{item.label}</span>
+                  </div>
                   <a
                     href={`#guide-${item.stepId}`}
                     className="rounded-full border border-violet-200 px-2 py-0.5 text-xs text-violet-600 dark:border-violet-500/30 dark:text-violet-300"

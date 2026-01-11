@@ -17,6 +17,7 @@ import { apiClient, isAuthError } from "../lib/api-client";
 import { isLoggedIn, loadCredentials } from "../lib/credentials";
 import {
   hasOfflineLibrary,
+  normalizePromptCategory,
   searchOfflineLibrary,
   readSyncMeta,
   formatSyncAge,
@@ -87,7 +88,7 @@ function searchOffline(query: string, limit: number): MergedSearchResult[] {
     id: p.id,
     title: p.title,
     description: p.description || "",
-    category: p.category || "uncategorized",
+    category: normalizePromptCategory(p.category),
     tags: p.tags || [],
     score: 1, // Offline results don't have scores, use 1
     source: "saved" as const, // Offline library is saved prompts

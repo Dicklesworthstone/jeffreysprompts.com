@@ -6,6 +6,7 @@ import { isLoggedIn } from "../lib/credentials";
 import { shouldOutputJson } from "../lib/utils";
 import {
   hasOfflineLibrary,
+  normalizePromptCategory,
   readOfflineLibrary,
   readSyncMeta,
   formatSyncAge,
@@ -87,7 +88,7 @@ function offlineLibraryToPrompts(): Prompt[] {
     title: p.title,
     description: p.description || "",
     content: p.content,
-    category: p.category || "uncategorized",
+    category: normalizePromptCategory(p.category),
     tags: p.tags || [],
     author: "",
     version: "1.0.0",
