@@ -139,6 +139,67 @@ const feedbackItems: FeedbackItem[] = [
   },
 ];
 
+interface PlanningRevisionItem {
+  id: string;
+  label: string;
+  implemented: boolean;
+  category: "architecture" | "quality" | "feature";
+}
+
+const planningChanges: PlanningRevisionItem[] = [
+  {
+    id: "packages-core",
+    label: "Introduce shared core package for registry + search",
+    implemented: true,
+    category: "architecture",
+  },
+  {
+    id: "bm25-search",
+    label: "Replace embeddings with BM25 relevance scoring",
+    implemented: true,
+    category: "architecture",
+  },
+  {
+    id: "cac-parser",
+    label: "Adopt CAC for CLI parsing + help output",
+    implemented: true,
+    category: "architecture",
+  },
+  {
+    id: "prompt-variables",
+    label: "Ship prompt templating + variable fill flow",
+    implemented: true,
+    category: "feature",
+  },
+];
+
+const planningRevisions: PlanningRevisionItem[] = [
+  {
+    id: "skill-manifest",
+    label: "Hash-based skill manifest to prevent overwrites",
+    implemented: true,
+    category: "quality",
+  },
+  {
+    id: "yaml-safe",
+    label: "YAML-safe frontmatter + generator markers",
+    implemented: true,
+    category: "quality",
+  },
+  {
+    id: "health-endpoints",
+    label: "Health endpoints for monitoring and CI checks",
+    implemented: true,
+    category: "quality",
+  },
+  {
+    id: "pwa",
+    label: "PWA + offline mode as future work",
+    implemented: false,
+    category: "feature",
+  },
+];
+
 const categoryColors = {
   architecture: "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400",
   feature: "bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400",
@@ -157,6 +218,7 @@ function FeedbackCard({
 
   return (
     <motion.div
+      id={`feedback-${item.id}`}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05, duration: 0.4 }}
@@ -215,6 +277,10 @@ function FeedbackCard({
 export function MultiModelFeedback() {
   const implemented = feedbackItems.filter((item) => item.implemented).length;
   const total = feedbackItems.length;
+  const revisionsImplemented = [...planningChanges, ...planningRevisions].filter(
+    (item) => item.implemented
+  ).length;
+  const revisionsTotal = planningChanges.length + planningRevisions.length;
 
   return (
     <section className="mx-auto max-w-5xl px-4 py-12">
@@ -301,6 +367,101 @@ export function MultiModelFeedback() {
         {feedbackItems.map((item, index) => (
           <FeedbackCard key={item.id} item={item} index={index} />
         ))}
+      </div>
+
+      {/* GPT Pro planning + revisions */}
+      <div
+        id="planning-revisions"
+        className="mt-10 rounded-2xl border border-violet-200/50 bg-white/80 p-6 shadow-lg shadow-violet-500/10 backdrop-blur dark:border-violet-500/20 dark:bg-zinc-900/70"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-700 dark:bg-violet-900/40 dark:text-violet-200">
+              <Sparkles className="h-3.5 w-3.5" />
+              GPT Pro Planning + Revisions
+            </div>
+            <h3 className="mt-3 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+              Second-pass plan refinement (web session)
+            </h3>
+            <p className="mt-2 max-w-2xl text-sm text-zinc-600 dark:text-zinc-400">
+              The initial plan was refined in GPT Pro with additional architectural safeguards
+              and scope adjustments. The guide steps above link directly to the revisions below.
+            </p>
+          </div>
+          <div className="flex items-center gap-3 text-sm text-zinc-500 dark:text-zinc-400">
+            <div className="text-center">
+              <div className="text-2xl font-semibold text-emerald-500">
+                {revisionsImplemented}
+              </div>
+              <div className="text-xs uppercase tracking-wide">Applied</div>
+            </div>
+            <div className="h-8 w-px bg-zinc-200 dark:bg-zinc-700" />
+            <div className="text-center">
+              <div className="text-2xl font-semibold text-zinc-400">
+                {revisionsTotal - revisionsImplemented}
+              </div>
+              <div className="text-xs uppercase tracking-wide">Deferred</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6 grid gap-6 sm:grid-cols-2">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm font-semibold text-zinc-700 dark:text-zinc-200">
+              <GitBranch className="h-4 w-4 text-violet-500" />
+              Changes captured in the plan
+            </div>
+            <div className="space-y-2">
+              {planningChanges.map((item) => (
+                <a
+                  key={item.id}
+                  href={`#feedback-${item.id}`}
+                  className={cn(
+                    "flex items-center gap-2 rounded-xl border px-3 py-2 text-sm",
+                    item.implemented
+                      ? "border-emerald-200 bg-emerald-50/70 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-200"
+                      : "border-zinc-200 bg-zinc-50 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-300"
+                  )}
+                >
+                  {item.implemented ? (
+                    <CheckCircle2 className="h-4 w-4" />
+                  ) : (
+                    <Circle className="h-4 w-4" />
+                  )}
+                  <span>{item.label}</span>
+                </a>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm font-semibold text-zinc-700 dark:text-zinc-200">
+              <Shield className="h-4 w-4 text-blue-500" />
+              Revisions + quality gates
+            </div>
+            <div className="space-y-2">
+              {planningRevisions.map((item) => (
+                <a
+                  key={item.id}
+                  href={`#feedback-${item.id}`}
+                  className={cn(
+                    "flex items-center gap-2 rounded-xl border px-3 py-2 text-sm",
+                    item.implemented
+                      ? "border-blue-200 bg-blue-50/70 text-blue-700 dark:border-blue-500/30 dark:bg-blue-950/40 dark:text-blue-200"
+                      : "border-zinc-200 bg-zinc-50 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-300"
+                  )}
+                >
+                  {item.implemented ? (
+                    <CheckCircle2 className="h-4 w-4" />
+                  ) : (
+                    <Circle className="h-4 w-4" />
+                  )}
+                  <span>{item.label}</span>
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Note */}

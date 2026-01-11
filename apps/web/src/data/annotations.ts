@@ -100,13 +100,18 @@ export const annotationsMap: Record<string, Omit<TranscriptHighlight, "messageId
  */
 export interface GuideStep {
   sectionId: string;
+  narrative: string;
   outcomes: string[];
   artifacts: string[];
+  revisions?: Array<{ id: string; label: string }>;
+  planPanel?: boolean;
 }
 
 export const guideSteps: GuideStep[] = [
   {
     sectionId: "section-0",
+    narrative:
+      "The build started by mapping the prompt tweets into a full product scope and selecting brenner_bot as the north star for stack and UX. That context was distilled into a comprehensive plan that the rest of the session followed.",
     outcomes: [
       "Mapped prompt tweets into a full product scope (web + CLI).",
       "Adopted brenner_bot as the design and stack reference point.",
@@ -116,9 +121,19 @@ export const guideSteps: GuideStep[] = [
       "PLAN_TO_MAKE_JEFFREYSPROMPTS_WEBAPP_AND_CLI_TOOL.md",
       "AGENTS.md",
     ],
+    planPanel: true,
+    revisions: [
+      { id: "packages-core", label: "Shared core package" },
+      { id: "bm25-search", label: "BM25 search ranking" },
+      { id: "cac-parser", label: "CAC CLI parser" },
+      { id: "skill-manifest", label: "Skill manifest hashing" },
+      { id: "yaml-safe", label: "YAML-safe frontmatter" },
+    ],
   },
   {
     sectionId: "section-1",
+    narrative:
+      "We carved the monorepo into web, CLI, and a shared core, then locked down the type system so prompts and metadata lived as real TypeScript objects instead of loose markdown.",
     outcomes: [
       "Established the monorepo layout for core, CLI, and web packages.",
       "Defined prompt/category/meta types as the single source of truth.",
@@ -129,9 +144,12 @@ export const guideSteps: GuideStep[] = [
       "packages/core/src/prompts/registry.ts",
       "packages/core/src/index.ts",
     ],
+    revisions: [{ id: "packages-core", label: "Shared core package" }],
   },
   {
     sectionId: "section-2",
+    narrative:
+      "Search relevance was solved early: tokenize, weight the right fields, and ship a real BM25 scorer so the UI and CLI could surface the best prompts.",
     outcomes: [
       "Implemented BM25 scoring with weighted fields for better relevance.",
       "Built the search pipeline: tokenize, score, rank, and return.",
@@ -142,9 +160,12 @@ export const guideSteps: GuideStep[] = [
       "packages/core/src/search/engine.ts",
       "packages/core/src/export/markdown.ts",
     ],
+    revisions: [{ id: "bm25-search", label: "BM25 search ranking" }],
   },
   {
     sectionId: "section-3",
+    narrative:
+      "With core in place, the Next.js app landed fast: global layout, hero, and the reusable UI blocks that would power search, cards, and navigation.",
     outcomes: [
       "Bootstrapped the Next.js 16 App Router foundation.",
       "Established Tailwind 4 + shadcn/ui styling patterns.",
@@ -158,6 +179,8 @@ export const guideSteps: GuideStep[] = [
   },
   {
     sectionId: "section-4",
+    narrative:
+      "The CLI was built to feel agent-native: fuzzy search, crisp output modes, and the ability to install skills directly from the registry.",
     outcomes: [
       "Built the `jfp` CLI entrypoint and command registry.",
       "Added fuzzy search plus JSON/markdown output modes.",
@@ -168,9 +191,16 @@ export const guideSteps: GuideStep[] = [
       "packages/cli/src/commands/search.ts",
       "packages/cli/src/commands/export.ts",
     ],
+    revisions: [
+      { id: "cac-parser", label: "CAC CLI parser" },
+      { id: "prompt-variables", label: "Prompt templating" },
+      { id: "skill-manifest", label: "Skill manifest hashing" },
+    ],
   },
   {
     sectionId: "section-5",
+    narrative:
+      "User-facing features snapped into place: Spotlight search, prompt cards, and the basket workflow that makes bulk export feel effortless.",
     outcomes: [
       "Shipped SpotlightSearch (Cmd+K) for prompt discovery.",
       "Designed prompt cards with copy and quick actions.",
@@ -181,9 +211,12 @@ export const guideSteps: GuideStep[] = [
       "apps/web/src/components/PromptCard.tsx",
       "apps/web/src/components/BasketSidebar.tsx",
     ],
+    revisions: [{ id: "changelog", label: "Prompt changelog" }],
   },
   {
     sectionId: "section-6",
+    narrative:
+      "The final stretch was all about trust: tests, docs, and the build pipeline that turns the CLI into a single portable binary.",
     outcomes: [
       "Expanded tests and hardened edge cases before shipping.",
       "Polished docs and release scripts for distribution.",
@@ -193,6 +226,10 @@ export const guideSteps: GuideStep[] = [
       "packages/cli/__tests__/commands/json-schema-golden.test.ts",
       "README.md",
       "scripts/build-cli.sh",
+    ],
+    revisions: [
+      { id: "health-endpoints", label: "Health endpoints" },
+      { id: "yaml-safe", label: "YAML-safe frontmatter" },
     ],
   },
 ];

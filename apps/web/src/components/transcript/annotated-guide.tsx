@@ -116,6 +116,36 @@ export function AnnotatedGuide({
 
                   <CardContent className="grid gap-6 sm:grid-cols-[1.2fr_1fr]">
                     <div>
+                      <div className="rounded-2xl border border-violet-200/40 bg-violet-50/60 p-4 text-sm text-zinc-700 shadow-sm dark:border-violet-500/20 dark:bg-zinc-950/40 dark:text-zinc-200">
+                        <p className="leading-relaxed">{step.narrative}</p>
+                      </div>
+
+                      {(step.planPanel || step.revisions?.length) && (
+                        <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+                          <span className="font-semibold uppercase tracking-wide text-zinc-400">
+                            Plan revisions
+                          </span>
+                          {step.planPanel && (
+                            <a
+                              href="#planning-revisions"
+                              className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-emerald-700 transition hover:border-emerald-300 hover:text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-200"
+                            >
+                              <Sparkles className="h-3 w-3" />
+                              GPT Pro plan review
+                            </a>
+                          )}
+                          {step.revisions?.map((revision) => (
+                            <a
+                              key={revision.id}
+                              href={`#feedback-${revision.id}`}
+                              className="rounded-full border border-violet-200 px-2.5 py-1 text-violet-600 transition hover:border-violet-300 hover:text-violet-700 dark:border-violet-500/30 dark:text-violet-300"
+                            >
+                              {revision.label}
+                            </a>
+                          ))}
+                        </div>
+                      )}
+
                       <div className="flex items-center gap-2 text-sm font-semibold text-zinc-700 dark:text-zinc-200">
                         <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                         Outcomes
