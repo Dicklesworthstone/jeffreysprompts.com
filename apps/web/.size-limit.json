@@ -1,0 +1,14 @@
+[
+  {
+    "name": "Total Client Bundle (JS)",
+    "path": ".next/static/chunks/**/*.js",
+    "gzip": true,
+    "limit": "700 KB"
+  },
+  {
+    "name": "Total Client Bundle (CSS)",
+    "path": ".next/static/chunks/**/*.css",
+    "gzip": true,
+    "limit": "100 KB"
+  }
+]

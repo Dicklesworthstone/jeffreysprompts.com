@@ -1,5 +1,11 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
+import withBundleAnalyzer from "@next/bundle-analyzer";
+
+// Bundle analyzer setup (run with ANALYZE=true)
+const analyzeBundles = withBundleAnalyzer({
+  enabled: process.env.ANALYZE === "true",
+});
 
 // Security headers for production
 const isProd = process.env.NODE_ENV === "production";
@@ -19,6 +25,8 @@ const contentSecurityPolicy = [
     "'unsafe-inline'",
     !isProd ? "'unsafe-eval'" : "",
     plausibleOrigin,
+    "https://www.googletagmanager.com",
+    "https://www.google-analytics.com",
     "https://js.stripe.com",
   ]
     .filter(Boolean)
@@ -29,6 +37,7 @@ const contentSecurityPolicy = [
   [
     "connect-src 'self'",
     plausibleOrigin,
+    "https://www.google-analytics.com",
     "https://api.stripe.com",
     "https://*.supabase.co",
     "https://*.sentry.io",
@@ -98,7 +107,8 @@ const nextConfig: NextConfig = {
 };
 
 // Wrap with Sentry for error tracking and source maps
-export default withSentryConfig(nextConfig, {
+// Also wrap with bundle analyzer (enabled via ANALYZE=true)
+export default withSentryConfig(analyzeBundles(nextConfig), {
   // Sentry organization and project (from env vars)
   org: process.env.SENTRY_ORG,
   project: process.env.SENTRY_PROJECT,

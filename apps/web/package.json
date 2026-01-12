@@ -12,7 +12,10 @@
     "lint:all": "eslint && oxlint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "analyze": "ANALYZE=true next build",
+    "size-limit": "size-limit",
+    "size-limit:check": "size-limit --json"
   },
   "dependencies": {
     "@jeffreysprompts/core": "workspace:*",
@@ -42,7 +45,9 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.0",
+    "@next/bundle-analyzer": "^16.1.1",
     "@playwright/test": "^1.57.0",
+    "@size-limit/preset-app": "^12.0.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.1",
@@ -59,6 +64,7 @@
     "next-sitemap": "^4.2.3",
     "oxlint": "^1.38.0",
     "playwright": "^1.57.0",
+    "size-limit": "^12.0.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.0.16"
