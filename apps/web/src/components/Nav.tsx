@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { Github, Menu, X, Sparkles, ShoppingBasket, Crown } from "lucide-react";
+import { ViewTransitionLink } from "./ViewTransitionLink";
 import { useEffect, useState } from "react";
 import { ThemeToggle } from "./theme-toggle";
 import { BasketSidebar } from "./BasketSidebar";
@@ -35,25 +35,25 @@ export function Nav() {
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <nav className="container mx-auto flex h-12 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
-        <Link
+        <ViewTransitionLink
           href="/"
           className="flex items-center gap-2 font-semibold text-lg transition-colors hover:text-primary"
         >
           <Sparkles className="h-5 w-5 text-primary" />
           <span className="hidden sm:inline">JeffreysPrompts</span>
           <span className="sm:hidden">JFP</span>
-        </Link>
+        </ViewTransitionLink>
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-6">
           {navLinks.map((link) => (
-            <Link
+            <ViewTransitionLink
               key={link.href}
               href={link.href}
               className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
               {link.label}
-            </Link>
+            </ViewTransitionLink>
           ))}
         </div>
 
@@ -132,14 +132,14 @@ export function Nav() {
               <div className="flex h-full flex-col">
                 <nav className="flex flex-col px-5 py-2" aria-label="Mobile navigation">
                   {navLinks.map((link) => (
-                    <Link
+                    <ViewTransitionLink
                       key={link.href}
                       href={link.href}
                       className="block min-h-[44px] py-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground touch-manipulation"
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       {link.label}
-                    </Link>
+                    </ViewTransitionLink>
                   ))}
                 </nav>
 

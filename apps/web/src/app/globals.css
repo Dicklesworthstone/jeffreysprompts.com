@@ -3095,3 +3095,115 @@ html.theme-transitioning *::after {
     @apply ring-2 ring-primary ring-offset-2 ring-offset-background;
   }
 }
+
+/* ============================================================================
+   VIEW TRANSITIONS - Smooth page navigation animations
+   Uses the native View Transitions API with progressive enhancement
+   ============================================================================ */
+
+/* Only apply view transitions if user hasn't requested reduced motion */
+@media (prefers-reduced-motion: no-preference) {
+  /* Default cross-fade transition */
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 200ms;
+    animation-timing-function: ease-out;
+  }
+
+  ::view-transition-old(root) {
+    animation-name: view-fade-out;
+  }
+
+  ::view-transition-new(root) {
+    animation-name: view-fade-in;
+  }
+
+  @keyframes view-fade-out {
+    from {
+      opacity: 1;
+      transform: scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: scale(0.98);
+    }
+  }
+
+  @keyframes view-fade-in {
+    from {
+      opacity: 0;
+      transform: scale(1.02);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  /* Slide transition for specific elements marked with view-transition-name */
+  [data-view-transition="slide"] {
+    view-transition-name: slide-content;
+  }
+
+  ::view-transition-old(slide-content) {
+    animation: view-slide-out 200ms ease-out;
+  }
+
+  ::view-transition-new(slide-content) {
+    animation: view-slide-in 200ms ease-out;
+  }
+
+  @keyframes view-slide-out {
+    from {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+  }
+
+  @keyframes view-slide-in {
+    from {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  /* Prevent transition on specific elements like nav/footer */
+  .no-view-transition {
+    view-transition-name: none !important;
+  }
+
+  /* Keep header stable during transitions */
+  header, nav {
+    view-transition-name: header;
+  }
+
+  ::view-transition-old(header),
+  ::view-transition-new(header) {
+    animation: none;
+    mix-blend-mode: normal;
+  }
+
+  /* Keep footer stable during transitions */
+  footer {
+    view-transition-name: footer;
+  }
+
+  ::view-transition-old(footer),
+  ::view-transition-new(footer) {
+    animation: none;
+    mix-blend-mode: normal;
+  }
+}
+
+/* Fallback for browsers without View Transitions API support */
+@supports not (view-transition-name: none) {
+  /* No additional styles needed - navigation works normally without transitions */
+}
