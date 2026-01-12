@@ -162,6 +162,7 @@ export function Providers({ children }: ProvidersProps) {
           />
           <BottomTabBar onOpenSearch={openSpotlight} />
           <OfflineBanner
+            key={serviceWorker.isOffline ? "offline" : "online"}
             isOffline={serviceWorker.isOffline}
             isRegistered={serviceWorker.isRegistered}
           />

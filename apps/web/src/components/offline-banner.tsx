@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { WifiOff, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -23,12 +23,6 @@ interface OfflineBannerProps {
  */
 export function OfflineBanner({ className, isOffline, isRegistered }: OfflineBannerProps) {
   const [dismissed, setDismissed] = useState(false);
-
-  useEffect(() => {
-    if (!isOffline) {
-      setDismissed(false);
-    }
-  }, [isOffline]);
 
   if (!isOffline || !isRegistered) {
     return null;

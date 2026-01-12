@@ -24,52 +24,57 @@ interface PWAInstallState {
  */
 export function usePWAInstall() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [state, setState] = useState<PWAInstallState>({
-    isInstallable: false,
-    isInstalled: false,
-    isIOS: false,
-    canPrompt: false,
-  });
+  const [state, setState] = useState<PWAInstallState>(() => {
+    if (typeof window === "undefined") {
+      return {
+        isInstallable: false,
+        isInstalled: false,
+        isIOS: false,
+        canPrompt: false,
+      };
+    }
 
-  useEffect(() => {
-    // Detect iOS
     const isIOS =
       /iPad|iPhone|iPod/.test(navigator.userAgent) ||
       (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
-    // Check if already installed
     const isInstalled =
       window.matchMedia("(display-mode: standalone)").matches ||
       (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
 
+    return {
+      isInstallable: false,
+      isInstalled,
+      isIOS,
+      canPrompt: false,
+    };
+  });
+
+  const handleBeforeInstallPrompt = useCallback((e: Event) => {
+    e.preventDefault();
+    const promptEvent = e as BeforeInstallPromptEvent;
+    setDeferredPrompt(promptEvent);
     setState((prev) => ({
       ...prev,
-      isIOS,
-      isInstalled,
+      isInstallable: true,
+      canPrompt: true,
     }));
+  }, []);
 
-    // Listen for beforeinstallprompt event
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      const promptEvent = e as BeforeInstallPromptEvent;
-      setDeferredPrompt(promptEvent);
-      setState((prev) => ({
-        ...prev,
-        isInstallable: true,
-        canPrompt: true,
-      }));
-    };
+  const handleAppInstalled = useCallback(() => {
+    setDeferredPrompt(null);
+    setState((prev) => ({
+      ...prev,
+      isInstalled: true,
+      isInstallable: false,
+      canPrompt: false,
+    }));
+  }, []);
 
-    // Listen for app installed event
-    const handleAppInstalled = () => {
-      setDeferredPrompt(null);
-      setState((prev) => ({
-        ...prev,
-        isInstalled: true,
-        isInstallable: false,
-        canPrompt: false,
-      }));
-    };
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     window.addEventListener("appinstalled", handleAppInstalled);
@@ -78,7 +83,7 @@ export function usePWAInstall() {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
       window.removeEventListener("appinstalled", handleAppInstalled);
     };
-  }, []);
+  }, [handleBeforeInstallPrompt, handleAppInstalled]);
 
   const promptInstall = useCallback(async () => {
     if (!deferredPrompt) {

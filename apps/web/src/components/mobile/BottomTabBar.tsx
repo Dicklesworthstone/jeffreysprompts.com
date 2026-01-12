@@ -269,7 +269,7 @@ export function BottomTabBar({ onOpenSearch, className }: BottomTabBarProps) {
                     />
                   )}
                 </div>
-                <span className="text-[10px] font-medium">{tab.label}</span>
+                <span className="text-xs font-medium">{tab.label}</span>
               </motion.div>
             );
 

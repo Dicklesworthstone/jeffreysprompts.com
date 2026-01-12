@@ -10,7 +10,7 @@
  * - Horizontal scroll for category pills on mobile
  */
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useRef } from "react";
 import { Search, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -34,15 +34,14 @@ export function Hero({
   selectedCategory,
 }: HeroProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [modifierKey, setModifierKey] = useState("Ctrl");
+  const [modifierKey] = useState(() => {
+    if (typeof navigator !== "undefined" && navigator.platform?.includes("Mac")) {
+      return "⌘";
+    }
+    return "Ctrl";
+  });
   const searchDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasMounted = useRef(false);
-
-  useEffect(() => {
-    if (typeof navigator !== "undefined" && navigator.platform?.includes("Mac")) {
-      setModifierKey("⌘");
-    }
-  }, []);
 
   useEffect(() => {
     if (!onSearch) return;

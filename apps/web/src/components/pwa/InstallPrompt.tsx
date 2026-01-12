@@ -21,7 +21,7 @@ interface InstallPromptProps {
  * - Only shows after a delay for better UX
  */
 export function InstallPrompt({ className, delay = 30000 }: InstallPromptProps) {
-  const { isInstallable, isInstalled, isIOS, canPrompt, promptInstall } = usePWAInstall();
+  const { isInstallable, isInstalled, isIOS, promptInstall } = usePWAInstall();
   const [dismissed, setDismissed] = useState(true);
   const [showIOSInstructions, setShowIOSInstructions] = useState(false);
 

@@ -88,7 +88,7 @@ export function Nav() {
           >
             <ShoppingBasket className="h-5 w-5" />
             {items.length > 0 && (
-              <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-[10px] font-bold text-primary-foreground flex items-center justify-center">
+              <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-xs font-bold text-primary-foreground flex items-center justify-center">
                 {items.length > 9 ? "9+" : items.length}
               </span>
             )}
