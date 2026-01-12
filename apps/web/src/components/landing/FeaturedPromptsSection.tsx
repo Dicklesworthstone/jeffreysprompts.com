@@ -24,7 +24,7 @@ export function FeaturedPromptsSection({
   if (featuredPrompts.length === 0) return null;
 
   return (
-    <section className="py-8 bg-white dark:bg-zinc-900/50">
+    <section className="py-8 bg-white dark:bg-neutral-900/50">
       <div className="container-wide px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <motion.div
@@ -36,13 +36,13 @@ export function FeaturedPromptsSection({
         >
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-amber-500" />
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">
+            <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">
               Featured
             </h2>
           </div>
           <a
             href="#prompts-section"
-            className="flex items-center gap-1 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
+            className="flex items-center gap-1 text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
           >
             View all {totalCount} prompts
             <ChevronRight className="w-4 h-4" />

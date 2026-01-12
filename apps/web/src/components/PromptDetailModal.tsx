@@ -220,7 +220,7 @@ export function PromptDetailModal({
       {/* Header info */}
       <div className="space-y-4">
         <div className="flex items-center gap-2 flex-wrap">
-          <Badge variant="outline" className="capitalize text-xs font-medium px-2.5 py-0.5 bg-zinc-50 dark:bg-zinc-800/50">
+          <Badge variant="outline" className="capitalize text-xs font-medium px-2.5 py-0.5 bg-neutral-50 dark:bg-neutral-800/50">
             {prompt.category}
           </Badge>
           {prompt.featured && (
@@ -230,7 +230,7 @@ export function PromptDetailModal({
             </Badge>
           )}
           {prompt.estimatedTokens && (
-            <span className="text-[11px] text-muted-foreground/70 font-medium">
+            <span className="text-xs text-muted-foreground/70 font-medium">
               {prompt.estimatedTokens} tokens
             </span>
           )}
@@ -243,7 +243,7 @@ export function PromptDetailModal({
           {prompt.tags.map((tag) => (
             <span
               key={tag}
-              className="text-[11px] text-zinc-500 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800/70 px-2 py-0.5 rounded-md font-medium"
+              className="text-xs text-neutral-500 dark:text-neutral-500 bg-neutral-100 dark:bg-neutral-800/70 px-2 py-0.5 rounded-md font-medium"
             >
               {tag}
             </span>
@@ -253,9 +253,9 @@ export function PromptDetailModal({
 
       {/* Variable inputs */}
       {promptVariables.length > 0 && (
-        <div className="space-y-4 p-4 bg-gradient-to-b from-indigo-50/50 to-transparent dark:from-indigo-950/20 dark:to-transparent rounded-xl border border-indigo-100/50 dark:border-indigo-900/30">
+        <div className="space-y-4 p-4 bg-neutral-50/50 dark:bg-neutral-900/30 rounded-xl border border-neutral-200/50 dark:border-neutral-800/50">
           <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+            <span className="w-1.5 h-1.5 rounded-full bg-primary" />
             Variables
           </h4>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -273,7 +273,7 @@ export function PromptDetailModal({
                     value={variableValues[variable.name] ?? variable.default ?? ""}
                     onChange={(e) => updateVariable(variable.name, e.target.value)}
                     placeholder={getVariablePlaceholder(variable.name, variable.type)}
-                    className="h-20 text-sm bg-white dark:bg-zinc-900/50"
+                    className="h-20 text-sm bg-white dark:bg-neutral-900/50"
                   />
                 ) : (
                   <Input
@@ -281,11 +281,11 @@ export function PromptDetailModal({
                     value={variableValues[variable.name] ?? variable.default ?? ""}
                     onChange={(e) => updateVariable(variable.name, e.target.value)}
                     placeholder={getVariablePlaceholder(variable.name, variable.type)}
-                    className="text-sm bg-white dark:bg-zinc-900/50"
+                    className="text-sm bg-white dark:bg-neutral-900/50"
                   />
                 )}
                 {variable.description && (
-                  <p className="text-[11px] text-muted-foreground/70">
+                  <p className="text-xs text-muted-foreground/70">
                     {variable.description}
                   </p>
                 )}
@@ -305,19 +305,19 @@ export function PromptDetailModal({
           value={context}
           onChange={(e) => setContext(e.target.value)}
           placeholder="Paste code, file contents, or other context here..."
-          className="h-24 text-sm font-mono bg-zinc-50 dark:bg-zinc-900/50"
+          className="h-24 text-sm font-mono bg-neutral-50 dark:bg-neutral-900/50"
         />
       </div>
 
       {/* Prompt content preview */}
       <div className="space-y-2">
         <Label className="text-sm font-medium text-foreground">Rendered Prompt</Label>
-        <div className="relative rounded-xl overflow-hidden border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50 dark:bg-zinc-900/50">
-          <pre className="p-4 text-sm font-mono whitespace-pre-wrap break-words max-h-64 overflow-y-auto text-zinc-700 dark:text-zinc-300 leading-relaxed">
+        <div className="relative rounded-xl overflow-hidden border border-neutral-200/80 dark:border-neutral-800/80 bg-neutral-50 dark:bg-neutral-900/50">
+          <pre className="p-4 text-sm font-mono whitespace-pre-wrap break-words max-h-64 overflow-y-auto text-neutral-700 dark:text-neutral-300 leading-relaxed">
             {renderedContent}
           </pre>
           {/* Fade overlay at bottom */}
-          <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-zinc-50 dark:from-zinc-900/50 to-transparent pointer-events-none" />
+          <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-neutral-50 dark:from-neutral-900/50 to-transparent pointer-events-none" />
         </div>
       </div>
 
@@ -383,7 +383,7 @@ export function PromptDetailModal({
         <Button
           variant="outline"
           onClick={handleInstall}
-          className="flex-1 sm:flex-none font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800"
+          className="flex-1 sm:flex-none font-medium hover:bg-neutral-100 dark:hover:bg-neutral-800"
         >
           <Terminal className="w-4 h-4 mr-2" />
           Install as Skill
@@ -391,7 +391,7 @@ export function PromptDetailModal({
         <Button
           variant="outline"
           onClick={handleDownload}
-          className="flex-1 sm:flex-none font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800"
+          className="flex-1 sm:flex-none font-medium hover:bg-neutral-100 dark:hover:bg-neutral-800"
         >
           <Download className="w-4 h-4 mr-2" />
           Download

@@ -38,7 +38,7 @@ const LONG_PRESS_DELAY = 500;
  *
  * Features:
  * - Swipe left: Copy to clipboard (blue reveal)
- * - Swipe right: Add to basket (indigo reveal)
+ * - Swipe right: Add to basket (neutral reveal)
  * - Double-tap: Quick save/favorite with heart animation
  * - Long-press: Opens quick actions menu
  * - Spring-back animation on incomplete swipe
@@ -342,8 +342,8 @@ export function SwipeablePromptCard({
         className={cn(
           "absolute inset-y-0 left-0 flex items-center justify-start px-6",
           inBasket
-            ? "bg-gradient-to-r from-zinc-500 to-zinc-600"
-            : "bg-gradient-to-r from-indigo-500 to-indigo-600",
+            ? "bg-gradient-to-r from-neutral-500 to-neutral-600"
+            : "bg-gradient-to-r from-neutral-700 to-neutral-800",
           actionTriggered === "basket" && "from-emerald-500 to-emerald-600"
         )}
         style={{
@@ -422,9 +422,9 @@ export function SwipeablePromptCard({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 10 }}
               transition={{ type: "spring", stiffness: 400, damping: 30 }}
-              className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-zinc-900 rounded-t-3xl p-4 pb-8 shadow-2xl"
+              className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-neutral-900 rounded-t-3xl p-4 pb-8 shadow-2xl"
             >
-              <div className="w-12 h-1 bg-zinc-300 dark:bg-zinc-700 rounded-full mx-auto mb-4" />
+              <div className="w-12 h-1 bg-neutral-300 dark:bg-neutral-700 rounded-full mx-auto mb-4" />
               <h3 className="font-semibold text-lg mb-4 text-center">{prompt.title}</h3>
               <div className="space-y-2">
                 <button
@@ -432,7 +432,7 @@ export function SwipeablePromptCard({
                     handleCopy();
                     setShowQuickActions(false);
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
                 >
                   <Copy className="w-5 h-5 text-sky-500" />
                   <span>Copy to Clipboard</span>
@@ -446,11 +446,11 @@ export function SwipeablePromptCard({
                   className={cn(
                     "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors",
                     inBasket
-                      ? "bg-zinc-50 dark:bg-zinc-800/50 text-zinc-400"
-                      : "bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                      ? "bg-neutral-50 dark:bg-neutral-800/50 text-neutral-400"
+                      : "bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700"
                   )}
                 >
-                  <ShoppingBag className={cn("w-5 h-5", inBasket ? "text-zinc-400" : "text-indigo-500")} />
+                  <ShoppingBag className={cn("w-5 h-5", inBasket ? "text-neutral-400" : "text-neutral-600 dark:text-neutral-400")} />
                   <span>{inBasket ? "Already in Basket" : "Add to Basket"}</span>
                 </button>
                 <button
@@ -459,7 +459,7 @@ export function SwipeablePromptCard({
                     haptic.success();
                     setShowQuickActions(false);
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
                 >
                   <Heart className="w-5 h-5 text-pink-500" />
                   <span>Save Prompt</span>
@@ -467,7 +467,7 @@ export function SwipeablePromptCard({
               </div>
               <button
                 onClick={() => setShowQuickActions(false)}
-                className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
               >
                 <X className="w-5 h-5" />
                 <span>Cancel</span>

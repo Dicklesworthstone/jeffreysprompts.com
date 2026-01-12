@@ -130,7 +130,7 @@ function HomeContent() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
       {/* Hero Section */}
       <Hero
         promptCount={prompts.length}
@@ -165,7 +165,7 @@ function HomeContent() {
             {hasActiveFilters && (
               <button
                 onClick={clearFilters}
-                className="text-sm text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors"
+                className="text-sm text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white transition-colors"
               >
                 Clear all filters
               </button>
@@ -185,7 +185,7 @@ function HomeContent() {
         {/* Results header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">
+            <h2 className="text-2xl font-bold text-neutral-900 dark:text-white">
               {filters.category ? (
                 <span className="capitalize">{filters.category}</span>
               ) : filters.query ? (
@@ -194,7 +194,7 @@ function HomeContent() {
                 "All Prompts"
               )}
             </h2>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+            <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
               {filteredPrompts.length} prompt{filteredPrompts.length !== 1 ? "s" : ""}
               {filters.query && ` for "${filters.query}"`}
               {filters.tags.length > 0 && ` with tags: ${filters.tags.join(", ")}`}
@@ -212,24 +212,24 @@ function HomeContent() {
       </main>
 
       {/* Minimal Footer */}
-      <footer className="border-t dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900">
+      <footer className="border-t dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900">
         <div className="container-wide px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
             {/* Brand & Links */}
-            <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-sm text-zinc-600 dark:text-zinc-400">
-              <span className="font-medium text-zinc-900 dark:text-white">Jeffrey&apos;s Prompts</span>
+            <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-sm text-neutral-600 dark:text-neutral-400">
+              <span className="font-medium text-neutral-900 dark:text-white">Jeffrey&apos;s Prompts</span>
               <a
                 href="https://github.com/Dicklesworthstone/jeffreysprompts.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hover:text-zinc-900 dark:hover:text-white transition-colors"
+                className="hover:text-neutral-900 dark:hover:text-white transition-colors"
               >
                 GitHub
               </a>
-              <a href="/help" className="hover:text-zinc-900 dark:hover:text-white transition-colors">
+              <a href="/help" className="hover:text-neutral-900 dark:hover:text-white transition-colors">
                 Help
               </a>
-              <a href="/contribute" className="hover:text-zinc-900 dark:hover:text-white transition-colors">
+              <a href="/contribute" className="hover:text-neutral-900 dark:hover:text-white transition-colors">
                 Contribute
               </a>
             </div>
@@ -247,7 +247,7 @@ function HomeContent() {
           </div>
 
           {/* Copyright */}
-          <div className="mt-6 pt-6 border-t border-zinc-200 dark:border-zinc-800 text-center text-xs text-zinc-500 dark:text-zinc-500">
+          <div className="mt-6 pt-6 border-t border-neutral-200 dark:border-neutral-800 text-center text-xs text-neutral-500 dark:text-neutral-500">
             Free and open-source. Made by{" "}
             <a
               href="https://twitter.com/doodlestein"
@@ -273,7 +273,7 @@ function HomeContent() {
 
 export default function Home() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-zinc-50 dark:bg-zinc-950" />}>
+    <Suspense fallback={<div className="min-h-screen bg-neutral-50 dark:bg-neutral-950" />}>
       <HomeContent />
     </Suspense>
   );

@@ -503,7 +503,7 @@ export function SpotlightSearch({
                   <XIcon className="size-5" />
                 </button>
               ) : (
-                <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-1 text-[11px] text-muted-foreground/70 bg-muted/50 rounded-md font-mono">
+                <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground/70 bg-muted/50 rounded-md font-mono">
                   esc
                 </kbd>
               )}
@@ -520,8 +520,8 @@ export function SpotlightSearch({
                 className={cn(
                   "shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
                   !selectedCategory
-                    ? "bg-indigo-600 text-white"
-                    : "bg-muted hover:bg-muted/80 text-muted-foreground"
+                    ? "bg-neutral-900 dark:bg-white text-white dark:text-neutral-900"
+                    : "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700"
                 )}
               >
                 All
@@ -534,8 +534,8 @@ export function SpotlightSearch({
                   className={cn(
                     "shrink-0 px-3 py-1.5 rounded-full text-xs font-medium capitalize transition-colors",
                     selectedCategory === category
-                      ? "bg-indigo-600 text-white"
-                      : "bg-muted hover:bg-muted/80 text-muted-foreground"
+                      ? "bg-neutral-900 dark:bg-white text-white dark:text-neutral-900"
+                      : "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700"
                   )}
                 >
                   {category}
@@ -620,7 +620,7 @@ export function SpotlightSearch({
                           <span className="font-medium text-foreground truncate">
                             {prompt.title}
                           </span>
-                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0 capitalize">
+                          <Badge variant="secondary" className="text-xs px-1.5 py-0 shrink-0 capitalize">
                             {prompt.category}
                           </Badge>
                         </div>
@@ -658,7 +658,7 @@ export function SpotlightSearch({
                     "flex items-start gap-3",
                     "transition-colors duration-150",
                     index === selectedIndex
-                      ? "bg-indigo-50 dark:bg-indigo-950/30"
+                      ? "bg-neutral-100 dark:bg-neutral-800/50"
                       : "hover:bg-muted/50",
                     copied === result.prompt.id && "bg-emerald-500/10"
                   )}
@@ -667,11 +667,11 @@ export function SpotlightSearch({
                     <div className="flex items-center gap-2 mb-1">
                       <span className={cn(
                         "font-medium truncate",
-                        index === selectedIndex ? "text-indigo-600 dark:text-indigo-400" : "text-foreground"
+                        index === selectedIndex ? "text-neutral-900 dark:text-white font-semibold" : "text-foreground"
                       )}>
                         {result.prompt.title}
                       </span>
-                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0 capitalize">
+                      <Badge variant="secondary" className="text-xs px-1.5 py-0 shrink-0 capitalize">
                         {result.prompt.category}
                       </Badge>
                       {result.prompt.featured && (
@@ -685,7 +685,7 @@ export function SpotlightSearch({
                     {result.prompt.tags.length > 0 && (
                       <div className="flex items-center gap-1.5 mt-1.5">
                         {result.prompt.tags.slice(0, 3).map((tag) => (
-                          <span key={tag} className="text-[10px] text-muted-foreground/60 bg-muted/50 px-1.5 py-0.5 rounded">
+                          <span key={tag} className="text-xs text-muted-foreground/60 bg-muted/50 px-1.5 py-0.5 rounded">
                             {tag}
                           </span>
                         ))}
@@ -698,7 +698,7 @@ export function SpotlightSearch({
                     ) : (
                       <CopyIcon className={cn(
                         "size-4",
-                        index === selectedIndex ? "text-indigo-500" : "text-muted-foreground/40"
+                        index === selectedIndex ? "text-neutral-600 dark:text-neutral-400" : "text-muted-foreground/40"
                       )} />
                     )}
                   </div>
@@ -707,7 +707,7 @@ export function SpotlightSearch({
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between gap-4 px-4 py-2.5 border-t border-border/50 text-[11px] text-muted-foreground/70 bg-muted/20">
+            <div className="flex items-center justify-between gap-4 px-4 py-2.5 border-t border-border/50 text-xs text-muted-foreground/70 bg-muted/20">
               <div className="flex items-center gap-4">
                 <span className="hidden sm:flex items-center gap-1.5">
                   <kbd className="px-1.5 py-0.5 bg-muted/70 rounded font-mono">↑</kbd>
