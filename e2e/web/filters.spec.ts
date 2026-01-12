@@ -430,7 +430,7 @@ test.describe("Active Filter Chips", () => {
     });
 
     await logger.step("click remove button on chip", async () => {
-      const removeButton = page.getByRole("button", { name: /remove ideation filter/i });
+      const removeButton = page.getByRole("button", { name: /remove category filter.*ideation/i });
       await removeButton.click();
     });
 
@@ -537,7 +537,7 @@ test.describe("Filter Accessibility", () => {
     });
 
     await logger.step("verify remove button has accessible label", async () => {
-      const removeButton = page.getByRole("button", { name: /remove ideation filter/i });
+      const removeButton = page.getByRole("button", { name: /remove category filter.*ideation/i });
       await expect(removeButton).toBeVisible();
     });
   });
