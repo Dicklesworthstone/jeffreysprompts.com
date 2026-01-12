@@ -11,10 +11,12 @@ import { motion, useAnimation, AnimatePresence } from "framer-motion";
 import { Copy, Check, ShoppingBag, Plus, Heart, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PromptCard } from "@/components/PromptCard";
+import { SwipeHint } from "@/components/mobile/SwipeHint";
 import { useSwipeGesture } from "@/hooks/useSwipeGesture";
 import { useHaptic } from "@/hooks/useHaptic";
 import { useIsSmallScreen } from "@/hooks/useIsMobile";
 import { useBasket } from "@/hooks/use-basket";
+import { useSwipeHint } from "@/hooks/useSwipeHint";
 import { useToast } from "@/components/ui/toast";
 import { trackEvent } from "@/lib/analytics";
 import type { Prompt } from "@jeffreysprompts/core/prompts/types";
@@ -72,6 +74,7 @@ export function SwipeablePromptCard({
   const haptic = useHaptic();
   const { success, error } = useToast();
   const { addItem, isInBasket } = useBasket();
+  const { showHint, dismissHint } = useSwipeHint();
   const inBasket = isInBasket(prompt.id);
   const lastHapticThreshold = useRef(0);
   const lastTapTime = useRef(0);
@@ -400,6 +403,13 @@ export function SwipeablePromptCard({
             >
               <Heart className="w-16 h-16 text-pink-500 fill-pink-500 drop-shadow-lg" />
             </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Swipe hint for first-time mobile users (only on first card) */}
+        <AnimatePresence>
+          {showHint && index === 0 && isMobile && (
+            <SwipeHint onDismiss={dismissHint} />
           )}
         </AnimatePresence>
       </motion.div>
