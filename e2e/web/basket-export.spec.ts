@@ -27,7 +27,7 @@ test.describe("Basket Export - Markdown Download", () => {
 
   test("downloads single prompt as markdown file", async ({ page, logger }) => {
     await logger.step("add a prompt to basket", async () => {
-      await expect(page.getByRole("heading", { name: "The Idea Wizard" })).toBeVisible({ timeout: 10000 });
+      await expect(page.getByRole("heading", { name: "The Idea Wizard" }).first()).toBeVisible({ timeout: 10000 });
       const basketButton = page.getByRole("button", { name: /add to basket/i }).first();
       await basketButton.click();
       await expect(page.getByRole("button", { name: /already in basket/i }).first()).toBeVisible();
@@ -59,7 +59,7 @@ test.describe("Basket Export - Markdown Download", () => {
 
   test("downloads multiple prompts as ZIP file", async ({ page, logger }) => {
     await logger.step("add multiple prompts to basket", async () => {
-      await expect(page.getByRole("heading", { name: "The Idea Wizard" })).toBeVisible({ timeout: 10000 });
+      await expect(page.getByRole("heading", { name: "The Idea Wizard" }).first()).toBeVisible({ timeout: 10000 });
 
       // Add first prompt
       const basketButtons = page.getByRole("button", { name: /add to basket/i });
@@ -107,7 +107,7 @@ test.describe("Basket Export - Skills ZIP Download", () => {
 
   test("downloads prompts as skills ZIP", async ({ page, logger }) => {
     await logger.step("add a prompt to basket", async () => {
-      await expect(page.getByRole("heading", { name: "The Idea Wizard" })).toBeVisible({ timeout: 10000 });
+      await expect(page.getByRole("heading", { name: "The Idea Wizard" }).first()).toBeVisible({ timeout: 10000 });
       const basketButton = page.getByRole("button", { name: /add to basket/i }).first();
       await basketButton.click();
       await expect(page.getByRole("button", { name: /already in basket/i }).first()).toBeVisible();
@@ -154,7 +154,7 @@ test.describe("Basket Export - Copy Install Command", () => {
 
   test("copies install command to clipboard", async ({ page, logger }) => {
     await logger.step("add a prompt to basket", async () => {
-      await expect(page.getByRole("heading", { name: "The Idea Wizard" })).toBeVisible({ timeout: 10000 });
+      await expect(page.getByRole("heading", { name: "The Idea Wizard" }).first()).toBeVisible({ timeout: 10000 });
       const basketButton = page.getByRole("button", { name: /add to basket/i }).first();
       await basketButton.click();
       await expect(page.getByRole("button", { name: /already in basket/i }).first()).toBeVisible();
@@ -185,7 +185,7 @@ test.describe("Basket Export - Copy Install Command", () => {
 
   test("copies multiple prompt IDs in install command", async ({ page, logger }) => {
     await logger.step("add multiple prompts to basket", async () => {
-      await expect(page.getByRole("heading", { name: "The Idea Wizard" })).toBeVisible({ timeout: 10000 });
+      await expect(page.getByRole("heading", { name: "The Idea Wizard" }).first()).toBeVisible({ timeout: 10000 });
 
       const basketButtons = page.getByRole("button", { name: /add to basket/i });
       await basketButtons.nth(0).click();
@@ -223,7 +223,7 @@ test.describe("Basket Export - Clear Basket", () => {
 
   test("clears all items from basket", async ({ page, logger }) => {
     await logger.step("add prompts to basket", async () => {
-      await expect(page.getByRole("heading", { name: "The Idea Wizard" })).toBeVisible({ timeout: 10000 });
+      await expect(page.getByRole("heading", { name: "The Idea Wizard" }).first()).toBeVisible({ timeout: 10000 });
 
       const basketButtons = page.getByRole("button", { name: /add to basket/i });
       await basketButtons.nth(0).click();
@@ -259,7 +259,7 @@ test.describe("Basket Export - Clear Basket", () => {
 
   test("export buttons disappear when basket is empty", async ({ page, logger }) => {
     await logger.step("add a prompt to basket", async () => {
-      await expect(page.getByRole("heading", { name: "The Idea Wizard" })).toBeVisible({ timeout: 10000 });
+      await expect(page.getByRole("heading", { name: "The Idea Wizard" }).first()).toBeVisible({ timeout: 10000 });
       const basketButton = page.getByRole("button", { name: /add to basket/i }).first();
       await basketButton.click();
     });
@@ -300,7 +300,7 @@ test.describe("Basket Export - Remove Individual Items", () => {
 
   test("can remove individual item from basket", async ({ page, logger }) => {
     await logger.step("add prompt to basket", async () => {
-      await expect(page.getByRole("heading", { name: "The Idea Wizard" })).toBeVisible({ timeout: 10000 });
+      await expect(page.getByRole("heading", { name: "The Idea Wizard" }).first()).toBeVisible({ timeout: 10000 });
       const basketButton = page.getByRole("button", { name: /add to basket/i }).first();
       await basketButton.click();
     });
@@ -340,7 +340,7 @@ test.describe("Basket Export - Sidebar Interaction", () => {
 
   test("basket sidebar can be closed with X button", async ({ page, logger }) => {
     await logger.step("add prompt and open basket", async () => {
-      await expect(page.getByRole("heading", { name: "The Idea Wizard" })).toBeVisible({ timeout: 10000 });
+      await expect(page.getByRole("heading", { name: "The Idea Wizard" }).first()).toBeVisible({ timeout: 10000 });
       const basketButton = page.getByRole("button", { name: /add to basket/i }).first();
       await basketButton.click();
 
@@ -367,7 +367,7 @@ test.describe("Basket Export - Sidebar Interaction", () => {
 
   test("basket shows item count in header", async ({ page, logger }) => {
     await logger.step("wait for page to load", async () => {
-      await expect(page.getByRole("heading", { name: "The Idea Wizard" })).toBeVisible({ timeout: 10000 });
+      await expect(page.getByRole("heading", { name: "The Idea Wizard" }).first()).toBeVisible({ timeout: 10000 });
     });
 
     await logger.step("add first prompt to basket", async () => {
