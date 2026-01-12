@@ -67,7 +67,8 @@ test.describe("Help Center Main Page", () => {
     await logger.step("verify popular topic cards", async () => {
       // Should have at least 3 popular topic cards
       const popularCards = page.locator("section").filter({ hasText: "Popular Topics" }).locator("a");
-      await expect(popularCards).toHaveCount(3);
+      const count = await popularCards.count();
+      expect(count).toBeGreaterThanOrEqual(3);
     });
   });
 
@@ -77,7 +78,8 @@ test.describe("Help Center Main Page", () => {
     });
 
     await logger.step("verify keyboard shortcut hint", async () => {
-      await expect(page.locator("kbd").filter({ hasText: "Cmd+K" })).toBeVisible();
+      // Check for either Cmd+K (Mac) or Ctrl+K (Windows/Linux)
+      await expect(page.locator("kbd").filter({ hasText: /Cmd\+K|Ctrl\+K/ })).toBeVisible();
     });
   });
 
@@ -136,7 +138,8 @@ test.describe("Help Article Pages", () => {
     await logger.step("verify breadcrumb navigation", async () => {
       const breadcrumb = page.locator("nav").filter({ hasText: "Help Center" });
       await expect(breadcrumb).toBeVisible();
-      await expect(breadcrumb.getByRole("link", { name: "Getting Started" })).toBeVisible();
+      // Breadcrumb text uses CSS capitalize so DOM text is lowercase
+      await expect(breadcrumb.getByRole("link", { name: /getting started/i })).toBeVisible();
     });
   });
 
@@ -211,7 +214,8 @@ test.describe("Help Navigation", () => {
     });
 
     await logger.step("click breadcrumb link to category", async () => {
-      await page.locator("nav").filter({ hasText: "Help Center" }).getByRole("link", { name: "Prompts" }).click();
+      // Breadcrumb text uses CSS capitalize so DOM text is lowercase
+      await page.locator("nav").filter({ hasText: "Help Center" }).getByRole("link", { name: /prompts/i }).click();
       await page.waitForLoadState("networkidle");
     });
 

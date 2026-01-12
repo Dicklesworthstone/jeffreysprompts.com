@@ -2,8 +2,6 @@ import { test, expect } from "../../lib/playwright-logger";
 import {
   getContactFormLocators,
   navigateToContactPage,
-  fillContactForm,
-  submitContactForm,
   testData,
 } from "../../lib/support-helpers";
 

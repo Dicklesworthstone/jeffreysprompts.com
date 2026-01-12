@@ -194,6 +194,8 @@ export async function navigateToTicketsPage(page: Page): Promise<void> {
 
 /**
  * Fill contact form with test data
+ * Note: Category and priority use custom Select components (shadcn/ui),
+ * not native HTML select elements, so we need click-based interaction.
  */
 export async function fillContactForm(
   page: Page,
@@ -206,7 +208,7 @@ export async function fillContactForm(
     priority?: SupportPriority;
   }
 ): Promise<void> {
-  const { nameInput, emailInput, subjectInput, messageInput, categorySelect, prioritySelect } =
+  const { nameInput, emailInput, subjectInput, messageInput } =
     getContactFormLocators(page);
 
   await nameInput.fill(data.name);
@@ -214,12 +216,15 @@ export async function fillContactForm(
   await subjectInput.fill(data.subject);
   await messageInput.fill(data.message);
 
+  // Custom Select components require click-based interaction
   if (data.category) {
-    await categorySelect.selectOption(data.category);
+    await page.locator("#support-category").click();
+    await page.getByRole("option", { name: new RegExp(data.category, "i") }).click();
   }
 
   if (data.priority) {
-    await prioritySelect.selectOption(data.priority);
+    await page.locator("#support-priority").click();
+    await page.getByRole("option", { name: new RegExp(data.priority, "i") }).click();
   }
 }
 
