@@ -510,13 +510,19 @@ export function SpotlightSearch({
             </div>
 
             {/* Category pills - horizontal scroll on mobile */}
-            <div className={cn(
-              "flex gap-2 px-4 py-2.5 border-b border-border/50 bg-muted/20",
-              "overflow-x-auto scrollbar-none"
-            )}>
+            <div
+              className={cn(
+                "flex gap-2 px-4 py-2.5 border-b border-border/50 bg-muted/20",
+                "overflow-x-auto scrollbar-none"
+              )}
+              role="group"
+              aria-label="Filter by category"
+            >
               <button
                 type="button"
                 onClick={() => setSelectedCategory(null)}
+                aria-pressed={!selectedCategory}
+                aria-label="Show all categories"
                 className={cn(
                   "shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
                   !selectedCategory
@@ -531,6 +537,8 @@ export function SpotlightSearch({
                   key={category}
                   type="button"
                   onClick={() => setSelectedCategory(selectedCategory === category ? null : category)}
+                  aria-pressed={selectedCategory === category}
+                  aria-label={`Filter by ${category}`}
                   className={cn(
                     "shrink-0 px-3 py-1.5 rounded-full text-xs font-medium capitalize transition-colors",
                     selectedCategory === category
@@ -559,13 +567,14 @@ export function SpotlightSearch({
                 <div className="py-2">
                   <div className="px-4 py-2 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <ClockIcon className="size-3.5 text-muted-foreground/60" />
+                      <ClockIcon className="size-3.5 text-muted-foreground/60" aria-hidden="true" />
                       <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Recent</span>
                     </div>
                     <button
                       type="button"
                       onClick={clearRecentSearches}
                       className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+                      aria-label="Clear recent search history"
                     >
                       Clear
                     </button>
@@ -580,8 +589,9 @@ export function SpotlightSearch({
                         "transition-colors duration-150",
                         "hover:bg-muted/50"
                       )}
+                      aria-label={`Search for "${recentQuery}"`}
                     >
-                      <ClockIcon className="size-4 text-muted-foreground/40 shrink-0" />
+                      <ClockIcon className="size-4 text-muted-foreground/40 shrink-0" aria-hidden="true" />
                       <span className="text-sm text-foreground truncate">{recentQuery}</span>
                     </button>
                   ))}
@@ -600,13 +610,14 @@ export function SpotlightSearch({
               {showFeatured && !selectedCategory && (
                 <div className="py-2">
                   <div className="px-4 py-2 flex items-center gap-2">
-                    <StarIcon className="size-3.5 text-amber-500" />
+                    <StarIcon className="size-3.5 text-amber-500" aria-hidden="true" />
                     <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Featured</span>
                   </div>
                   {featuredPrompts.map((prompt) => (
                     <button
                       key={prompt.id}
                       onClick={() => handleFeaturedSelect(prompt)}
+                      aria-label={`Copy "${prompt.title}" to clipboard`}
                       className={cn(
                         "w-full px-4 py-3 text-left",
                         "flex items-start gap-3",
@@ -634,9 +645,9 @@ export function SpotlightSearch({
                       </div>
                       <div className="shrink-0 pt-0.5">
                         {copied === prompt.id ? (
-                          <CheckIcon className="size-4 text-emerald-500" />
+                          <CheckIcon className="size-4 text-emerald-500" aria-hidden="true" />
                         ) : (
-                          <CopyIcon className="size-4 text-muted-foreground/40" />
+                          <CopyIcon className="size-4 text-muted-foreground/40" aria-hidden="true" />
                         )}
                       </div>
                     </button>
@@ -675,7 +686,7 @@ export function SpotlightSearch({
                         {result.prompt.category}
                       </Badge>
                       {result.prompt.featured && (
-                        <StarIcon className="size-3 text-amber-500 shrink-0" />
+                        <StarIcon className="size-3 text-amber-500 shrink-0" aria-hidden="true" />
                       )}
                     </div>
                     <p className="text-sm text-muted-foreground line-clamp-1">
@@ -694,12 +705,12 @@ export function SpotlightSearch({
                   </div>
                   <div className="shrink-0 pt-0.5">
                     {copied === result.prompt.id ? (
-                      <CheckIcon className="size-4 text-emerald-500" />
+                      <CheckIcon className="size-4 text-emerald-500" aria-hidden="true" />
                     ) : (
                       <CopyIcon className={cn(
                         "size-4",
                         index === selectedIndex ? "text-neutral-600 dark:text-neutral-400" : "text-muted-foreground/40"
-                      )} />
+                      )} aria-hidden="true" />
                     )}
                   </div>
                 </button>
@@ -722,12 +733,12 @@ export function SpotlightSearch({
               <div className="flex items-center gap-3">
                 {semanticMode && (
                   <span className="flex items-center gap-1.5 text-amber-500">
-                    <SparklesIcon className={cn("size-3", isReranking && "animate-pulse")} />
+                    <SparklesIcon className={cn("size-3", isReranking && "animate-pulse")} aria-hidden="true" />
                     {isReranking ? "Improving..." : "Semantic"}
                   </span>
                 )}
                 <span className="hidden sm:flex items-center gap-1">
-                  <CommandIcon className="size-3" />
+                  <CommandIcon className="size-3" aria-hidden="true" />
                   <span>K</span>
                   <span className="ml-0.5 text-muted-foreground/50">to open</span>
                 </span>

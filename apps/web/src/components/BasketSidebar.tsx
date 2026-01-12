@@ -58,7 +58,7 @@ export function BasketSidebar({ isOpen, onClose }: BasketSidebarProps) {
   }, []);
 
   const handleDownloadMarkdown = async () => {
-      if (basketPrompts.length === 0) return;
+    if (basketPrompts.length === 0) return;
 
     setExporting(true);
     try {
@@ -95,7 +95,7 @@ export function BasketSidebar({ isOpen, onClose }: BasketSidebarProps) {
   };
 
   const handleDownloadSkills = async () => {
-      if (basketPrompts.length === 0) return;
+    if (basketPrompts.length === 0) return;
 
     setExporting(true);
     try {
@@ -186,14 +186,14 @@ export function BasketSidebar({ isOpen, onClose }: BasketSidebarProps) {
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
           <div className="flex items-center gap-2">
-            <ShoppingBasket className="h-5 w-5 text-primary" />
+            <ShoppingBasket className="h-5 w-5 text-primary" aria-hidden="true" />
             <h2 className="font-semibold">Basket</h2>
             <span className="text-sm text-muted-foreground">
               ({basketPrompts.length})
             </span>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="h-4 w-4" />
+          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close basket">
+            <X className="h-4 w-4" aria-hidden="true" />
           </Button>
         </div>
 
@@ -204,7 +204,7 @@ export function BasketSidebar({ isOpen, onClose }: BasketSidebarProps) {
               {/* Illustrated empty state with decorative sparkle */}
               <div className="relative mb-6">
                 <div className="w-20 h-20 rounded-2xl bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
-                  <ShoppingBasket className="h-10 w-10 text-neutral-400 dark:text-neutral-500" />
+                  <ShoppingBasket className="h-10 w-10 text-neutral-400 dark:text-neutral-500" aria-hidden="true" />
                 </div>
                 <Sparkles className="absolute -top-1 -right-1 h-5 w-5 text-amber-400" aria-hidden="true" />
               </div>
@@ -253,8 +253,9 @@ export function BasketSidebar({ isOpen, onClose }: BasketSidebarProps) {
                     size="icon"
                     className="h-7 w-7 shrink-0"
                     onClick={() => removeItem(prompt.id)}
+                    aria-label={`Remove "${prompt.title}" from basket`}
                   >
-                    <X className="h-3 w-3" />
+                    <X className="h-3 w-3" aria-hidden="true" />
                   </Button>
                 </li>
               ))}
@@ -271,7 +272,7 @@ export function BasketSidebar({ isOpen, onClose }: BasketSidebarProps) {
               onClick={handleDownloadMarkdown}
               disabled={exporting}
             >
-              <FileText className="h-4 w-4" />
+              <FileText className="h-4 w-4" aria-hidden="true" />
               Download as Markdown
             </Button>
             <Button
@@ -280,7 +281,7 @@ export function BasketSidebar({ isOpen, onClose }: BasketSidebarProps) {
               onClick={handleDownloadSkills}
               disabled={exporting}
             >
-              <Package className="h-4 w-4" />
+              <Package className="h-4 w-4" aria-hidden="true" />
               Download as Skills ZIP
             </Button>
             <Button
@@ -289,9 +290,9 @@ export function BasketSidebar({ isOpen, onClose }: BasketSidebarProps) {
               onClick={handleCopyInstallCommand}
             >
               {copied ? (
-                <Check className="h-4 w-4 text-emerald-500" />
+                <Check className="h-4 w-4 text-emerald-500" aria-hidden="true" />
               ) : (
-                <Copy className="h-4 w-4" />
+                <Copy className="h-4 w-4" aria-hidden="true" />
               )}
               Copy Install Command
             </Button>
@@ -300,7 +301,7 @@ export function BasketSidebar({ isOpen, onClose }: BasketSidebarProps) {
               className="w-full justify-start gap-2 text-destructive hover:text-destructive"
               onClick={handleClearBasket}
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
               Clear Basket
             </Button>
           </div>
