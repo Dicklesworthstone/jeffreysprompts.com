@@ -14,18 +14,25 @@ import { join, dirname } from "path";
 import { readFile, writeFile, mkdir, unlink, rename } from "fs/promises";
 import { existsSync } from "fs";
 import { randomBytes } from "crypto";
+import { z } from "zod";
 
 // Premium API URL for token refresh
 const PREMIUM_URL = process.env.JFP_PREMIUM_URL ?? "https://pro.jeffreysprompts.com";
 
-export interface Credentials {
-  access_token: string;
-  refresh_token?: string;
-  expires_at: string; // ISO 8601
-  email: string;
-  tier: "free" | "premium";
-  user_id: string;
-}
+/**
+ * Zod schema for credentials validation
+ * Ensures all required fields are present and have correct types
+ */
+export const CredentialsSchema = z.object({
+  access_token: z.string().min(1),
+  refresh_token: z.string().optional(),
+  expires_at: z.string().min(1), // ISO 8601
+  email: z.string().email(),
+  tier: z.enum(["free", "premium"]),
+  user_id: z.string().min(1),
+});
+
+export type Credentials = z.infer<typeof CredentialsSchema>;
 
 /**
  * Get XDG Base Directory compliant credentials path
@@ -49,6 +56,7 @@ function getConfigDir(): string {
 /**
  * Load credentials from disk
  * Returns null if not logged in or credentials are invalid
+ * Uses Zod schema for complete runtime validation
  */
 export async function loadCredentials(): Promise<Credentials | null> {
   const path = getCredentialsPath();
@@ -59,14 +67,16 @@ export async function loadCredentials(): Promise<Credentials | null> {
 
   try {
     const content = await readFile(path, "utf-8");
-    const creds = JSON.parse(content) as Credentials;
+    const parsed = JSON.parse(content);
 
-    // Basic validation
-    if (!creds.access_token || !creds.email) {
+    // Validate with Zod schema - ensures all required fields are present with correct types
+    const result = CredentialsSchema.safeParse(parsed);
+    if (!result.success) {
+      debugLog(`Invalid credentials file: ${result.error.message}`);
       return null;
     }
 
-    return creds;
+    return result.data;
   } catch {
     // Corrupt file or parse error
     return null;

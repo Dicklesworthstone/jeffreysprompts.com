@@ -122,6 +122,132 @@ describe("loadCredentials", () => {
   });
 });
 
+describe("CredentialsSchema validation (runtime)", () => {
+  it("returns null when user_id is missing", async () => {
+    const credPath = join(FAKE_CONFIG, "jfp", "credentials.json");
+    mkdirSync(join(FAKE_CONFIG, "jfp"), { recursive: true });
+    const invalidCreds = {
+      access_token: "token",
+      email: "test@example.com",
+      expires_at: new Date().toISOString(),
+      tier: "premium",
+      // user_id is missing
+    };
+    writeFileSync(credPath, JSON.stringify(invalidCreds));
+
+    const result = await credentials.loadCredentials();
+    expect(result).toBeNull();
+  });
+
+  it("returns null when expires_at is missing", async () => {
+    const credPath = join(FAKE_CONFIG, "jfp", "credentials.json");
+    mkdirSync(join(FAKE_CONFIG, "jfp"), { recursive: true });
+    const invalidCreds = {
+      access_token: "token",
+      email: "test@example.com",
+      tier: "premium",
+      user_id: "user-123",
+      // expires_at is missing
+    };
+    writeFileSync(credPath, JSON.stringify(invalidCreds));
+
+    const result = await credentials.loadCredentials();
+    expect(result).toBeNull();
+  });
+
+  it("returns null when tier is invalid", async () => {
+    const credPath = join(FAKE_CONFIG, "jfp", "credentials.json");
+    mkdirSync(join(FAKE_CONFIG, "jfp"), { recursive: true });
+    const invalidCreds = {
+      access_token: "token",
+      email: "test@example.com",
+      expires_at: new Date().toISOString(),
+      tier: "invalid-tier", // Should be "free" or "premium"
+      user_id: "user-123",
+    };
+    writeFileSync(credPath, JSON.stringify(invalidCreds));
+
+    const result = await credentials.loadCredentials();
+    expect(result).toBeNull();
+  });
+
+  it("returns null when email format is invalid", async () => {
+    const credPath = join(FAKE_CONFIG, "jfp", "credentials.json");
+    mkdirSync(join(FAKE_CONFIG, "jfp"), { recursive: true });
+    const invalidCreds = {
+      access_token: "token",
+      email: "not-an-email", // Invalid email format
+      expires_at: new Date().toISOString(),
+      tier: "premium",
+      user_id: "user-123",
+    };
+    writeFileSync(credPath, JSON.stringify(invalidCreds));
+
+    const result = await credentials.loadCredentials();
+    expect(result).toBeNull();
+  });
+
+  it("returns null when access_token is empty string", async () => {
+    const credPath = join(FAKE_CONFIG, "jfp", "credentials.json");
+    mkdirSync(join(FAKE_CONFIG, "jfp"), { recursive: true });
+    const invalidCreds = {
+      access_token: "", // Empty string should fail min(1) validation
+      email: "test@example.com",
+      expires_at: new Date().toISOString(),
+      tier: "premium",
+      user_id: "user-123",
+    };
+    writeFileSync(credPath, JSON.stringify(invalidCreds));
+
+    const result = await credentials.loadCredentials();
+    expect(result).toBeNull();
+  });
+
+  it("returns null when tier has wrong type", async () => {
+    const credPath = join(FAKE_CONFIG, "jfp", "credentials.json");
+    mkdirSync(join(FAKE_CONFIG, "jfp"), { recursive: true });
+    const invalidCreds = {
+      access_token: "token",
+      email: "test@example.com",
+      expires_at: new Date().toISOString(),
+      tier: 123, // Should be string "free" or "premium"
+      user_id: "user-123",
+    };
+    writeFileSync(credPath, JSON.stringify(invalidCreds));
+
+    const result = await credentials.loadCredentials();
+    expect(result).toBeNull();
+  });
+
+  it("accepts valid credentials with optional refresh_token", async () => {
+    const credPath = join(FAKE_CONFIG, "jfp", "credentials.json");
+    mkdirSync(join(FAKE_CONFIG, "jfp"), { recursive: true });
+    const validCredsNoRefresh = {
+      access_token: "token",
+      email: "test@example.com",
+      expires_at: new Date().toISOString(),
+      tier: "free",
+      user_id: "user-123",
+      // refresh_token is optional and can be omitted
+    };
+    writeFileSync(credPath, JSON.stringify(validCredsNoRefresh));
+
+    const result = await credentials.loadCredentials();
+    expect(result).not.toBeNull();
+    expect(result!.tier).toBe("free");
+    expect(result!.refresh_token).toBeUndefined();
+  });
+
+  it("schema validates complete valid credentials", () => {
+    const result = credentials.CredentialsSchema.safeParse(validCredentials);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.access_token).toBe(validCredentials.access_token);
+      expect(result.data.email).toBe(validCredentials.email);
+    }
+  });
+});
+
 describe("saveCredentials", () => {
   it("creates config directory if it does not exist", async () => {
     await credentials.saveCredentials(validCredentials);
