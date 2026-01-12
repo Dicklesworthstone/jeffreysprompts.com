@@ -22,11 +22,13 @@ import {
   BookOpen,
   Rocket,
   Zap,
+  ShoppingBasket,
 } from "lucide-react";
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
+import { useBasket } from "@/hooks/use-basket";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
 import type { Prompt, PromptDifficulty } from "@jeffreysprompts/core/prompts/types";
@@ -67,6 +69,8 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
   const prefersReducedMotion = useReducedMotion();
   const copiedResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { success, error } = useToast();
+  const { addItem, isInBasket } = useBasket();
+  const inBasket = isInBasket(prompt.id);
 
   useEffect(() => {
     return () => {
@@ -102,6 +106,18 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
   const handleClick = useCallback(() => {
     onClick?.(prompt);
   }, [prompt, onClick]);
+
+  const handleAddToBasket = useCallback(
+    (e: MouseEvent) => {
+      e.stopPropagation();
+      if (!inBasket) {
+        addItem(prompt.id);
+        success("Added to basket", prompt.title, 3000);
+        trackEvent("basket_add", { id: prompt.id, source: "card" });
+      }
+    },
+    [prompt, inBasket, addItem, success]
+  );
 
   const difficulty = prompt.difficulty && difficultyConfig[prompt.difficulty];
   const DifficultyIcon = difficulty?.icon;
@@ -222,13 +238,32 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
                 )}
               </div>
 
-              {/* Action buttons - Copy and View only */}
-              <div className="flex items-center gap-2">
+              {/* Action buttons - Basket, Copy, and View */}
+              <div className="flex items-center gap-1">
                 <Button
                   size="sm"
                   variant="ghost"
                   className={cn(
-                    "h-8 px-3 text-sm font-medium",
+                    "h-8 w-8 p-0",
+                    "hover:bg-neutral-100 dark:hover:bg-neutral-800",
+                    inBasket && "text-emerald-600 dark:text-emerald-400"
+                  )}
+                  onClick={handleAddToBasket}
+                  disabled={inBasket}
+                  aria-label={inBasket ? "Already in basket" : "Add to basket"}
+                >
+                  {inBasket ? (
+                    <Check className="w-4 h-4" aria-hidden="true" />
+                  ) : (
+                    <ShoppingBasket className="w-4 h-4" aria-hidden="true" />
+                  )}
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className={cn(
+                    "h-8 w-8 p-0",
                     "hover:bg-neutral-100 dark:hover:bg-neutral-800",
                     copied && "text-emerald-600 dark:text-emerald-400"
                   )}

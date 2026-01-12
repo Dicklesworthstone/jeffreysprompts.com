@@ -5,7 +5,8 @@ export type AnalyticsEvent =
   | "prompt_copy"
   | "search"
   | "export"
-  | "skill_install";
+  | "skill_install"
+  | "basket_add";
 
 export type AnalyticsProps = Record<string, string | number | boolean | null | undefined>;
 
