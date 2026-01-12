@@ -9,6 +9,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/toast";
+import {
+  getSupportCategoryLabel,
+  getSupportPriorityLabel,
+  type SupportCategory,
+  type SupportPriority,
+} from "@/lib/support/tickets";
 
 const LOCAL_TICKETS_KEY = "jfpSupportTickets";
 
@@ -24,8 +30,8 @@ type LocalSupportTicket = {
   name: string;
   email: string;
   subject: string;
-  category: string;
-  priority: string;
+  category: SupportCategory;
+  priority: SupportPriority;
   status: string;
   createdAt: string;
   updatedAt: string;
@@ -299,8 +305,8 @@ export default function SupportTicketsPage() {
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge variant="secondary">{ticket.status}</Badge>
-                        <Badge variant="outline">{ticket.category}</Badge>
-                        <Badge variant="outline">{ticket.priority}</Badge>
+                        <Badge variant="outline">{getSupportCategoryLabel(ticket.category)}</Badge>
+                        <Badge variant="outline">{getSupportPriorityLabel(ticket.priority)}</Badge>
                       </div>
                     </div>
 
