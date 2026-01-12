@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useMemo, useState } from "react";
+import { Suspense, useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ThemeProvider } from "./theme-provider";
 import { AlertTriangle } from "lucide-react";
@@ -147,7 +147,9 @@ export function Providers({ children }: ProvidersProps) {
             {children}
           </ErrorBoundary>
           <CookieConsentManager />
-          <AnalyticsProvider />
+          <Suspense fallback={null}>
+            <AnalyticsProvider />
+          </Suspense>
           <ErrorBoundary fallback={spotlightFallback}>
             <SpotlightSearch />
           </ErrorBoundary>
