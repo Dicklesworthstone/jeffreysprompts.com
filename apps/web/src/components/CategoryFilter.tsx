@@ -40,6 +40,7 @@ export function CategoryFilter({
         onClick={() => handleSelect(null)}
         className={cn(
           "inline-flex items-center rounded-full px-4 py-2 text-sm font-medium",
+          "min-h-[44px] sm:min-h-0 touch-manipulation",
           "transition-colors",
           "focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 dark:focus-visible:ring-white",
           selected === null
@@ -63,6 +64,7 @@ export function CategoryFilter({
           onClick={() => handleSelect(category)}
           className={cn(
             "inline-flex items-center rounded-full px-4 py-2 text-sm font-medium capitalize",
+            "min-h-[44px] sm:min-h-0 touch-manipulation",
             "transition-colors",
             "focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 dark:focus-visible:ring-white",
             selected === category
@@ -83,7 +85,7 @@ export function CategoryFilter({
         <Button
           variant="ghost"
           size="sm"
-          className="h-9 sm:h-6 px-2 text-xs text-neutral-500 hover:text-neutral-900 dark:hover:text-white touch-manipulation"
+          className="h-11 sm:h-6 px-2 text-xs text-neutral-500 hover:text-neutral-900 dark:hover:text-white touch-manipulation"
           onClick={() => handleSelect(null)}
           aria-label="Clear category filter"
         >

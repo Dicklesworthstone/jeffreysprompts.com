@@ -277,7 +277,7 @@ export function BasketSidebar({ isOpen, onClose }: BasketSidebarProps) {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-9 w-9 shrink-0 -mr-1 touch-manipulation"
+                      className="h-11 w-11 shrink-0 -mr-1 touch-manipulation"
                       onClick={() => removeItem(prompt.id)}
                       aria-label={`Remove "${prompt.title}" from basket`}
                     >

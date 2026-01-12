@@ -5,6 +5,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import type { AnalyticsProps, GaEvent } from "@/lib/analytics";
 import { trackGaEvent, trackPageView } from "@/lib/analytics";
 import { useCookieConsent } from "@/hooks/use-cookie-consent";
+import { initWebVitals } from "@/lib/performance";
 
 const SCROLL_THRESHOLDS = [25, 50, 75, 100];
 
@@ -22,6 +23,15 @@ export function AnalyticsProvider() {
 
   const startTimeRef = useRef<number | null>(null);
   const scrollTrackedRef = useRef<Set<number>>(new Set());
+  const webVitalsInitRef = useRef(false);
+
+  // Initialize Web Vitals tracking (once per session)
+  useEffect(() => {
+    if (!hasAnalyticsConsent) return;
+    if (webVitalsInitRef.current) return;
+    webVitalsInitRef.current = true;
+    initWebVitals();
+  }, [hasAnalyticsConsent]);
 
   useEffect(() => {
     if (!hasAnalyticsConsent) return;

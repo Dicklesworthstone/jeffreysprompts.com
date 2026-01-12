@@ -55,7 +55,7 @@ export function TagFilter({
           <Button
             variant="ghost"
             size="sm"
-            className="h-9 sm:h-6 px-2 text-xs text-neutral-500 hover:text-neutral-900 dark:hover:text-white touch-manipulation"
+            className="h-11 sm:h-6 px-2 text-xs text-neutral-500 hover:text-neutral-900 dark:hover:text-white touch-manipulation"
             onClick={handleClear}
             aria-label={`Clear ${selected.length} selected tag${selected.length === 1 ? "" : "s"}`}
           >
@@ -80,6 +80,7 @@ export function TagFilter({
               onClick={() => handleToggle(tag)}
               className={cn(
                 "inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium",
+                "min-h-[44px] sm:min-h-0 touch-manipulation",
                 "transition-colors",
                 "focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 dark:focus-visible:ring-white",
                 isSelected
