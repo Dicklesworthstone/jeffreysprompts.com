@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { checkAdminPermission } from "@/lib/admin/permissions";
 import {
   createIncident,
   addIncidentUpdate,
@@ -14,14 +15,11 @@ import {
 const VALID_IMPACTS: IncidentImpact[] = ["none", "minor", "major", "critical"];
 const VALID_STATUSES: IncidentStatus[] = ["investigating", "identified", "monitoring", "resolved"];
 
-function isAdmin(request: NextRequest): boolean {
-  const adminHeader = request.headers.get("x-admin-key");
-  return adminHeader === process.env.ADMIN_API_KEY;
-}
-
 export async function GET(request: NextRequest) {
-  if (!isAdmin(request)) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  const auth = checkAdminPermission(request, "support.view");
+  if (!auth.ok) {
+    const status = auth.reason === "unauthorized" ? 401 : 403;
+    return NextResponse.json({ error: auth.reason ?? "forbidden" }, { status });
   }
 
   const searchParams = request.nextUrl.searchParams;
@@ -37,8 +35,10 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!isAdmin(request)) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  const auth = checkAdminPermission(request, "support.manage");
+  if (!auth.ok) {
+    const status = auth.reason === "unauthorized" ? 401 : 403;
+    return NextResponse.json({ error: auth.reason ?? "forbidden" }, { status });
   }
 
   let payload: {
@@ -75,8 +75,10 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  if (!isAdmin(request)) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  const auth = checkAdminPermission(request, "support.manage");
+  if (!auth.ok) {
+    const status = auth.reason === "unauthorized" ? 401 : 403;
+    return NextResponse.json({ error: auth.reason ?? "forbidden" }, { status });
   }
 
   let payload: {

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkAdminPermission } from "@/lib/admin/permissions";
 import {
   createFeaturedContent,
   listFeaturedContent,
@@ -20,6 +21,12 @@ export const runtime = "nodejs";
  * List all featured content with admin options (includes inactive).
  */
 export async function GET(request: NextRequest) {
+  const auth = checkAdminPermission(request, "content.view_reported");
+  if (!auth.ok) {
+    const status = auth.reason === "unauthorized" ? 401 : 403;
+    return NextResponse.json({ error: auth.reason ?? "forbidden" }, { status });
+  }
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const typeParam = searchParams.get("type") ?? "all";
@@ -66,6 +73,12 @@ export async function GET(request: NextRequest) {
  * Create a new featured content entry.
  */
 export async function POST(request: NextRequest) {
+  const auth = checkAdminPermission(request, "content.moderate");
+  if (!auth.ok) {
+    const status = auth.reason === "unauthorized" ? 401 : 403;
+    return NextResponse.json({ error: auth.reason ?? "forbidden" }, { status });
+  }
+
   try {
     const body = await request.json();
 
@@ -154,6 +167,12 @@ export async function POST(request: NextRequest) {
  * Update featured content or reorder items.
  */
 export async function PATCH(request: NextRequest) {
+  const auth = checkAdminPermission(request, "content.moderate");
+  if (!auth.ok) {
+    const status = auth.reason === "unauthorized" ? 401 : 403;
+    return NextResponse.json({ error: auth.reason ?? "forbidden" }, { status });
+  }
+
   try {
     const body = await request.json();
 
@@ -220,6 +239,12 @@ export async function PATCH(request: NextRequest) {
  * Remove featured content.
  */
 export async function DELETE(request: NextRequest) {
+  const auth = checkAdminPermission(request, "content.moderate");
+  if (!auth.ok) {
+    const status = auth.reason === "unauthorized" ? 401 : 403;
+    return NextResponse.json({ error: auth.reason ?? "forbidden" }, { status });
+  }
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const id = searchParams.get("id");
