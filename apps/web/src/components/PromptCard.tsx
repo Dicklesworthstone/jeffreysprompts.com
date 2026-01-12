@@ -233,11 +233,12 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
                     copied && "text-emerald-600 dark:text-emerald-400"
                   )}
                   onClick={handleCopy}
+                  aria-label={copied ? "Copied to clipboard" : "Copy prompt to clipboard"}
                 >
                   {copied ? (
-                    <Check className="w-4 h-4" />
+                    <Check className="w-4 h-4" aria-hidden="true" />
                   ) : (
-                    <Copy className="w-4 h-4" />
+                    <Copy className="w-4 h-4" aria-hidden="true" />
                   )}
                 </Button>
 
