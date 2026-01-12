@@ -1,0 +1,1236 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "JeffreysPrompts API",
+    "version": "1.0.0",
+    "description": "API for accessing prompts, skills, and platform features from JeffreysPrompts.com. Designed for CLI tools, integrations, and programmatic access.",
+    "contact": {
+      "name": "JeffreysPrompts Support",
+      "url": "https://jeffreysprompts.com/contact",
+      "email": "support@jeffreysprompts.com"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://jeffreysprompts.com/api",
+      "description": "Production API"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Prompts",
+      "description": "Browse and retrieve prompts from the registry"
+    },
+    {
+      "name": "Skills",
+      "description": "Download prompts as Claude Code SKILL.md files"
+    },
+    {
+      "name": "Health",
+      "description": "System health and status endpoints"
+    },
+    {
+      "name": "Share",
+      "description": "Create and manage shareable links"
+    },
+    {
+      "name": "Reports",
+      "description": "Report content for moderation"
+    },
+    {
+      "name": "Support",
+      "description": "Support ticket management"
+    }
+  ],
+  "paths": {
+    "/prompts": {
+      "get": {
+        "tags": ["Prompts"],
+        "operationId": "getPrompts",
+        "summary": "List all prompts",
+        "description": "Retrieve the full prompt registry or filter by category, tag, or featured status. Supports ETag-based caching for efficient polling.",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Filter by category",
+            "schema": {
+              "type": "string",
+              "enum": ["ideation", "documentation", "automation", "refactoring", "testing", "debugging", "workflow", "communication"]
+            }
+          },
+          {
+            "name": "tag",
+            "in": "query",
+            "description": "Filter by tag",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "featured",
+            "in": "query",
+            "description": "Only return featured prompts",
+            "schema": {
+              "type": "string",
+              "enum": ["true"]
+            }
+          },
+          {
+            "name": "minimal",
+            "in": "query",
+            "description": "Return minimal prompt data (id, title, category, tags only)",
+            "schema": {
+              "type": "string",
+              "enum": ["true"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Prompt registry",
+            "headers": {
+              "ETag": {
+                "description": "Entity tag for cache validation",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Cache-Control": {
+                "description": "Cache directives",
+                "schema": {
+                  "type": "string",
+                  "example": "public, max-age=60, stale-while-revalidate=300"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromptRegistry"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not modified (use cached version)"
+          }
+        }
+      }
+    },
+    "/skills/{id}": {
+      "get": {
+        "tags": ["Skills"],
+        "operationId": "getSkill",
+        "summary": "Download prompt as SKILL.md",
+        "description": "Export a prompt as a Claude Code SKILL.md file for direct installation into your Claude Code skills directory.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Prompt ID (kebab-case)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SKILL.md file content",
+            "headers": {
+              "Content-Disposition": {
+                "description": "Suggested filename",
+                "schema": {
+                  "type": "string",
+                  "example": "attachment; filename=\"idea-wizard.SKILL.md\""
+                }
+              }
+            },
+            "content": {
+              "text/markdown": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Prompt not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": ["Health"],
+        "operationId": "getHealth",
+        "summary": "Basic health check",
+        "description": "Returns basic health status and prompt registry statistics.",
+        "responses": {
+          "200": {
+            "description": "Health status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthCheck"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "tags": ["Health"],
+        "operationId": "getHealthReady",
+        "summary": "Readiness probe",
+        "description": "Kubernetes-style readiness probe. Returns 200 when the service is ready to accept traffic.",
+        "responses": {
+          "200": {
+            "description": "Service is ready",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ready": {
+                      "type": "boolean",
+                      "example": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health/status": {
+      "get": {
+        "tags": ["Health"],
+        "operationId": "getHealthStatus",
+        "summary": "Detailed status",
+        "description": "Returns detailed system status including environment and version information.",
+        "responses": {
+          "200": {
+            "description": "Detailed status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetailedStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/share": {
+      "post": {
+        "tags": ["Share"],
+        "operationId": "createShareLink",
+        "summary": "Create a share link",
+        "description": "Create a shareable link for a prompt, bundle, workflow, or collection. Optionally protect with a password or set an expiration.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateShareLinkRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Share link created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShareLinkResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Content not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/share/{code}": {
+      "get": {
+        "tags": ["Share"],
+        "operationId": "getShareLink",
+        "summary": "Access shared content",
+        "description": "Retrieve content from a share link. Returns 401 if the link requires a password.",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "description": "Share link code",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Shared content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharedContentResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Password required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "requiresPassword": {
+                      "type": "boolean",
+                      "example": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Share link not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Share link expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Share"],
+        "operationId": "updateShareLink",
+        "summary": "Update share link settings",
+        "description": "Update the password or expiration of an existing share link.",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "description": "Share link code",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateShareLinkRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Share link updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShareLinkInfo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Share link not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Share"],
+        "operationId": "revokeShareLink",
+        "summary": "Revoke a share link",
+        "description": "Permanently deactivate a share link. This action cannot be undone.",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "description": "Share link code",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Share link revoked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "link": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "isActive": {
+                          "type": "boolean",
+                          "example": false
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Share link not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reports": {
+      "post": {
+        "tags": ["Reports"],
+        "operationId": "createReport",
+        "summary": "Report content",
+        "description": "Report content for moderation review. Rate limited to 10 reports per 24 hours per IP.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Report submitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Duplicate report",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds until rate limit resets",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/support/tickets": {
+      "get": {
+        "tags": ["Support"],
+        "operationId": "getTickets",
+        "summary": "Get support tickets",
+        "description": "Retrieve support tickets for an email address. Optionally specify a ticket number for a single ticket.",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "query",
+            "required": true,
+            "description": "Email address associated with tickets",
+            "schema": {
+              "type": "string",
+              "format": "email"
+            }
+          },
+          {
+            "name": "ticketNumber",
+            "in": "query",
+            "description": "Specific ticket number (e.g., TKT-001)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ticket(s) found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid email",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ticket not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Support"],
+        "operationId": "createTicket",
+        "summary": "Create support ticket",
+        "description": "Submit a new support ticket. Rate limited to 5 tickets per 24 hours per IP/email.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTicketRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ticket created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request or spam detected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds until rate limit resets",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Support"],
+        "operationId": "replyToTicket",
+        "summary": "Reply to ticket",
+        "description": "Add a reply to an existing support ticket.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TicketReplyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Reply added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketUpdateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request or ticket closed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ticket not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error message"
+          }
+        },
+        "required": ["error"]
+      },
+      "Prompt": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier (kebab-case)"
+          },
+          "title": {
+            "type": "string",
+            "description": "Human-readable title"
+          },
+          "description": {
+            "type": "string",
+            "description": "One-line description"
+          },
+          "category": {
+            "type": "string",
+            "enum": ["ideation", "documentation", "automation", "refactoring", "testing", "debugging", "workflow", "communication"]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "author": {
+            "type": "string"
+          },
+          "twitter": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string",
+            "description": "Semantic version"
+          },
+          "featured": {
+            "type": "boolean"
+          },
+          "difficulty": {
+            "type": "string",
+            "enum": ["beginner", "intermediate", "advanced"]
+          },
+          "estimatedTokens": {
+            "type": "integer",
+            "description": "Approximate input token count"
+          },
+          "created": {
+            "type": "string",
+            "format": "date",
+            "description": "Creation date (ISO 8601)"
+          },
+          "content": {
+            "type": "string",
+            "description": "The actual prompt content"
+          },
+          "whenToUse": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "tips": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": ["id", "title", "description", "category", "tags", "author", "version", "created", "content"]
+      },
+      "PromptMinimal": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": ["id", "title", "category", "tags"]
+      },
+      "PromptRegistry": {
+        "type": "object",
+        "properties": {
+          "prompts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Prompt"
+            }
+          },
+          "bundles": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "workflows": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "version": {
+                "type": "string"
+              },
+              "generatedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "promptCount": {
+                "type": "integer"
+              },
+              "categories": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "HealthCheck": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "ok"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "string"
+          },
+          "prompts": {
+            "type": "object",
+            "properties": {
+              "count": {
+                "type": "integer"
+              },
+              "categories": {
+                "type": "integer"
+              },
+              "tags": {
+                "type": "integer"
+              }
+            }
+          },
+          "environment": {
+            "type": "string"
+          }
+        }
+      },
+      "DetailedStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "string"
+          },
+          "environment": {
+            "type": "string"
+          },
+          "uptime": {
+            "type": "number"
+          },
+          "memory": {
+            "type": "object"
+          }
+        }
+      },
+      "CreateShareLinkRequest": {
+        "type": "object",
+        "properties": {
+          "contentType": {
+            "type": "string",
+            "enum": ["prompt", "bundle", "workflow", "collection"]
+          },
+          "contentId": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "expiresIn": {
+            "type": "integer",
+            "description": "Days until expiration (max 365)"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Specific expiration date (ISO 8601)"
+          }
+        },
+        "required": ["contentType", "contentId"]
+      },
+      "ShareLinkResponse": {
+        "type": "object",
+        "properties": {
+          "linkCode": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "ShareLinkInfo": {
+        "type": "object",
+        "properties": {
+          "link": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "contentType": {
+                "type": "string"
+              },
+              "contentId": {
+                "type": "string"
+              },
+              "viewCount": {
+                "type": "integer"
+              },
+              "expiresAt": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "isActive": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      },
+      "SharedContentResponse": {
+        "type": "object",
+        "properties": {
+          "link": {
+            "$ref": "#/components/schemas/ShareLinkInfo/properties/link"
+          },
+          "content": {
+            "oneOf": [
+              { "$ref": "#/components/schemas/Prompt" },
+              { "type": "object" }
+            ]
+          }
+        }
+      },
+      "UpdateShareLinkRequest": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "maxLength": 64,
+            "nullable": true,
+            "description": "Set to empty string to remove password"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Set to null to remove expiration"
+          }
+        }
+      },
+      "CreateReportRequest": {
+        "type": "object",
+        "properties": {
+          "contentType": {
+            "type": "string",
+            "enum": ["prompt", "bundle", "workflow", "collection"]
+          },
+          "contentId": {
+            "type": "string"
+          },
+          "contentTitle": {
+            "type": "string",
+            "maxLength": 140
+          },
+          "reason": {
+            "type": "string",
+            "enum": ["spam", "offensive", "copyright", "harmful", "other"]
+          },
+          "details": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": ["contentType", "contentId", "reason"]
+      },
+      "ReportResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "reportId": {
+            "type": "string"
+          },
+          "content": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string",
+                "nullable": true
+              }
+            }
+          }
+        }
+      },
+      "CreateTicketRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 140
+          },
+          "message": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "category": {
+            "type": "string",
+            "enum": ["general", "bug", "feature-request", "billing", "feedback"]
+          },
+          "priority": {
+            "type": "string",
+            "enum": ["low", "medium", "high", "urgent"]
+          }
+        },
+        "required": ["name", "email", "subject", "message", "category", "priority"]
+      },
+      "TicketResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "ticket": {
+            "type": "object",
+            "properties": {
+              "ticketNumber": {
+                "type": "string",
+                "example": "TKT-001"
+              },
+              "status": {
+                "type": "string"
+              },
+              "category": {
+                "type": "string"
+              },
+              "priority": {
+                "type": "string"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "supportEmail": {
+                "type": "string",
+                "format": "email"
+              }
+            }
+          },
+          "reviewRequired": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "TicketListResponse": {
+        "type": "object",
+        "properties": {
+          "tickets": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "ticketNumber": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "email": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "category": {
+                  "type": "string"
+                },
+                "priority": {
+                  "type": "string"
+                },
+                "subject": {
+                  "type": "string"
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "updatedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            }
+          }
+        }
+      },
+      "TicketReplyRequest": {
+        "type": "object",
+        "properties": {
+          "ticketNumber": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "message": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        },
+        "required": ["ticketNumber", "email", "message"]
+      },
+      "TicketUpdateResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "ticket": {
+            "type": "object",
+            "properties": {
+              "ticketNumber": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "messages": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
