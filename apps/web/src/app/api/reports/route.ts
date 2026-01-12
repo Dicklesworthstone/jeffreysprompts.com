@@ -1,21 +1,14 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-
-const REPORT_REASONS = new Set([
-  "spam",
-  "offensive",
-  "copyright",
-  "harmful",
-  "other",
-]);
-const CONTENT_TYPES = new Set([
-  "prompt",
-  "bundle",
-  "workflow",
-  "collection",
-]);
+import {
+  createContentReport,
+  hasRecentReport,
+  isReportContentType,
+  isReportReason,
+} from "@/lib/reporting/report-store";
 
 const MAX_DETAILS_LENGTH = 500;
+const MAX_TITLE_LENGTH = 140;
 const MAX_REPORTS_PER_WINDOW = 10;
 const RATE_LIMIT_WINDOW_MS = 24 * 60 * 60 * 1000;
 
@@ -89,12 +82,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
   }
 
-  if (!CONTENT_TYPES.has(contentType)) {
+  if (!isReportContentType(contentType)) {
     return NextResponse.json({ error: "Invalid content type." }, { status: 400 });
   }
 
-  if (!REPORT_REASONS.has(reason)) {
+  if (!isReportReason(reason)) {
     return NextResponse.json({ error: "Invalid reason value." }, { status: 400 });
+  }
+
+  const normalizedTitle = contentTitle?.trim();
+  if (normalizedTitle && normalizedTitle.length > MAX_TITLE_LENGTH) {
+    return NextResponse.json(
+      { error: `Title must be ${MAX_TITLE_LENGTH} characters or fewer.` },
+      { status: 400 }
+    );
   }
 
   const normalizedDetails = details?.trim();
@@ -105,15 +106,37 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const reportId = crypto.randomUUID();
+  if (hasRecentReport({
+    contentType,
+    contentId,
+    reporterId: key,
+    windowMs: RATE_LIMIT_WINDOW_MS,
+  })) {
+    return NextResponse.json(
+      { error: "You already reported this content recently. Thank you for helping keep the community safe." },
+      { status: 409 }
+    );
+  }
+
+  const report = createContentReport({
+    contentType,
+    contentId,
+    contentTitle: normalizedTitle ?? null,
+    reason,
+    details: normalizedDetails ?? null,
+    reporter: {
+      id: key,
+      ip: key,
+    },
+  });
 
   return NextResponse.json({
     success: true,
-    reportId,
+    reportId: report.id,
     content: {
       type: contentType,
       id: contentId,
-      title: contentTitle ?? null,
+      title: normalizedTitle ?? null,
     },
   });
 }

@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkAdminPermission } from "@/lib/admin/permissions";
+import {
+  getReportReasonLabel,
+  listContentReports,
+  getReportStats,
+  updateContentReport,
+} from "@/lib/reporting/report-store";
 
 /**
  * GET /api/admin/reports
@@ -30,107 +36,61 @@ export async function GET(request: NextRequest) {
   const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
   const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") ?? "20", 10)));
 
-  // Mock data - in production, this would be a database query
-  const mockReports = [
-    {
-      id: "1",
-      contentType: "prompt",
-      contentId: "prm_abc123",
-      contentTitle: "Suspicious prompt about bypassing...",
-      contentAuthor: {
-        id: "usr_xyz",
-        email: "spammer@example.com",
-        name: "Suspicious User",
-      },
-      reporter: {
-        id: "usr_123",
-        email: "user123@example.com",
-        name: "Helpful Reporter",
-      },
-      reason: "spam",
-      reasonLabel: "Spam or misleading content",
-      details: "This prompt appears to be attempting to jailbreak AI models.",
-      status: "pending",
-      createdAt: "2026-01-11T13:39:00Z",
-      reviewedAt: null,
-      reviewedBy: null,
-      action: null,
-    },
-    {
-      id: "2",
-      contentType: "prompt",
-      contentId: "prm_def456",
-      contentTitle: "Code generation helper",
-      contentAuthor: {
-        id: "usr_dev",
-        email: "developer@example.com",
-        name: "Developer",
-      },
-      reporter: {
-        id: "usr_mod",
-        email: "moderator@example.com",
-        name: "Mod Team",
-      },
-      reason: "copyright",
-      reasonLabel: "Copyright violation",
-      details: "Contains copyrighted code snippets from a commercial product.",
-      status: "pending",
-      createdAt: "2026-01-11T10:30:00Z",
-      reviewedAt: null,
-      reviewedBy: null,
-      action: null,
-    },
-    {
-      id: "3",
-      contentType: "collection",
-      contentId: "col_ghi789",
-      contentTitle: "My awesome prompts",
-      contentAuthor: {
-        id: "usr_creator",
-        email: "creator@example.com",
-        name: "Content Creator",
-      },
-      reporter: {
-        id: "usr_concern",
-        email: "concerned@example.com",
-        name: "Concerned User",
-      },
-      reason: "inappropriate",
-      reasonLabel: "Inappropriate or offensive",
-      details: "Collection description contains inappropriate language.",
-      status: "pending",
-      createdAt: "2026-01-10T15:00:00Z",
-      reviewedAt: null,
-      reviewedBy: null,
-      action: null,
-    },
-  ];
+  const reports = listContentReports({
+    status: status === "all" ? "all" : (status as "pending" | "reviewed" | "actioned" | "dismissed"),
+    contentType: contentType === "all" ? "all" : (contentType as "prompt" | "bundle" | "workflow" | "collection"),
+    reason: reason === "all" ? "all" : (reason as "spam" | "offensive" | "copyright" | "harmful" | "other"),
+    page,
+    limit,
+  });
 
-  // Apply filters
-  let filteredReports = mockReports;
-  if (status !== "all") {
-    filteredReports = filteredReports.filter((r) => r.status === status);
-  }
-  if (contentType !== "all") {
-    filteredReports = filteredReports.filter((r) => r.contentType === contentType);
-  }
-  if (reason !== "all") {
-    filteredReports = filteredReports.filter((r) => r.reason === reason);
-  }
+  const reportStats = getReportStats();
+  const totalCount = listContentReports({
+    status: status === "all" ? "all" : (status as "pending" | "reviewed" | "actioned" | "dismissed"),
+    contentType: contentType === "all" ? "all" : (contentType as "prompt" | "bundle" | "workflow" | "collection"),
+    reason: reason === "all" ? "all" : (reason as "spam" | "offensive" | "copyright" | "harmful" | "other"),
+    page: 1,
+    limit: 10000,
+  }).length;
+
+  const payload = reports.map((report) => ({
+    id: report.id,
+    contentType: report.contentType,
+    contentId: report.contentId,
+    contentTitle: report.contentTitle ?? "Untitled content",
+    contentAuthor: {
+      id: "unknown",
+      email: "unknown",
+      name: "Unknown author",
+    },
+    reporter: {
+      id: report.reporter.id,
+      email: report.reporter.email ?? "anonymous",
+      name: report.reporter.name ?? "Anonymous",
+    },
+    reason: report.reason,
+    reasonLabel: getReportReasonLabel(report.reason),
+    details: report.details ?? "",
+    status: report.status,
+    createdAt: report.createdAt,
+    reviewedAt: report.reviewedAt ?? null,
+    reviewedBy: report.reviewedBy ?? null,
+    action: report.action ?? null,
+  }));
 
   return NextResponse.json({
-    reports: filteredReports,
+    reports: payload,
     pagination: {
       page,
       limit,
-      total: filteredReports.length,
-      totalPages: Math.ceil(filteredReports.length / limit),
+      total: totalCount,
+      totalPages: Math.ceil(totalCount / limit),
     },
     stats: {
-      pending: 12,
-      reviewed: 45,
-      actioned: 23,
-      dismissed: 45,
+      pending: reportStats.pending,
+      reviewed: reportStats.reviewed,
+      actioned: reportStats.actioned,
+      dismissed: reportStats.dismissed,
     },
   });
 }
@@ -173,19 +133,27 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // In production, this would:
-    // 1. Update report status in database
-    // 2. Take action on content (hide, delete, etc.)
-    // 3. Notify content author if warning/action taken
-    // 4. Log the moderation action for audit
+    const updated = updateContentReport({
+      reportId,
+      action,
+      reviewerId: auth.role,
+      notes: notes ?? null,
+    });
+
+    if (!updated) {
+      return NextResponse.json(
+        { error: "Report not found." },
+        { status: 404 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
-      reportId,
-      action,
-      notes: notes ?? null,
-      processedAt: new Date().toISOString(),
-      message: `Report ${reportId} has been processed with action: ${action}`,
+      reportId: updated.id,
+      action: updated.action,
+      notes: updated.reviewNotes,
+      processedAt: updated.reviewedAt,
+      message: `Report ${updated.id} has been processed with action: ${action}`,
     });
   } catch {
     return NextResponse.json(

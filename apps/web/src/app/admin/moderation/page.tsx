@@ -12,68 +12,43 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  getReportReasonLabel,
+  getReportStats,
+  listContentReports,
+} from "@/lib/reporting/report-store";
 
 export const metadata: Metadata = {
   title: "Content Moderation | Admin",
   description: "Review and moderate reported content.",
 };
 
-// Mock data - in production, this would come from API
-const mockReports = [
-  {
-    id: "1",
-    contentType: "prompt",
-    contentTitle: "Suspicious prompt about bypassing...",
-    reportedBy: "user123@example.com",
-    reason: "Spam or misleading content",
-    details: "This prompt appears to be attempting to jailbreak AI models.",
-    status: "pending",
-    createdAt: "2 hours ago",
-    contentAuthor: "spammer@example.com",
-  },
-  {
-    id: "2",
-    contentType: "prompt",
-    contentTitle: "Code generation helper",
-    reportedBy: "moderator@example.com",
-    reason: "Copyright violation",
-    details: "Contains copyrighted code snippets from a commercial product.",
-    status: "pending",
-    createdAt: "5 hours ago",
-    contentAuthor: "developer@example.com",
-  },
-  {
-    id: "3",
-    contentType: "collection",
-    contentTitle: "My awesome prompts",
-    reportedBy: "concerned@example.com",
-    reason: "Inappropriate or offensive",
-    details: "Collection description contains inappropriate language.",
-    status: "pending",
-    createdAt: "1 day ago",
-    contentAuthor: "creator@example.com",
-  },
-  {
-    id: "4",
-    contentType: "prompt",
-    contentTitle: "Marketing assistant",
-    reportedBy: "reviewer@example.com",
-    reason: "Other",
-    details: "Low quality content that doesnt meet community standards.",
-    status: "reviewed",
-    createdAt: "2 days ago",
-    contentAuthor: "marketer@example.com",
-  },
-];
-
-const stats = {
-  pending: 12,
-  reviewedToday: 8,
-  dismissed: 45,
-  actioned: 23,
-};
+function formatAge(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "unknown";
+  const ms = Date.now() - date.getTime();
+  if (ms < 60000) return "just now";
+  if (ms < 3600000) return `${Math.floor(ms / 60000)} min ago`;
+  if (ms < 86400000) return `${Math.floor(ms / 3600000)} hours ago`;
+  return `${Math.floor(ms / 86400000)} days ago`;
+}
 
 export default function AdminModerationPage() {
+  const reports = listContentReports({ status: "all", limit: 50 });
+  const stats = getReportStats();
+
+  const viewReports = reports.map((report) => ({
+    id: report.id,
+    contentType: report.contentType,
+    contentTitle: report.contentTitle ?? "Untitled content",
+    reportedBy: report.reporter.email ?? report.reporter.name ?? "Anonymous",
+    reason: getReportReasonLabel(report.reason),
+    details: report.details ?? "No additional details provided.",
+    status: report.status,
+    createdAt: formatAge(report.createdAt),
+    contentAuthor: "Unknown author",
+  }));
+
   return (
     <div className="space-y-6">
       {/* Page header */}
@@ -95,8 +70,8 @@ export default function AdminModerationPage() {
           variant="warning"
         />
         <ModerationStatCard
-          label="Reviewed Today"
-          value={stats.reviewedToday}
+          label="Reviewed"
+          value={stats.reviewed}
           icon={CheckCircle}
           variant="success"
         />
@@ -152,13 +127,13 @@ export default function AdminModerationPage() {
 
       {/* Reports queue */}
       <div className="space-y-4">
-        {mockReports.map((report) => (
+        {viewReports.map((report) => (
           <ReportCard key={report.id} report={report} />
         ))}
       </div>
 
       {/* Empty state for when queue is clear */}
-      {mockReports.length === 0 && (
+      {viewReports.length === 0 && (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <CheckCircle className="h-12 w-12 text-emerald-500" />
