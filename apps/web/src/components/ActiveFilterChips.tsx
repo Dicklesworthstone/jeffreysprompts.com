@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Search, Folder, Tag, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PromptCategory } from "@jeffreysprompts/core/prompts/types";
@@ -16,12 +17,13 @@ interface ActiveFilterChipsProps {
 
 interface FilterChipProps {
   label: string;
-  icon?: React.ReactNode;
+  ariaLabel: string;
+  icon?: ReactNode;
   onRemove: () => void;
   className?: string;
 }
 
-function FilterChip({ label, icon, onRemove, className }: FilterChipProps) {
+function FilterChip({ label, ariaLabel, icon, onRemove, className }: FilterChipProps) {
   return (
     <span
       data-testid="filter-chip"
@@ -39,8 +41,8 @@ function FilterChip({ label, icon, onRemove, className }: FilterChipProps) {
       <button
         type="button"
         onClick={onRemove}
-        className="ml-0.5 p-0.5 rounded-full text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 hover:bg-neutral-300 dark:hover:bg-neutral-600 transition-colors"
-        aria-label={`Remove ${label} filter`}
+        className="ml-0.5 p-0.5 rounded-full text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 hover:bg-neutral-300 dark:hover:bg-neutral-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500"
+        aria-label={ariaLabel}
       >
         <X className="w-3 h-3" />
       </button>
@@ -75,6 +77,7 @@ export function ActiveFilterChips({
       {query && (
         <FilterChip
           label={`"${query}"`}
+          ariaLabel={`Remove search filter: ${query}`}
           icon={<Search className="w-3 h-3" />}
           onRemove={onRemoveQuery}
         />
@@ -84,6 +87,7 @@ export function ActiveFilterChips({
       {category && (
         <FilterChip
           label={category}
+          ariaLabel={`Remove category filter: ${category}`}
           icon={<Folder className="w-3 h-3" />}
           onRemove={onRemoveCategory}
           className="capitalize"
@@ -95,6 +99,7 @@ export function ActiveFilterChips({
         <FilterChip
           key={tag}
           label={tag}
+          ariaLabel={`Remove tag filter: ${tag}`}
           icon={<Tag className="w-3 h-3" />}
           onRemove={() => onRemoveTag(tag)}
         />
@@ -104,7 +109,8 @@ export function ActiveFilterChips({
       <button
         type="button"
         onClick={onClearAll}
-        className="ml-2 text-xs text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition-colors underline-offset-2 hover:underline"
+        className="ml-2 text-xs text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition-colors underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500 rounded px-1"
+        aria-label="Clear all active filters"
       >
         Clear all
       </button>
