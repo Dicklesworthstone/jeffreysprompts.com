@@ -12,7 +12,7 @@ export const USERNAME_REGEX = /^[a-z][a-z0-9_]{2,19}$/;
 
 export const RESERVED_USERNAMES = [
   // System routes
-  "admin", "api", "help", "support", "about", "settings", "profile",
+  "admin", "api", "help", "support", "contact", "about", "settings", "profile",
   "user", "users", "login", "logout", "signup", "register", "auth",
   // Feature routes
   "prompts", "bundles", "workflows", "pricing", "terms", "privacy",

@@ -10,6 +10,7 @@ const productLinks = [
 
 const resourceLinks = [
   { href: "/contribute", label: "Contribute" },
+  { href: "/contact", label: "Contact Support" },
   { href: "/how_it_was_made", label: "How It Was Made" },
   { href: "https://github.com/Dicklesworthstone/jeffreysprompts.com", label: "Documentation", external: true },
 ];

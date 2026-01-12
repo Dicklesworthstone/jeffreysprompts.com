@@ -124,15 +124,24 @@ export function HelpLayout({
                 <p className="text-sm font-medium text-neutral-900 dark:text-white mb-3">
                   Need more help?
                 </p>
-                <a
-                  href="https://github.com/Dicklesworthstone/jeffreysprompts.com/issues"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 hover:underline"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  Open a GitHub issue
-                </a>
+                <div className="flex flex-col gap-2">
+                  <Link
+                    href="/contact"
+                    className="flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 hover:underline"
+                  >
+                    <HelpCircle className="h-4 w-4" />
+                    Contact support
+                  </Link>
+                  <a
+                    href="https://github.com/Dicklesworthstone/jeffreysprompts.com/issues"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 hover:underline"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Open a GitHub issue
+                  </a>
+                </div>
               </div>
             </div>
           </aside>
@@ -161,6 +170,31 @@ export function HelpLayout({
             </div>
 
             {children}
+
+            {/* Mobile contact support */}
+            <div className="mt-10 rounded-xl border border-border/60 bg-white dark:bg-neutral-900 p-5 lg:hidden">
+              <p className="text-sm font-medium text-neutral-900 dark:text-white mb-3">
+                Need more help?
+              </p>
+              <div className="flex flex-col gap-2">
+                <Link
+                  href="/contact"
+                  className="flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 hover:underline"
+                >
+                  <HelpCircle className="h-4 w-4" />
+                  Contact support
+                </Link>
+                <a
+                  href="https://github.com/Dicklesworthstone/jeffreysprompts.com/issues"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 hover:underline"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Open a GitHub issue
+                </a>
+              </div>
+            </div>
           </main>
         </div>
       </div>
