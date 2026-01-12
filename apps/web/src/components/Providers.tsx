@@ -15,6 +15,8 @@ import { KeyboardShortcutsModal } from "@/components/KeyboardShortcutsModal";
 import { BottomTabBar } from "@/components/mobile/BottomTabBar";
 import { AnalyticsProvider } from "@/components/AnalyticsProvider";
 import { CookieConsentManager } from "@/components/consent/CookieConsentManager";
+import { OfflineBanner } from "@/components/offline-banner";
+import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 
 // Lazy load SpotlightSearch - it's only needed when user presses Cmd+K
 // This reduces initial bundle size significantly (~100KB+ of search/semantic code)
@@ -159,6 +161,8 @@ export function Providers({ children }: ProvidersProps) {
             shortcuts={shortcuts}
           />
           <BottomTabBar onOpenSearch={openSpotlight} />
+          <OfflineBanner />
+          <InstallPrompt />
           <Toaster />
         </BasketProvider>
       </ToastProvider>
