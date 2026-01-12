@@ -87,12 +87,14 @@ function getFeatureColor(type: string) {
 
 export default function AdminFeaturedPage() {
   const items = listFeaturedContent({ includeInactive: true, includeExpired: true, limit: 100 });
+  const activeItems = listFeaturedContent({ includeInactive: false, includeExpired: false, limit: 100 });
   const stats = getFeaturedStats();
 
-  const staffPicks = items.filter((item) => item.featureType === "staff_pick" && item.isActive);
-  const featured = items.filter((item) => item.featureType === "featured" && item.isActive);
-  const spotlights = items.filter((item) => item.featureType === "spotlight" && item.isActive);
-  const inactive = items.filter((item) => !item.isActive);
+  const activeIds = new Set(activeItems.map((item) => item.id));
+  const staffPicks = activeItems.filter((item) => item.featureType === "staff_pick");
+  const featured = activeItems.filter((item) => item.featureType === "featured");
+  const spotlights = activeItems.filter((item) => item.featureType === "spotlight");
+  const inactive = items.filter((item) => !activeIds.has(item.id));
 
   return (
     <div className="space-y-6">

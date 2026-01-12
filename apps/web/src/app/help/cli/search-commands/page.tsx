@@ -38,14 +38,11 @@ jfp search "idee wizrd"
 # Partial matches work
 jfp search "refact"`}</pre>
 
-        <h2>Interactive search (fzf-style)</h2>
+        <h2>Interactive browser (fzf-style)</h2>
         <p>
           For an interactive experience similar to fzf:
         </p>
-        <pre>{`# Launch interactive search
-jfp search --interactive
-
-# Or use the alias
+        <pre>{`# Launch interactive browser
 jfp i`}</pre>
         <p>
           In interactive mode:
@@ -53,29 +50,27 @@ jfp i`}</pre>
         <ul>
           <li>Type to filter results in real-time</li>
           <li>Use arrow keys to navigate</li>
-          <li>Press Enter to select and copy</li>
+          <li>Press Enter to view a prompt</li>
+          <li>Choose actions like copy, install, or export</li>
           <li>Press Esc to cancel</li>
         </ul>
 
-        <h2>Filtering results</h2>
-        <pre>{`# Filter by category
-jfp search "review" --category debugging
+        <h2>Search scopes (premium)</h2>
+        <pre>{`# Search your personal prompts
+jfp search "review" --mine
 
-# Filter by tag
-jfp search "code" --tag refactoring
+# Search saved prompts
+jfp search "review" --saved
 
-# Filter by difficulty
-jfp search "automation" --difficulty beginner`}</pre>
+# Search everything (public + personal)
+jfp search "review" --all
 
-        <h2>Sorting results</h2>
-        <pre>{`# Sort by relevance (default)
-jfp search "testing"
-
-# Sort alphabetically
-jfp search "testing" --sort alpha
-
-# Sort by date (newest first)
-jfp search "testing" --sort date`}</pre>
+# Force local registry only
+jfp search "review" --local`}</pre>
+        <p>
+          For exact category or tag filtering, use <code>jfp list --category</code> or{" "}
+          <code>jfp list --tag</code>.
+        </p>
 
         <h2>Limiting output</h2>
         <pre>{`# Show only top 5 results
@@ -92,61 +87,55 @@ jfp search "debugging" --limit 1`}</pre>
 jfp search "automation" --json
 
 # Pipe to jq for filtering
-jfp search "robot" --json | jq '.[0].id'
+jfp search "robot" --json | jq '.results[0].id'
 
 # Get just the IDs
-jfp search "robot" --json | jq -r '.[].id'`}</pre>
+jfp search "robot" --json | jq -r '.results[].id'`}</pre>
 
-        <h2>Search operators</h2>
+        <h2>Search tips</h2>
         <p>
-          Advanced search syntax:
+          Queries are keyword-based. Use multiple words to narrow results:
         </p>
-        <pre>{`# Exact phrase
-jfp search '"code review"'
+        <pre>{`# Multi-word query
+jfp search "code review"
 
-# OR search
-jfp search "debugging OR testing"
-
-# Exclude terms
-jfp search "automation -robot"`}</pre>
+# Short query still works
+jfp search automation`}</pre>
 
         <h2>Combining with other commands</h2>
-        <pre>{`# Search then get the first result
-jfp get $(jfp search "wizard" --json | jq -r '.[0].id')
+        <pre>{`# Search then show the first result
+jfp show "$(jfp search "wizard" --json | jq -r '.results[0].id')"
 
 # Search and copy first result to clipboard
-jfp search "review" --limit 1 --raw | pbcopy
+jfp show "$(jfp search "review" --json | jq -r '.results[0].id')" --raw | pbcopy
 
 # Export all search results
-jfp search "debugging" --json | jfp export --stdin --format skill`}</pre>
+jfp search "debugging" --json | jq -r '.results[].id' | xargs jfp export --format skill`}</pre>
 
-        <h2>Search performance</h2>
+        <h2>Registry cache</h2>
         <p>
-          jfp caches the prompt index locally for fast searches:
+          jfp uses a local prompt registry cache for fast searches:
         </p>
         <pre>{`# Force refresh the cache
-jfp cache refresh
+jfp refresh
 
 # View cache status
-jfp cache status
-
-# Clear the cache
-jfp cache clear`}</pre>
+jfp status`}</pre>
 
         <h2>Examples</h2>
         <h3>Find prompts for a specific task</h3>
         <pre>{`# Find code review prompts
-jfp search "code review" --category automation
+jfp search "code review"
 
-# Find debugging prompts for beginners
-jfp search "debug" --difficulty beginner`}</pre>
+# Browse debugging prompts by category
+jfp list --category debugging`}</pre>
 
         <h3>Build a prompt toolkit</h3>
         <pre>{`# Find all prompts for a project type
 jfp search "testing" --json > my-testing-prompts.json
 
 # Export as Skills for Claude Code
-jfp search "robot mode" | jfp export --format skill --outdir ~/.claude/skills/`}</pre>
+jfp search "robot mode" --json | jq -r '.results[].id' | xargs jfp export --format skill`}</pre>
 
         <h2>Related</h2>
         <ul>

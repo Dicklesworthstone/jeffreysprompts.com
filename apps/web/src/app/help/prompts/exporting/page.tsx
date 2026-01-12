@@ -129,10 +129,10 @@ description: Reviews code for bugs, style, and best practices
 jfp export --format skill "code-reviewer"
 
 # Export as Markdown
-jfp export --format markdown "code-reviewer"
+jfp export --format md "code-reviewer"
 
 # Export as JSON
-jfp get "code-reviewer" --json > prompt.json`}</pre>
+jfp show "code-reviewer" --json > prompt.json`}</pre>
       </ArticleContent>
     </HelpLayout>
   );

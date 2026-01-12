@@ -31,14 +31,15 @@ USAGE:
 
 COMMANDS:
   list           List all prompts
-  get <id>       Get a specific prompt by ID
+  show <id>      Show a specific prompt by ID
   search <query> Search prompts
   categories     List all categories
   export         Export prompts to files
+  i              Interactive browser
 
 FLAGS:
   --json         Output as JSON
-  --markdown     Output as Markdown
+  --raw          Output raw prompt content
   --help, -h     Show help
   --version, -v  Show version`}</pre>
 
@@ -54,23 +55,22 @@ jfp list --json`}</pre>
 
         <h2>Getting a specific prompt</h2>
         <p>
-          Use the <code>get</code> command with a prompt ID:
+          Use the <code>show</code> command with a prompt ID:
         </p>
         <pre>{`# Get a prompt by ID
-jfp get idea-wizard
+jfp show idea-wizard
 
 # Output as JSON
-jfp get idea-wizard --json
+jfp show idea-wizard --json
 
 # Copy directly to clipboard (macOS)
-jfp get idea-wizard | pbcopy`}</pre>
+jfp show idea-wizard --raw | pbcopy`}</pre>
 
         <h2>Viewing categories</h2>
         <pre>{`# List all categories
 jfp categories
 
-# Categories with prompt counts
-jfp categories --counts`}</pre>
+# Categories include prompt counts by default`}</pre>
 
         <h2>Output formats</h2>
         <p>
@@ -79,27 +79,27 @@ jfp categories --counts`}</pre>
         <ul>
           <li><strong>Default</strong> — Human-readable with colors</li>
           <li><code>--json</code> — Machine-readable JSON</li>
-          <li><code>--markdown</code> — Markdown format</li>
           <li><code>--raw</code> — Just the prompt content, no formatting</li>
+          <li><code>export --format md</code> — Markdown export</li>
         </ul>
         <pre>{`# JSON for scripting
-jfp get code-reviewer --json
+jfp show code-reviewer --json
 
 # Raw prompt for piping
-jfp get code-reviewer --raw | pbcopy
+jfp show code-reviewer --raw | pbcopy
 
 # Markdown for documentation
-jfp get code-reviewer --markdown > prompt.md`}</pre>
+jfp export code-reviewer --format md --stdout > prompt.md`}</pre>
 
         <h2>Using with AI coding agents</h2>
         <p>
           jfp is optimized for use with AI coding agents like Claude Code:
         </p>
         <pre>{`# Get a prompt and pipe to an agent
-jfp get code-reviewer --raw | claude
+jfp show code-reviewer --raw | claude
 
 # Use JSON output for structured parsing
-jfp search "debugging" --json --limit 5`}</pre>
+jfp search "debugging" --json --limit 5 | jq -r '.results[0].id'`}</pre>
 
         <h2>Common options</h2>
         <table>
@@ -115,24 +115,20 @@ jfp search "debugging" --json --limit 5`}</pre>
               <td>Output as JSON</td>
             </tr>
             <tr>
-              <td><code>--markdown</code></td>
-              <td>Output as Markdown</td>
-            </tr>
-            <tr>
               <td><code>--raw</code></td>
               <td>Just the content, no metadata</td>
             </tr>
             <tr>
               <td><code>--category &lt;cat&gt;</code></td>
-              <td>Filter by category</td>
+              <td>Filter list by category</td>
             </tr>
             <tr>
               <td><code>--limit &lt;n&gt;</code></td>
-              <td>Limit results</td>
+              <td>Limit results (search/suggest)</td>
             </tr>
             <tr>
-              <td><code>--no-color</code></td>
-              <td>Disable colored output</td>
+              <td><code>JFP_NO_COLOR=1</code></td>
+              <td>Disable colored output (env var)</td>
             </tr>
           </tbody>
         </table>
@@ -143,8 +139,8 @@ jfp search "debugging" --json --limit 5`}</pre>
         </p>
         <ul>
           <li><code>0</code> — Success</li>
-          <li><code>1</code> — General error</li>
-          <li><code>2</code> — Prompt not found</li>
+          <li><code>1</code> — Error (most failures)</li>
+          <li><code>130</code> — User cancelled an interactive prompt</li>
         </ul>
 
         <h2>Next steps</h2>
