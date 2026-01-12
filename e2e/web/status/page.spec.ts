@@ -121,13 +121,13 @@ test.describe("Status Page - API", () => {
       expect(response.status()).toBe(200);
     });
 
+    const body = await response.json();
     await logger.step("verify response structure", async () => {
-      const body = await response.json();
       expect(body).toHaveProperty("status");
       expect(body).toHaveProperty("message");
       expect(body).toHaveProperty("components");
       expect(body).toHaveProperty("updatedAt");
-    }, { data: { body: await response.json() } });
+    }, { data: { body } });
   });
 
   test("quick status API returns simplified response", async ({ logger, request }) => {
