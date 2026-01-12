@@ -879,3 +879,21 @@ Configurable via:
 2. **Device Code** (headless): `POST /api/cli/device-code` → Poll `/api/cli/device-token` → Token received
 3. **Token Storage**: `~/.config/jfp/credentials.json` or `JFP_TOKEN` env var
 4. **Token Refresh**: Automatic on 401, uses refresh token if available
+
+### Premium Endpoint Summary
+
+| Endpoint Category | Bead ID | Description |
+|-------------------|---------|-------------|
+| Device Code Auth | `jeffreysprompts_premium-0o1` | OAuth device flow endpoints |
+| Verification UI | `jeffreysprompts_premium-qdm` | User verification page |
+| CLI Auth UI | `jeffreysprompts_premium-mn0` | CLI authentication page |
+| JWT Utils | `jeffreysprompts_premium-qnl` | Token generation/validation |
+| Token Lifecycle | `jeffreysprompts_premium-0ve` | Refresh and revocation |
+| Device Codes Schema | `jeffreysprompts_premium-h8r` | Database schema for device codes |
+| CLI Sync | `jeffreysprompts_premium-67o` | Library sync, collections, offline |
+| Skills CRUD | `jeffreysprompts_premium-6x3` | Skills management API |
+| Device Code Tests | `jeffreysprompts_premium-wdao` | E2E tests for device code flow |
+
+### Cross-Repo Mirror
+
+This matrix is mirrored in the premium repo (`jeffreysprompts_premium-zqsv`). Keep both copies in sync when making updates.
