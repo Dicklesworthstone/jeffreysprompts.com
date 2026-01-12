@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useMemo, useCallback, useState, useEffect, useRef } from "react";
-import { AlertTriangle, Sparkles } from "lucide-react";
+import { AlertTriangle, Sparkles, X } from "lucide-react";
 import { prompts, categories, tags } from "@jeffreysprompts/core/prompts/registry";
 import { searchPrompts } from "@jeffreysprompts/core/search/engine";
 import { Hero } from "@/components/Hero";
@@ -60,6 +60,15 @@ function HomeContent() {
     }
     return counts;
   }, []);
+
+  // Count active filters for badge
+  const filterCount = useMemo(() => {
+    let count = 0;
+    if (filters.query) count++;
+    if (filters.category) count++;
+    count += filters.tags.length;
+    return count;
+  }, [filters.query, filters.category, filters.tags]);
 
   // Get featured prompts (featured first, then by creation date)
   const featuredPrompts = useMemo(() => {
@@ -162,14 +171,26 @@ function HomeContent() {
             />
 
             {/* Clear all filters */}
-            {hasActiveFilters && (
-              <button
-                onClick={clearFilters}
-                className="text-sm text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white transition-colors"
-              >
-                Clear all filters
-              </button>
-            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearFilters}
+              disabled={!hasActiveFilters}
+              aria-label={hasActiveFilters ? `Clear all ${filterCount} active filters` : "No active filters to clear"}
+              className={
+                hasActiveFilters
+                  ? "h-8 px-3 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white"
+                  : "h-8 px-3 text-sm font-medium text-neutral-400 dark:text-neutral-600 cursor-not-allowed opacity-50"
+              }
+            >
+              <X className="w-3.5 h-3.5 mr-1.5" />
+              Clear filters
+              {hasActiveFilters && (
+                <span className="ml-1.5 text-xs bg-neutral-200 dark:bg-neutral-700 px-1.5 py-0.5 rounded-full">
+                  {filterCount}
+                </span>
+              )}
+            </Button>
           </div>
 
           {/* Tag Filter */}
