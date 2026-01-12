@@ -9,7 +9,6 @@ import { useIsMobile, useIsSmallScreen } from "./useIsMobile";
 
 describe("useIsMobile", () => {
   const originalInnerWidth = window.innerWidth;
-  const originalNavigator = window.navigator;
 
   beforeEach(() => {
     // Reset window.innerWidth mock
@@ -59,7 +58,7 @@ describe("useIsMobile", () => {
     expect(result2.current).toBe(true);
   });
 
-  test("updates on resize", async () => {
+  test("updates on resize", () => {
     Object.defineProperty(window, "innerWidth", { value: 1024 });
 
     const { result } = renderHook(() => useIsMobile());

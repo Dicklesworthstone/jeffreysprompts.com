@@ -244,7 +244,7 @@ export async function skillsListCommand(options: SkillsListOptions): Promise<voi
   });
 
   for (const skill of skills) {
-    const ratingStr = skill.rating != null ? `${skill.rating.toFixed(1)}/5` : "-";
+    const ratingStr = typeof skill.rating === "number" ? `${skill.rating.toFixed(1)}/5` : "-";
     const downloadsStr = skill.downloads?.toLocaleString() || "0";
 
     table.push([

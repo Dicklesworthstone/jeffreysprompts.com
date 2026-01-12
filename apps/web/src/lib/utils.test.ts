@@ -3,14 +3,10 @@
  * @module lib/utils.test
  */
 
-import { describe, test, expect, beforeEach } from "vitest";
+import { describe, test, expect } from "vitest";
 import { cn } from "./utils";
 
 describe("cn utility", () => {
-  beforeEach(() => {
-    // Test setup - cn is a pure function, no setup needed
-  });
-
   test("merges classes correctly", () => {
     const result = cn("text-sm", "font-bold");
     expect(result).toBe("text-sm font-bold");
