@@ -129,6 +129,10 @@ export function useSwipeGesture(
 
   const handleTouchStart = useCallback(
     (e: React.TouchEvent) => {
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
       const touch = e.touches[0];
       startPos.current = { x: touch.clientX, y: touch.clientY };
       currentPos.current = { x: touch.clientX, y: touch.clientY };
