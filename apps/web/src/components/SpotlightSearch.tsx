@@ -97,6 +97,33 @@ const XIcon = ({ className }: { className?: string }) => (
 )
 
 // ============================================================================
+// Skeleton Component
+// ============================================================================
+
+/** Skeleton placeholder for search results during semantic reranking */
+function SearchResultSkeleton({ index }: { index: number }) {
+  return (
+    <div
+      className="px-4 py-3 flex items-start gap-3 animate-pulse"
+      style={{ animationDelay: `${index * 100}ms` }}
+    >
+      <div className="flex-1 space-y-2">
+        <div className="flex items-center gap-2">
+          <div className="h-4 w-32 bg-neutral-200 dark:bg-neutral-700 rounded" />
+          <div className="h-4 w-16 bg-neutral-100 dark:bg-neutral-800 rounded-full" />
+        </div>
+        <div className="h-3 w-full bg-neutral-100 dark:bg-neutral-800 rounded" />
+        <div className="flex gap-1.5 mt-1.5">
+          <div className="h-4 w-12 bg-neutral-100 dark:bg-neutral-800 rounded" />
+          <div className="h-4 w-14 bg-neutral-100 dark:bg-neutral-800 rounded" />
+        </div>
+      </div>
+      <div className="h-4 w-4 bg-neutral-200 dark:bg-neutral-700 rounded" />
+    </div>
+  )
+}
+
+// ============================================================================
 // Debounce Hook
 // ============================================================================
 
@@ -655,66 +682,87 @@ export function SpotlightSearch({
                 </div>
               )}
 
-              {/* Search results */}
-              {results.map((result, index) => (
-                <button
-                  key={result.prompt.id}
-                  id={`spotlight-result-${result.prompt.id}`}
-                  data-result-item
-                  role="option"
-                  aria-selected={index === selectedIndex}
-                  onClick={() => handleSelect(result)}
-                  className={cn(
-                    "w-full px-4 py-3 text-left",
-                    "flex items-start gap-3",
-                    "transition-colors duration-150",
-                    index === selectedIndex
-                      ? "bg-neutral-100 dark:bg-neutral-800/50"
-                      : "hover:bg-muted/50",
-                    copied === result.prompt.id && "bg-emerald-500/10"
-                  )}
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className={cn(
-                        "truncate",
-                        index === selectedIndex ? "text-neutral-900 dark:text-white font-semibold" : "text-foreground font-medium"
-                      )}>
-                        {result.prompt.title}
-                      </span>
-                      <Badge variant="secondary" className="text-xs px-1.5 py-0 shrink-0 capitalize">
-                        {result.prompt.category}
-                      </Badge>
-                      {result.prompt.featured && (
-                        <StarIcon className="size-3 text-amber-500 shrink-0" aria-hidden="true" />
+              {/* Skeleton loading state during semantic reranking */}
+              {isReranking && results.length === 0 && (
+                <div className="py-2" role="status" aria-label="Loading search results">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <SearchResultSkeleton key={i} index={i} />
+                  ))}
+                </div>
+              )}
+
+              {/* Search results with layout animations for smooth reordering */}
+              <AnimatePresence mode="popLayout">
+                {results.map((result, index) => (
+                  <motion.button
+                    key={result.prompt.id}
+                    layout
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{
+                      layout: { duration: 0.25, ease: "easeOut" },
+                      opacity: { duration: 0.2 },
+                      y: { duration: 0.2, delay: index * 0.02 },
+                    }}
+                    id={`spotlight-result-${result.prompt.id}`}
+                    data-result-item
+                    role="option"
+                    aria-selected={index === selectedIndex}
+                    onClick={() => handleSelect(result)}
+                    className={cn(
+                      "w-full px-4 py-3 text-left",
+                      "flex items-start gap-3",
+                      "transition-colors duration-150",
+                      index === selectedIndex
+                        ? "bg-neutral-100 dark:bg-neutral-800/50"
+                        : "hover:bg-muted/50",
+                      copied === result.prompt.id && "bg-emerald-500/10",
+                      isReranking && "opacity-70"
+                    )}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={cn(
+                          "truncate",
+                          index === selectedIndex ? "text-neutral-900 dark:text-white font-semibold" : "text-foreground font-medium"
+                        )}>
+                          {result.prompt.title}
+                        </span>
+                        <Badge variant="secondary" className="text-xs px-1.5 py-0 shrink-0 capitalize">
+                          {result.prompt.category}
+                        </Badge>
+                        {result.prompt.featured && (
+                          <StarIcon className="size-3 text-amber-500 shrink-0" aria-hidden="true" />
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground line-clamp-1">
+                        {result.prompt.description}
+                      </p>
+                      {/* Tags */}
+                      {result.prompt.tags.length > 0 && (
+                        <div className="flex items-center gap-1.5 mt-1.5">
+                          {result.prompt.tags.slice(0, 3).map((tag) => (
+                            <span key={tag} className="text-xs text-muted-foreground/60 bg-muted/50 px-1.5 py-0.5 rounded">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground line-clamp-1">
-                      {result.prompt.description}
-                    </p>
-                    {/* Tags */}
-                    {result.prompt.tags.length > 0 && (
-                      <div className="flex items-center gap-1.5 mt-1.5">
-                        {result.prompt.tags.slice(0, 3).map((tag) => (
-                          <span key={tag} className="text-xs text-muted-foreground/60 bg-muted/50 px-1.5 py-0.5 rounded">
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div className="shrink-0 pt-0.5">
-                    {copied === result.prompt.id ? (
-                      <CheckIcon className="size-4 text-emerald-500" aria-hidden="true" />
-                    ) : (
-                      <CopyIcon className={cn(
-                        "size-4",
-                        index === selectedIndex ? "text-neutral-600 dark:text-neutral-400" : "text-muted-foreground/40"
-                      )} aria-hidden="true" />
-                    )}
-                  </div>
-                </button>
-              ))}
+                    <div className="shrink-0 pt-0.5">
+                      {copied === result.prompt.id ? (
+                        <CheckIcon className="size-4 text-emerald-500" aria-hidden="true" />
+                      ) : (
+                        <CopyIcon className={cn(
+                          "size-4",
+                          index === selectedIndex ? "text-neutral-600 dark:text-neutral-400" : "text-muted-foreground/40"
+                        )} aria-hidden="true" />
+                      )}
+                    </div>
+                  </motion.button>
+                ))}
+              </AnimatePresence>
             </div>
 
             {/* Footer */}
