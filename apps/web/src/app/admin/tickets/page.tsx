@@ -228,6 +228,7 @@ export default function AdminTicketsPage() {
                 <option value="all">All categories</option>
                 <option value="billing">Billing</option>
                 <option value="technical">Technical</option>
+                <option value="feedback">Feedback</option>
                 <option value="feature">Feature request</option>
                 <option value="bug">Bug report</option>
                 <option value="account">Account help</option>

@@ -12,6 +12,11 @@ export const SUPPORT_CATEGORIES = [
     description: "Trouble with the site, CLI, or integrations.",
   },
   {
+    value: "feedback",
+    label: "Feedback",
+    description: "General feedback about the product experience.",
+  },
+  {
     value: "feature",
     label: "Feature Request",
     description: "Ideas for new features or improvements.",

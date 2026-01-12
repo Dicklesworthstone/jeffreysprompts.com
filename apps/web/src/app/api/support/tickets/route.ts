@@ -178,6 +178,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       ticket: {
         ticketNumber: ticket.ticketNumber,
+        name: ticket.name,
+        email: ticket.email,
         status: ticket.status,
         category: ticket.category,
         priority: ticket.priority,
@@ -191,6 +193,8 @@ export async function GET(request: NextRequest) {
 
   const tickets = getSupportTicketsForEmail(email).map((ticket) => ({
     ticketNumber: ticket.ticketNumber,
+    name: ticket.name,
+    email: ticket.email,
     status: ticket.status,
     category: ticket.category,
     priority: ticket.priority,
