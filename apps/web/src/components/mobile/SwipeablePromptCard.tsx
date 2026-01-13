@@ -158,16 +158,36 @@ export function SwipeablePromptCard({
 
   const handleCopy = useCallback(async () => {
     try {
-      await navigator.clipboard.writeText(prompt.content);
+      // Try modern clipboard API first
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+        await navigator.clipboard.writeText(prompt.content);
+      } else {
+        // Fallback for iOS Safari and older browsers
+        const textarea = document.createElement("textarea");
+        textarea.value = prompt.content;
+        textarea.style.position = "fixed";
+        textarea.style.left = "-9999px";
+        textarea.style.top = "0";
+        textarea.setAttribute("readonly", "");
+        document.body.appendChild(textarea);
+        textarea.select();
+        textarea.setSelectionRange(0, prompt.content.length);
+        const copySucceeded = document.execCommand("copy");
+        document.body.removeChild(textarea);
+        if (!copySucceeded) {
+          throw new Error("execCommand copy failed");
+        }
+      }
       haptic.success();
       success("Copied prompt", prompt.title, 3000);
       trackEvent("prompt_copy", { id: prompt.id, source: "swipe" });
       onCopy?.(prompt);
       setActionTriggered("copy");
       safeTimeout(() => setActionTriggered(null), 1500);
-    } catch {
+    } catch (err) {
+      console.error("Clipboard copy failed:", err);
       haptic.error();
-      error("Failed to copy", "Please try again");
+      error("Failed to copy", "Clipboard access denied. Try tapping the copy button instead.");
     }
   }, [prompt, onCopy, haptic, success, error, safeTimeout]);
 

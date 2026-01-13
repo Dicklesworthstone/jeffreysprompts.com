@@ -189,7 +189,7 @@ export function BasketSidebar({ isOpen, onClose }: BasketSidebarProps) {
       {/* Backdrop */}
       <div
         className={cn(
-          "fixed inset-0 bg-black/50 z-40 transition-opacity duration-300",
+          "fixed inset-0 bg-black/50 z-[9998] transition-opacity duration-300",
           isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         )}
         onClick={onClose}
@@ -199,7 +199,9 @@ export function BasketSidebar({ isOpen, onClose }: BasketSidebarProps) {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed right-0 top-0 h-full w-80 max-w-full bg-background border-l border-border z-50 transform transition-transform duration-300 ease-in-out flex flex-col",
+          "fixed right-0 top-0 h-full w-80 max-w-full border-l border-border z-[9999] transform transition-transform duration-300 ease-in-out flex flex-col",
+          // Solid background with fallback for CSS variable issues
+          "bg-white dark:bg-neutral-950",
           isOpen ? "translate-x-0" : "translate-x-full"
         )}
       >

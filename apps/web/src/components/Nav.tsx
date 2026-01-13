@@ -183,13 +183,13 @@ export function Nav() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-11 w-11 relative touch-manipulation"
+            className="h-11 w-11 relative overflow-visible touch-manipulation"
             onClick={() => setBasketOpen(true)}
             aria-label={`Open basket (${items.length} items)`}
           >
             <ShoppingBasket className="h-5 w-5" />
             {items.length > 0 && (
-              <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-xs font-bold text-primary-foreground flex items-center justify-center">
+              <span className="absolute -top-0.5 -right-0.5 h-5 w-5 rounded-full bg-primary text-xs font-bold text-primary-foreground flex items-center justify-center shadow-sm">
                 {items.length > 9 ? "9+" : items.length}
               </span>
             )}

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { createPortal } from "react-dom";
-import { motion, AnimatePresence, useMotionValue, useTransform, type PanInfo } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, useTransform, animate, type PanInfo } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 // Module-level counter to track open sheets for proper overflow management
@@ -38,7 +38,6 @@ export function BottomSheet({
   className,
 }: BottomSheetProps) {
   const [isMounted, setIsMounted] = React.useState(false);
-  const sheetRef = React.useRef<HTMLDivElement>(null);
   const contentRef = React.useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = React.useState(false);
 
@@ -83,7 +82,7 @@ export function BottomSheet({
   // Reset y position when opening
   React.useEffect(() => {
     if (open) {
-      y.set(0);
+      y.jump(0);
     }
   }, [open, y]);
 
@@ -92,16 +91,19 @@ export function BottomSheet({
     setIsDragging(true);
   }, []);
 
-  // Handle drag end - close if dragged down enough or with velocity
+  // Handle drag end - close if dragged down enough or with velocity, otherwise snap back
   const handleDragEnd = React.useCallback(
     (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
       setIsDragging(false);
       // Close if dragged down more than 80px or with velocity > 300
       if (info.offset.y > 80 || info.velocity.y > 300) {
         onClose();
+      } else {
+        // Snap back to original position with spring animation
+        animate(y, 0, { type: "spring", stiffness: 300, damping: 30 });
       }
     },
-    [onClose]
+    [onClose, y]
   );
 
   if (!isMounted) return null;
@@ -127,7 +129,6 @@ export function BottomSheet({
 
           {/* Sheet */}
           <motion.div
-            ref={sheetRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby={title ? "bottom-sheet-title" : undefined}
