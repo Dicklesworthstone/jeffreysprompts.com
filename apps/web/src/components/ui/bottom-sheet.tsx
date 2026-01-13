@@ -17,9 +17,9 @@ const CloseIcon = () => (
 // Spring physics for natural feel
 const springConfig = {
   type: "spring" as const,
-  stiffness: 400,
-  damping: 40,
-  mass: 1,
+  stiffness: 300,
+  damping: 30,
+  mass: 0.8,
 };
 
 interface BottomSheetProps {
@@ -38,7 +38,9 @@ export function BottomSheet({
   className,
 }: BottomSheetProps) {
   const [isMounted, setIsMounted] = React.useState(false);
-  const constraintsRef = React.useRef<HTMLDivElement>(null);
+  const sheetRef = React.useRef<HTMLDivElement>(null);
+  const contentRef = React.useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = React.useState(false);
 
   // Motion value for drag-to-dismiss
   const y = useMotionValue(0);
@@ -78,31 +80,46 @@ export function BottomSheet({
     setIsMounted(true);
   }, []);
 
-  // Handle drag end
-  const handleDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    // Close if dragged down more than 100px or with velocity
-    if (info.offset.y > 100 || info.velocity.y > 500) {
-      onClose();
+  // Reset y position when opening
+  React.useEffect(() => {
+    if (open) {
+      y.set(0);
     }
-  };
+  }, [open, y]);
+
+  // Handle drag start
+  const handleDragStart = React.useCallback(() => {
+    setIsDragging(true);
+  }, []);
+
+  // Handle drag end - close if dragged down enough or with velocity
+  const handleDragEnd = React.useCallback(
+    (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+      setIsDragging(false);
+      // Close if dragged down more than 80px or with velocity > 300
+      if (info.offset.y > 80 || info.velocity.y > 300) {
+        onClose();
+      }
+    },
+    [onClose]
+  );
 
   if (!isMounted) return null;
 
   return createPortal(
-    <AnimatePresence>
+    <AnimatePresence mode="wait">
       {open && (
         <motion.div
-          key="bottom-sheet-container"
-          ref={constraintsRef}
+          key="bottom-sheet-overlay"
           className="fixed inset-0 z-[9998]"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
+          transition={{ duration: 0.15 }}
         >
           {/* Backdrop */}
           <motion.div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/50"
             style={{ opacity: backdropOpacity }}
             onClick={onClose}
             aria-hidden="true"
@@ -110,48 +127,65 @@ export function BottomSheet({
 
           {/* Sheet */}
           <motion.div
+            ref={sheetRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby={title ? "bottom-sheet-title" : undefined}
             className={cn(
-              "absolute inset-x-0 bottom-0 max-h-[85vh] flex flex-col",
-              "rounded-t-3xl border-t border-border/50 bg-card shadow-2xl",
+              "fixed left-0 right-0 bottom-0 max-h-[85vh] flex flex-col",
+              "rounded-t-2xl bg-card shadow-2xl",
+              "pb-[env(safe-area-inset-bottom)]",
               className
             )}
-            style={{ y, touchAction: "pan-y" }}
+            style={{ y }}
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={springConfig}
             drag="y"
-            dragConstraints={{ top: 0, bottom: 0 }}
-            dragElastic={{ top: 0, bottom: 0.5 }}
+            dragDirectionLock
+            dragConstraints={{ top: 0, bottom: 500 }}
+            dragElastic={{ top: 0.1, bottom: 0.6 }}
+            onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
           >
-            {/* Drag handle */}
-            <div className="flex justify-center py-3">
-              <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
+            {/* Drag handle - larger touch target for iOS */}
+            <div
+              className="flex justify-center py-4 cursor-grab active:cursor-grabbing"
+              style={{ touchAction: "none" }}
+            >
+              <div className="h-1.5 w-12 rounded-full bg-muted-foreground/40" />
             </div>
 
             {/* Header */}
             {title && (
-              <div className="flex items-center justify-between px-5 pb-3 border-b border-border/50">
+              <div className="flex items-center justify-between px-5 pb-3 border-b border-border/30">
                 <h2 id="bottom-sheet-title" className="text-lg font-semibold text-foreground">
                   {title}
                 </h2>
-                <motion.button
+                <button
+                  type="button"
                   onClick={onClose}
-                  className="size-11 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors touch-manipulation"
+                  className="size-11 -mr-2 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 active:bg-muted transition-colors touch-manipulation"
                   aria-label="Close"
-                  whileTap={{ scale: 0.92 }}
                 >
                   <CloseIcon />
-                </motion.button>
+                </button>
               </div>
             )}
 
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto overscroll-contain px-5 pb-8 pt-2">
+            {/* Content - disable drag when scrolling content */}
+            <div
+              ref={contentRef}
+              className="flex-1 overflow-y-auto overscroll-contain px-5 pb-6 pt-2"
+              style={{ touchAction: isDragging ? "none" : "pan-y" }}
+              onPointerDown={(e) => {
+                // Prevent drag from starting when touching scrollable content
+                if (contentRef.current && contentRef.current.scrollHeight > contentRef.current.clientHeight) {
+                  e.stopPropagation();
+                }
+              }}
+            >
               {children}
             </div>
           </motion.div>
