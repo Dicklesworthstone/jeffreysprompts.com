@@ -1,6 +1,7 @@
 // packages/core/src/search/semantic.ts
 // Optional semantic search using MiniLM or hash-based embeddings
 
+import { join } from "path";
 import { tokenize } from "./tokenize";
 
 /**
@@ -20,7 +21,7 @@ export interface SemanticOptions {
   topN?: number;
   /** Fallback strategy when model unavailable: 'hash' | 'passthrough' */
   fallback?: "hash" | "passthrough";
-  /** Path to cache models (default: $HOME/.config/jfp/models) */
+  /** Path to cache models (default: XDG_CACHE_HOME/jfp/models) */
   modelCachePath?: string;
   /** Model ID for sentence transformers (default: Xenova/all-MiniLM-L6-v2) */
   modelId?: string;
@@ -42,11 +43,24 @@ const transformerState: TransformerState = {
 };
 
 /**
- * Get the default model cache path
+ * Get the default model cache path using XDG standards
  */
 function getDefaultCachePath(): string {
-  const home = process.env.HOME || process.env.USERPROFILE || "~";
-  return `${home}/.config/jfp/models`;
+  if (process.env.XDG_CACHE_HOME) {
+    return join(process.env.XDG_CACHE_HOME, "jfp", "models");
+  }
+
+  const home = process.env.HOME || process.env.USERPROFILE || "";
+
+  if (process.platform === "win32" && process.env.LOCALAPPDATA) {
+    return join(process.env.LOCALAPPDATA, "jfp", "models");
+  }
+
+  if (process.platform === "darwin") {
+    return join(home, "Library", "Caches", "jfp", "models");
+  }
+
+  return join(home, ".cache", "jfp", "models");
 }
 
 /**
