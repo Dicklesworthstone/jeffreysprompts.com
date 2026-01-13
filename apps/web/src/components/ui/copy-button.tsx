@@ -3,6 +3,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { useToast } from "./toast";
+import { copyToClipboard } from "@/lib/clipboard";
 
 // ============================================================================
 // ICONS
@@ -98,9 +99,9 @@ export function CopyButton({
     // Build the full text with attribution
     const fullText = attribution ? `${text}\n\n${attribution}` : text;
 
-    try {
-      await navigator.clipboard.writeText(fullText);
+    const result = await copyToClipboard(fullText);
 
+    if (result.success) {
       // Show success state
       setCopied(true);
 
@@ -130,8 +131,8 @@ export function CopyButton({
 
       // Callback
       onCopy?.();
-    } catch (err) {
-      console.error("Failed to copy:", err);
+    } else {
+      console.error("Failed to copy:", result.error);
       error("Failed to copy", "Please try again");
     }
   };

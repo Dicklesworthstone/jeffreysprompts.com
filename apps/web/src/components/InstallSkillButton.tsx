@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
+import { copyToClipboard } from "@/lib/clipboard";
 import { generateSkillMd, getUniqueDelimiter } from "@jeffreysprompts/core/export/skills";
 import type { Prompt } from "@jeffreysprompts/core/prompts/types";
 
@@ -73,21 +74,25 @@ export function InstallSkillButton({
   const handleCopy = useCallback(async () => {
     try {
       const command = generateInstallCommand(prompt, project);
-      await navigator.clipboard.writeText(command);
-      setCopied(true);
-      success(
-        "Install command copied",
-        `Paste in terminal to install "${prompt.title}"`,
-        4000
-      );
-      trackEvent("skill_install", { id: prompt.id, source: "install_button", project });
-      if (resetTimerRef.current) {
-        clearTimeout(resetTimerRef.current);
+      const result = await copyToClipboard(command);
+      if (result.success) {
+        setCopied(true);
+        success(
+          "Install command copied",
+          `Paste in terminal to install "${prompt.title}"`,
+          4000
+        );
+        trackEvent("skill_install", { id: prompt.id, source: "install_button", project });
+        if (resetTimerRef.current) {
+          clearTimeout(resetTimerRef.current);
+        }
+        resetTimerRef.current = setTimeout(() => {
+          setCopied(false);
+          resetTimerRef.current = null;
+        }, 2000);
+      } else {
+        error("Failed to copy", "Please try again");
       }
-      resetTimerRef.current = setTimeout(() => {
-        setCopied(false);
-        resetTimerRef.current = null;
-      }, 2000);
     } catch {
       error("Failed to copy", "Please try again");
     }
@@ -148,29 +153,30 @@ export function InstallAllSkillsButton({
   }, []);
 
   const handleCopy = useCallback(async () => {
-    try {
-      // Build the install URL
-      const baseUrl = typeof window !== "undefined"
-        ? window.location.origin
-        : "https://jeffreysprompts.com";
+    // Build the install URL
+    const baseUrl = typeof window !== "undefined"
+      ? window.location.origin
+      : "https://jeffreysprompts.com";
 
-      let url = `${baseUrl}/install.sh`;
-      const params = new URLSearchParams();
+    let url = `${baseUrl}/install.sh`;
+    const params = new URLSearchParams();
 
-      if (promptIds && promptIds.length > 0) {
-        params.set("ids", promptIds.join(","));
-      }
-      if (project) {
-        params.set("project", "1");
-      }
+    if (promptIds && promptIds.length > 0) {
+      params.set("ids", promptIds.join(","));
+    }
+    if (project) {
+      params.set("project", "1");
+    }
 
-      const queryString = params.toString();
-      if (queryString) {
-        url += `?${queryString}`;
-      }
+    const queryString = params.toString();
+    if (queryString) {
+      url += `?${queryString}`;
+    }
 
-      const command = `curl -fsSL "${url}" | bash`;
-      await navigator.clipboard.writeText(command);
+    const command = `curl -fsSL "${url}" | bash`;
+    const result = await copyToClipboard(command);
+
+    if (result.success) {
       setCopied(true);
 
       const skillCount = promptIds?.length
@@ -194,7 +200,7 @@ export function InstallAllSkillsButton({
         setCopied(false);
         resetTimerRef.current = null;
       }, 2000);
-    } catch {
+    } else {
       error("Failed to copy", "Please try again");
     }
   }, [promptIds, project, success, error]);

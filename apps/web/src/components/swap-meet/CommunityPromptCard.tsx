@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
+import { copyToClipboard } from "@/lib/clipboard";
 import type { CommunityPrompt } from "@/lib/swap-meet/types";
 
 interface CommunityPromptCardProps {
@@ -88,8 +89,8 @@ export function CommunityPromptCard({
   const handleCopy = useCallback(
     async (e: MouseEvent) => {
       e.stopPropagation();
-      try {
-        await navigator.clipboard.writeText(prompt.content);
+      const result = await copyToClipboard(prompt.content);
+      if (result.success) {
         setCopied(true);
         setCopyFlash(true);
 
@@ -109,7 +110,7 @@ export function CommunityPromptCard({
           setCopied(false);
           copiedResetTimer.current = null;
         }, 2000);
-      } catch {
+      } else {
         error("Failed to copy", "Please try again");
       }
     },

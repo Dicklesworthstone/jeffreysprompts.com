@@ -40,7 +40,7 @@ import {
   formatVariableName,
   getVariablePlaceholder,
 } from "@jeffreysprompts/core/template";
-import { generateSkillMd } from "@jeffreysprompts/core/export";
+import { generateSkillMd, getUniqueDelimiter } from "@jeffreysprompts/core/export";
 import type { Prompt, PromptVariable } from "@jeffreysprompts/core/prompts/types";
 
 interface PromptContentProps {
@@ -59,12 +59,8 @@ function buildInstallCommand(prompt: Prompt): string {
   }
 
   const skillContent = generateSkillMd(prompt);
-  let delimiter = "JFP_SKILL";
-  let counter = 0;
-  while (skillContent.includes(delimiter)) {
-    counter += 1;
-    delimiter = `JFP_SKILL_${counter}`;
-  }
+  const delimiter = getUniqueDelimiter(skillContent);
+  
   return `mkdir -p ~/.config/claude/skills/${prompt.id} && cat > ~/.config/claude/skills/${prompt.id}/SKILL.md << '${delimiter}'\n${skillContent}\n${delimiter}`;
 }
 

@@ -32,6 +32,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
+import { copyToClipboard } from "@/lib/clipboard";
 import { CommunityPromptCard } from "@/components/swap-meet/CommunityPromptCard";
 import type { CommunityPrompt } from "@/lib/swap-meet/types";
 
@@ -184,14 +185,14 @@ export default function CommunityPromptDetailPage() {
 
   const handleCopy = useCallback(async () => {
     if (!prompt) return;
-    try {
-      await navigator.clipboard.writeText(prompt.content);
+    const result = await copyToClipboard(prompt.content);
+    if (result.success) {
       setCopied(true);
       if ("vibrate" in navigator) navigator.vibrate(50);
       success("Copied to clipboard", prompt.title, 3000);
       trackEvent("prompt_copy", { id: prompt.id, source: "swap-meet-detail" });
       setTimeout(() => setCopied(false), 2000);
-    } catch {
+    } else {
       toastError("Failed to copy", "Please try again");
     }
   }, [prompt, success, toastError]);
