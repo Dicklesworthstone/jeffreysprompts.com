@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect } from "react";
 
 interface GlobalErrorProps {
@@ -74,7 +73,8 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
                 Try again
               </button>
 
-              <Link
+              {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- global-error must use <a> tag since router may be broken */}
+              <a
                 href="/"
                 className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-neutral-300 dark:border-neutral-700 font-medium hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
               >
@@ -92,7 +92,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
                   />
                 </svg>
                 Go home
-              </Link>
+              </a>
             </div>
 
             <div className="mt-8 pt-6 border-t border-neutral-200 dark:border-neutral-800">

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import JSZip from "jszip";
+// JSZip is dynamically imported when needed to reduce initial bundle
 import {
   X,
   Trash2,
@@ -71,7 +71,8 @@ export function BasketSidebar({ isOpen, onClose }: BasketSidebarProps) {
         const content = generatePromptMarkdown(prompt);
         downloadFile(`${prompt.id}.md`, content, "text/markdown");
       } else {
-        // ZIP download for multiple prompts
+        // ZIP download for multiple prompts - dynamically import JSZip
+        const JSZip = (await import("jszip")).default;
         const zip = new JSZip();
         for (const prompt of basketPrompts) {
           const content = generatePromptMarkdown(prompt);
@@ -102,6 +103,8 @@ export function BasketSidebar({ isOpen, onClose }: BasketSidebarProps) {
 
     setExporting(true);
     try {
+      // Dynamically import JSZip to reduce initial bundle
+      const JSZip = (await import("jszip")).default;
       const zip = new JSZip();
       for (const prompt of basketPrompts) {
         const content = generateSkillMd(prompt);
