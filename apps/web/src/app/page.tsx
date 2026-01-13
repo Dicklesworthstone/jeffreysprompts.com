@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { useFilterState } from "@/hooks/useFilterState";
 import { FeaturedPromptsSection } from "@/components/landing";
+import { AnimatedSection } from "@/components/AnimatedSection";
 import { trackEvent } from "@/lib/analytics";
 import { useAnnounceCount } from "@/hooks/useAnnounce";
 import type { Prompt, PromptCategory } from "@jeffreysprompts/core/prompts/types";
@@ -208,14 +209,14 @@ function HomeContent() {
       {/* Browse All Prompts Section */}
       <main id="prompts-section" className="container-wide px-4 sm:px-6 lg:px-8 py-12">
         {/* Section Header */}
-        <div className="mb-8">
+        <AnimatedSection variant="fadeUp" delay={0.1} className="mb-8">
           <h2 className="text-xl font-semibold text-neutral-900 dark:text-white mb-2">
             Browse All Prompts
           </h2>
           <p className="text-sm text-neutral-500 dark:text-neutral-400">
             Use filters to find exactly what you need
           </p>
-        </div>
+        </AnimatedSection>
 
         {/* Filters Section */}
         <div className="mb-8 space-y-4">

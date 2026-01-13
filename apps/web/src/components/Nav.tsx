@@ -2,7 +2,7 @@
 
 import { Github, Menu, X, Sparkles, ShoppingBasket, Crown } from "lucide-react";
 import { ViewTransitionLink } from "./ViewTransitionLink";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { ThemeToggle } from "./theme-toggle";
@@ -11,6 +11,71 @@ import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "./ui/sheet";
 import { useBasket } from "@/hooks/use-basket";
 import { cn } from "@/lib/utils";
+
+/**
+ * Custom hook for scroll-aware header behavior
+ * - Hides header on scroll down (mobile only)
+ * - Shows header on scroll up
+ * - Tracks if page is scrolled for shadow effect
+ */
+function useScrollHeader() {
+  const [isHidden, setIsHidden] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const lastScrollY = useRef(0);
+  const ticking = useRef(false);
+
+  const updateScrollState = useCallback(() => {
+    const scrollY = window.scrollY;
+    const scrollDelta = scrollY - lastScrollY.current;
+
+    // Only hide/show on mobile (check viewport width)
+    const isMobile = window.innerWidth < 768;
+
+    // Update scrolled state (for shadow)
+    setIsScrolled(scrollY > 10);
+
+    if (isMobile) {
+      // Hide on scroll down (after scrolling 50px), show on scroll up
+      if (scrollDelta > 10 && scrollY > 100) {
+        setIsHidden(true);
+      } else if (scrollDelta < -10 || scrollY < 50) {
+        setIsHidden(false);
+      }
+    } else {
+      // Always show on desktop
+      setIsHidden(false);
+    }
+
+    lastScrollY.current = scrollY;
+    ticking.current = false;
+  }, []);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!ticking.current) {
+        window.requestAnimationFrame(updateScrollState);
+        ticking.current = true;
+      }
+    };
+
+    // Also handle resize to reset on viewport change
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        setIsHidden(false);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleResize, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [updateScrollState]);
+
+  return { isHidden, isScrolled };
+}
 
 // Pro site URL - use env var if available, otherwise default
 const PRO_URL = process.env.NEXT_PUBLIC_PRO_URL ?? "https://pro.jeffreysprompts.com";
@@ -33,6 +98,7 @@ export function Nav() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [basketOpen, setBasketOpen] = useState(false);
   const { items } = useBasket();
+  const { isHidden, isScrolled } = useScrollHeader();
 
   useEffect(() => {
     const handleToggleBasket = () => setBasketOpen((prev) => !prev);
@@ -41,7 +107,20 @@ export function Nav() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header
+      className={cn(
+        "sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
+        "transition-all duration-300 ease-out",
+        // Border and shadow based on scroll state
+        isScrolled
+          ? "border-border/60 shadow-sm"
+          : "border-border/40",
+        // Hide/show on mobile
+        isHidden
+          ? "-translate-y-full md:translate-y-0"
+          : "translate-y-0"
+      )}
+    >
       <nav className="container mx-auto flex h-12 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
         <ViewTransitionLink
