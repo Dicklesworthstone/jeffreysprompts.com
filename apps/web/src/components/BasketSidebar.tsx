@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 // JSZip is dynamically imported when needed to reduce initial bundle
 import {
@@ -34,9 +35,15 @@ export function BasketSidebar({ isOpen, onClose }: BasketSidebarProps) {
   const [copied, setCopied] = useState(false);
   const [copyFlash, setCopyFlash] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const copyFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prefersReducedMotion = useReducedMotion();
+
+  // Portal mounting (client-side only)
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const basketPrompts = useMemo(
     () => items.map((id) => getPrompt(id)).filter((p): p is Prompt => p !== undefined),
@@ -205,7 +212,10 @@ export function BasketSidebar({ isOpen, onClose }: BasketSidebarProps) {
     trackEvent("basket_clear", { count, source: "sidebar" });
   };
 
-  return (
+  // Don't render on server (portal requires document.body)
+  if (!isMounted) return null;
+
+  return createPortal(
     <>
       {/* Backdrop */}
       <div
@@ -381,7 +391,8 @@ export function BasketSidebar({ isOpen, onClose }: BasketSidebarProps) {
           </div>
         )}
       </aside>
-    </>
+    </>,
+    document.body
   );
 }
 
