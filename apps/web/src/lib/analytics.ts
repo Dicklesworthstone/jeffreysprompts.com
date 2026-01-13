@@ -5,12 +5,22 @@ import { hasAnalyticsConsent } from "@/lib/consent/cookie-consent";
 export type AnalyticsEvent =
   | "prompt_view"
   | "prompt_copy"
+  | "prompt_publish"
+  | "prompt_unpublish"
   | "search"
   | "export"
   | "skill_install"
   | "basket_add"
   | "basket_clear"
-  | "filter_apply";
+  | "filter_apply"
+  | "share_link_create"
+  | "share_link_copy"
+  | "share_link_revoke"
+  | "share_social"
+  | "share_view"
+  | "share_copy"
+  | "share_save"
+  | "share_fork";
 
 export type AnalyticsProps = Record<string, string | number | boolean | null | undefined>;
 
