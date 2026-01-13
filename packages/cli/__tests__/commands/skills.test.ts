@@ -112,8 +112,8 @@ afterEach(() => {
 });
 
 describe("installCommand", () => {
-  it("installs a prompt and outputs JSON", () => {
-    installCommand(["idea-wizard"], { json: true });
+  it("installs a prompt and outputs JSON", async () => {
+    await installCommand(["idea-wizard"], { json: true });
     const payload = JSON.parse(output.join(""));
     expect(payload.installed).toContain("idea-wizard");
     expect(payload.failed.length).toBe(0);
@@ -127,8 +127,8 @@ describe("installCommand", () => {
     expect(content).toContain("x_jfp_generated: true");
   });
 
-  it("installs multiple prompts", () => {
-    installCommand(["idea-wizard", "readme-reviser"], { json: true });
+  it("installs multiple prompts", async () => {
+    await installCommand(["idea-wizard", "readme-reviser"], { json: true });
     const payload = JSON.parse(output.join(""));
     expect(payload.installed).toContain("idea-wizard");
     expect(payload.installed).toContain("readme-reviser");
@@ -138,14 +138,18 @@ describe("installCommand", () => {
     expect(existsSync(join(getPersonalSkillsDir(), "readme-reviser", "SKILL.md"))).toBe(true);
   });
 
-  it("exits when no ids are provided", () => {
-    expect(() => installCommand([], { json: true })).toThrow();
+  it("exits when no ids are provided", async () => {
+    try {
+      await installCommand([], { json: true });
+    } catch (e) {
+      if ((e as Error).message !== "process.exit") throw e;
+    }
     expect(errors.join("\n")).toContain("No prompts specified");
     expect(exitCode).toBe(1);
   });
 
-  it("creates manifest.json with skill metadata", () => {
-    installCommand(["idea-wizard"], { json: true });
+  it("creates manifest.json with skill metadata", async () => {
+    await installCommand(["idea-wizard"], { json: true });
 
     const manifestPath = join(getPersonalSkillsDir(), "manifest.json");
     expect(existsSync(manifestPath)).toBe(true);
@@ -160,9 +164,9 @@ describe("installCommand", () => {
 });
 
 describe("uninstallCommand", () => {
-  it("removes a skill and outputs JSON", () => {
+  it("removes a skill and outputs JSON", async () => {
     // First install a skill
-    installCommand(["idea-wizard"], { json: true });
+    await installCommand(["idea-wizard"], { json: true });
     output = [];
 
     // Verify it exists
@@ -170,7 +174,7 @@ describe("uninstallCommand", () => {
     expect(existsSync(skillPath)).toBe(true);
 
     // Now uninstall it
-    uninstallCommand(["idea-wizard"], { json: true, confirm: true });
+    await uninstallCommand(["idea-wizard"], { json: true, confirm: true });
     const payload = JSON.parse(output.join(""));
     expect(payload.removed).toContain("idea-wizard");
 
@@ -178,13 +182,13 @@ describe("uninstallCommand", () => {
     expect(existsSync(skillPath)).toBe(false);
   });
 
-  it("updates manifest after uninstall", () => {
+  it("updates manifest after uninstall", async () => {
     // Install two skills
-    installCommand(["idea-wizard", "readme-reviser"], { json: true });
+    await installCommand(["idea-wizard", "readme-reviser"], { json: true });
     output = [];
 
     // Uninstall one
-    uninstallCommand(["idea-wizard"], { json: true, confirm: true });
+    await uninstallCommand(["idea-wizard"], { json: true, confirm: true });
 
     // Verify manifest only has one entry
     const manifestPath = join(getPersonalSkillsDir(), "manifest.json");
@@ -195,12 +199,12 @@ describe("uninstallCommand", () => {
 });
 
 describe("installedCommand", () => {
-  it("lists installed skills", () => {
+  it("lists installed skills", async () => {
     // Install some skills first
-    installCommand(["idea-wizard", "readme-reviser"], { json: true });
+    await installCommand(["idea-wizard", "readme-reviser"], { json: true });
     output = [];
 
-    installedCommand({ json: true });
+    await installedCommand({ json: true });
     const payload = JSON.parse(output.join(""));
 
     expect(payload.installed.length).toBe(2);
@@ -208,17 +212,17 @@ describe("installedCommand", () => {
     expect(payload.installed.map((s: { id: string }) => s.id)).toContain("readme-reviser");
   });
 
-  it("shows empty list when no skills installed", () => {
-    installedCommand({ json: true });
+  it("shows empty list when no skills installed", async () => {
+    await installedCommand({ json: true });
     const payload = JSON.parse(output.join(""));
     expect(payload.installed.length).toBe(0);
   });
 
-  it("includes location information", () => {
-    installCommand(["idea-wizard"], { json: true });
+  it("includes location information", async () => {
+    await installCommand(["idea-wizard"], { json: true });
     output = [];
 
-    installedCommand({ json: true });
+    await installedCommand({ json: true });
     const payload = JSON.parse(output.join(""));
     expect(payload.locations).toHaveProperty("personal");
     expect(payload.locations.personal).toContain(".config/claude/skills");
@@ -226,9 +230,9 @@ describe("installedCommand", () => {
 });
 
 describe("updateCommand", () => {
-  it("detects outdated skills in dry-run", () => {
+  it("detects outdated skills in dry-run", async () => {
     // Install a skill
-    installCommand(["idea-wizard"], { json: true });
+    await installCommand(["idea-wizard"], { json: true });
 
     // Modify the manifest to have an old hash (simulating outdated skill)
     const manifestPath = join(getPersonalSkillsDir(), "manifest.json");
@@ -239,7 +243,7 @@ describe("updateCommand", () => {
     output = [];
 
     // Run update in dry-run mode with force to bypass user modification check
-    updateCommand({ json: true, dryRun: true, personal: true, force: true });
+    await updateCommand({ json: true, dryRun: true, personal: true, force: true });
     const payload = JSON.parse(output.join(""));
 
     expect(payload.dryRun).toBe(true);
@@ -247,9 +251,9 @@ describe("updateCommand", () => {
     expect(payload.updated[0].id).toBe("idea-wizard");
   });
 
-  it("actually updates skill when not in dry-run with force", () => {
+  it("actually updates skill when not in dry-run with force", async () => {
     // Install a skill
-    installCommand(["idea-wizard"], { json: true });
+    await installCommand(["idea-wizard"], { json: true });
 
     // Modify the content to simulate an older version
     const skillPath = join(getPersonalSkillsDir(), "idea-wizard", "SKILL.md");
@@ -264,7 +268,7 @@ describe("updateCommand", () => {
     output = [];
 
     // Run actual update with force
-    updateCommand({ json: true, force: true, personal: true });
+    await updateCommand({ json: true, force: true, personal: true });
     const payload = JSON.parse(output.join(""));
 
     expect(payload.updated.length).toBeGreaterThan(0);

@@ -1,9 +1,9 @@
 import { writeFileSync } from "fs";
-import { getPrompt, prompts } from "@jeffreysprompts/core/prompts";
 import { generateSkillMd } from "@jeffreysprompts/core/export/skills";
 import { generatePromptMarkdown } from "@jeffreysprompts/core/export/markdown";
 import chalk from "chalk";
 import { shouldOutputJson } from "../lib/utils";
+import { loadRegistry } from "../lib/registry-loader";
 
 interface ExportOptions {
   format?: "skill" | "md";
@@ -12,23 +12,31 @@ interface ExportOptions {
   json?: boolean;
 }
 
-export function exportCommand(ids: string[], options: ExportOptions) {
+export async function exportCommand(ids: string[], options: ExportOptions) {
   const format = options.format || "skill";
   
-  let promptsToExport = [...prompts];
+  // Load registry dynamically (SWR pattern)
+  const registry = await loadRegistry();
+  
+  let promptsToExport = [...registry.prompts];
+  
   if (!options.all) {
     if (ids.length === 0) {
        console.error(chalk.red("Error: No prompts specified. Use <id> or --all"));
        process.exit(1);
     }
-    promptsToExport = ids.map(id => {
-        const p = getPrompt(id);
-        if(!p) {
-             console.error(chalk.red(`Prompt not found: ${id}`));
-             process.exit(1);
-        }
-        return p;
-    });
+    
+    // Filter prompts by ID list
+    const foundPrompts = [];
+    for (const id of ids) {
+      const p = registry.prompts.find(prompt => prompt.id === id);
+      if(!p) {
+           console.error(chalk.red(`Prompt not found: ${id}`));
+           process.exit(1);
+      }
+      foundPrompts.push(p);
+    }
+    promptsToExport = foundPrompts;
   }
 
   const results: {id: string, file: string}[] = [];

@@ -4,7 +4,9 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync, rename
 import { randomBytes } from "crypto";
 import { dirname, join } from "path";
 import type { Prompt } from "@jeffreysprompts/core/prompts/types";
-import { prompts as bundledPrompts } from "@jeffreysprompts/core/prompts";
+import type { Bundle } from "@jeffreysprompts/core/prompts/bundles";
+import type { Workflow } from "@jeffreysprompts/core/prompts/workflows";
+import { prompts as bundledPrompts, bundles as bundledBundles, workflows as bundledWorkflows } from "@jeffreysprompts/core/prompts";
 import type { RegistryPayload } from "@jeffreysprompts/core/export";
 import { loadConfig } from "./config";
 
@@ -17,12 +19,16 @@ export interface RegistryMeta {
 
 export interface LoadedRegistry {
   prompts: Prompt[];
+  bundles: Bundle[];
+  workflows: Workflow[];
   meta: RegistryMeta | null;
   source: "cache" | "remote" | "bundled";
 }
 
 interface RegistryPayloadLike {
   prompts: Prompt[];
+  bundles?: Bundle[];
+  workflows?: Workflow[];
   version?: string;
 }
 
@@ -156,6 +162,9 @@ export async function loadRegistry(): Promise<LoadedRegistry> {
   const cachedPayload = readJsonFile<RegistryPayloadLike>(config.registry.cachePath);
   const cachedMeta = readJsonFile<RegistryMeta>(config.registry.metaPath);
   const cachedPrompts = getPromptArray(cachedPayload?.prompts);
+  const cachedBundles = Array.isArray(cachedPayload?.bundles) ? cachedPayload.bundles : [];
+  const cachedWorkflows = Array.isArray(cachedPayload?.workflows) ? cachedPayload.workflows : [];
+  
   const localPrompts = config.localPrompts.enabled
     ? loadLocalPrompts(config.localPrompts.dir)
     : [];
@@ -166,6 +175,8 @@ export async function loadRegistry(): Promise<LoadedRegistry> {
     }
     return {
       prompts: mergePrompts(cachedPrompts, localPrompts),
+      bundles: cachedBundles,
+      workflows: cachedWorkflows,
       meta: cachedMeta,
       source: "cache",
     };
@@ -183,6 +194,8 @@ export async function loadRegistry(): Promise<LoadedRegistry> {
     writeJsonFile(config.registry.metaPath, remote.meta);
     return {
       prompts: mergePrompts(remotePrompts, localPrompts),
+      bundles: remote.payload.bundles || [],
+      workflows: remote.payload.workflows || [],
       meta: remote.meta,
       source: "remote",
     };
@@ -190,6 +203,8 @@ export async function loadRegistry(): Promise<LoadedRegistry> {
 
   return {
     prompts: mergePrompts(bundledPrompts, localPrompts),
+    bundles: bundledBundles,
+    workflows: bundledWorkflows,
     meta: null,
     source: "bundled",
   };
@@ -203,6 +218,9 @@ export async function refreshRegistry(): Promise<LoadedRegistry> {
   const cachedPayload = readJsonFile<RegistryPayloadLike>(config.registry.cachePath);
   const cachedMeta = readJsonFile<RegistryMeta>(config.registry.metaPath);
   const cachedPrompts = getPromptArray(cachedPayload?.prompts);
+  const cachedBundles = Array.isArray(cachedPayload?.bundles) ? cachedPayload.bundles : [];
+  const cachedWorkflows = Array.isArray(cachedPayload?.workflows) ? cachedPayload.workflows : [];
+  
   const localPrompts = config.localPrompts.enabled
     ? loadLocalPrompts(config.localPrompts.dir)
     : [];
@@ -222,6 +240,8 @@ export async function refreshRegistry(): Promise<LoadedRegistry> {
     }
     return {
       prompts: mergePrompts(cachedPrompts, localPrompts),
+      bundles: cachedBundles,
+      workflows: cachedWorkflows,
       meta: refreshedMeta,
       source: "cache",
     };
@@ -233,6 +253,8 @@ export async function refreshRegistry(): Promise<LoadedRegistry> {
     writeJsonFile(config.registry.metaPath, remote.meta);
     return {
       prompts: mergePrompts(remotePrompts, localPrompts),
+      bundles: remote.payload.bundles || [],
+      workflows: remote.payload.workflows || [],
       meta: remote.meta,
       source: "remote",
     };
@@ -241,6 +263,8 @@ export async function refreshRegistry(): Promise<LoadedRegistry> {
   if (cachedPrompts?.length) {
     return {
       prompts: mergePrompts(cachedPrompts, localPrompts),
+      bundles: cachedBundles,
+      workflows: cachedWorkflows,
       meta: cachedMeta,
       source: "cache",
     };
@@ -248,6 +272,8 @@ export async function refreshRegistry(): Promise<LoadedRegistry> {
 
   return {
     prompts: mergePrompts(bundledPrompts, localPrompts),
+    bundles: bundledBundles,
+    workflows: bundledWorkflows,
     meta: null,
     source: "bundled",
   };

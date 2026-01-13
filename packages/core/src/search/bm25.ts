@@ -89,10 +89,10 @@ function idf(termDocFreq: number, docCount: number): number {
  */
 export function search(
   index: BM25Index,
-  query: string,
-  limit: number = 20
+  query: string | string[],
+  limit: number = Infinity
 ): Array<{ id: string; score: number }> {
-  const queryTokens = tokenize(query);
+  const queryTokens = Array.isArray(query) ? query : tokenize(query);
   const scores = new Map<string, number>();
 
   for (const [docId, doc] of index.documents) {

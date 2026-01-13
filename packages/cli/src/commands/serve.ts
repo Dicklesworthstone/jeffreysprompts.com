@@ -23,9 +23,10 @@ import {
   ListToolsRequestSchema,
   ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import { prompts, getPrompt } from "@jeffreysprompts/core/prompts";
-import { searchPrompts } from "@jeffreysprompts/core/search";
+import { searchPrompts, buildIndex } from "@jeffreysprompts/core/search";
 import { renderPrompt } from "@jeffreysprompts/core/template";
+import { loadRegistry } from "../lib/registry-loader";
+import { type Prompt } from "@jeffreysprompts/core/prompts";
 import chalk from "chalk";
 
 interface ServeOptions {
@@ -62,6 +63,19 @@ export async function serveCommand(options: ServeOptions): Promise<void> {
   if (options.config) {
     printConfigSnippet();
     return;
+  }
+
+  // Load registry from cache/remote/bundle (SWR pattern)
+  // This ensures we serve the latest prompts including offline/cached updates
+  const registry = await loadRegistry();
+  const prompts = registry.prompts;
+  
+  // Build lookup map and search index from loaded prompts
+  const promptsMap = new Map(prompts.map((p) => [p.id, p]));
+  const searchIndex = buildIndex(prompts);
+
+  function getPrompt(id: string): Prompt | undefined {
+    return promptsMap.get(id);
   }
 
   const server = new Server(
@@ -190,7 +204,11 @@ export async function serveCommand(options: ServeOptions): Promise<void> {
       // Get base results (support category/tag filters without a query)
       const trimmedQuery = query.trim();
       let results = trimmedQuery
-        ? searchPrompts(trimmedQuery, { limit: 50 })
+        ? searchPrompts(trimmedQuery, { 
+            limit: 50,
+            index: searchIndex,
+            promptsMap: promptsMap
+          })
         : prompts.map((prompt) => ({ prompt, score: 0, matchedFields: [] }));
 
       // Filter by category if specified

@@ -1,6 +1,5 @@
 import { existsSync, readFileSync, mkdirSync, writeFileSync } from "fs";
 import { join, resolve } from "path";
-import { getPrompt } from "@jeffreysprompts/core/prompts";
 import { getHomeDir } from "../lib/config";
 import { generateSkillMd, computeSkillHash } from "@jeffreysprompts/core/export";
 import chalk from "chalk";
@@ -13,6 +12,7 @@ import {
 } from "../lib/manifest";
 import type { SkillManifestEntry } from "@jeffreysprompts/core/export";
 import { resolveSafeChildPath, shouldOutputJson } from "../lib/utils";
+import { loadRegistry, type LoadedRegistry } from "../lib/registry-loader";
 
 interface UpdateOptions {
   project?: boolean;
@@ -62,7 +62,8 @@ function generateSimpleDiff(oldContent: string, newContent: string): string {
 
 function updateLocation(
   targetRoot: string,
-  options: UpdateOptions
+  options: UpdateOptions,
+  registry: LoadedRegistry
 ): UpdateResult[] {
   const results: UpdateResult[] = [];
   const manifest = readManifest(targetRoot);
@@ -75,7 +76,8 @@ function updateLocation(
   let hasUpdates = false;
 
   for (const entry of manifest.entries) {
-    const prompt = getPrompt(entry.id);
+    // Find prompt in dynamic registry
+    const prompt = registry.prompts.find(p => p.id === entry.id);
 
     if (!prompt) {
       // Prompt no longer exists in registry
@@ -203,9 +205,12 @@ function updateLocation(
   return results;
 }
 
-export function updateCommand(options: UpdateOptions) {
+export async function updateCommand(options: UpdateOptions) {
   const personalDir = join(getHomeDir(), ".config/claude/skills");
   const projectDir = resolve(process.cwd(), ".claude/skills");
+
+  // Load registry dynamically
+  const registry = await loadRegistry();
 
   // Determine which locations to update
   const updatePersonal = options.personal || (!options.project && !options.personal);
@@ -214,12 +219,12 @@ export function updateCommand(options: UpdateOptions) {
   const allResults: Array<UpdateResult & { location: "personal" | "project" }> = [];
 
   if (updatePersonal) {
-    const results = updateLocation(personalDir, options);
+    const results = updateLocation(personalDir, options, registry);
     allResults.push(...results.map((r) => ({ ...r, location: "personal" as const })));
   }
 
   if (updateProject) {
-    const results = updateLocation(projectDir, options);
+    const results = updateLocation(projectDir, options, registry);
     allResults.push(...results.map((r) => ({ ...r, location: "project" as const })));
   }
 

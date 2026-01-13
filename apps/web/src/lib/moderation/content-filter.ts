@@ -62,10 +62,12 @@ function maxRepeatedCharRuns(content: string): number {
 }
 
 function detectSpamTerms(content: string): ContentSignal[] {
-  const lowered = content.toLowerCase();
   const signals: ContentSignal[] = [];
   for (const term of SPAM_TERMS) {
-    if (lowered.includes(term)) {
+    // Escape special regex characters in term if any
+    const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`\\b${escapedTerm}\\b`, "i");
+    if (regex.test(content)) {
       signals.push({ score: 0.15, reason: `Contains spam term: "${term}"` });
     }
   }

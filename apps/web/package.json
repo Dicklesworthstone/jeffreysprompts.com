@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
+    "prebuild": "bun run ../../scripts/validate-prompts.ts && bun run ../../scripts/build-data.ts",
     "build": "next build",
     "postbuild": "next-sitemap",
     "start": "next start",

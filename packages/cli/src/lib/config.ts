@@ -1,8 +1,9 @@
 // CLI configuration management
 
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, renameSync, unlinkSync } from "fs";
 import { homedir } from "os";
-import { join } from "path";
+import { join, dirname } from "path";
+import { randomBytes } from "crypto";
 
 export interface JfpConfig {
   registry: {
@@ -170,6 +171,26 @@ export function saveConfig(config: Partial<JfpConfig>): void {
     localPrompts: { ...base.localPrompts, ...config.localPrompts },
     analytics: { ...base.analytics, ...config.analytics },
   };
+  
   mkdirSync(configDir, { recursive: true });
-  writeFileSync(configFile, JSON.stringify(merged, null, 2));
+  
+  // Atomic write to prevent corruption
+  const suffix = randomBytes(8).toString("hex");
+  const tempPath = `${configFile}.${suffix}.tmp`;
+  const content = JSON.stringify(merged, null, 2);
+
+  try {
+    writeFileSync(tempPath, content);
+    renameSync(tempPath, configFile);
+  } catch (err) {
+    // Clean up temp file on failure
+    try {
+      if (existsSync(tempPath)) {
+        unlinkSync(tempPath);
+      }
+    } catch {
+      // Ignore cleanup errors
+    }
+    throw err;
+  }
 }

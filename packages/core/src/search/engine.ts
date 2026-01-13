@@ -2,7 +2,7 @@
 // Composite search engine combining BM25 with optional semantic reranking
 
 import type { Prompt } from "../prompts/types";
-import { prompts, getPrompt } from "../prompts/registry";
+import { prompts, getPrompt, promptsById } from "../prompts/registry";
 import { buildIndex, search as bm25Search, type BM25Index } from "./bm25";
 import { tokenize } from "./tokenize";
 import { expandQuery } from "./synonyms";
@@ -18,6 +18,8 @@ export interface SearchOptions {
   category?: string;
   tags?: string[];
   expandSynonyms?: boolean;
+  index?: BM25Index;
+  promptsMap?: Map<string, Prompt>;
 }
 
 // Lazy-initialized index
@@ -49,10 +51,9 @@ export function searchPrompts(
     category,
     tags,
     expandSynonyms = true,
+    index = getIndex(),
+    promptsMap = promptsById,
   } = options;
-
-  // Get base results from BM25
-  const index = getIndex();
 
   // Optionally expand query with synonyms
   const queryTokens = tokenize(query);
@@ -60,54 +61,61 @@ export function searchPrompts(
   if (expandSynonyms) {
     searchTokens = expandQuery(queryTokens);
   }
-  const searchQuery = searchTokens.join(" ");
 
-  const bm25Results = bm25Search(index, searchQuery, limit * 2);
+  // Pass tokens directly to avoid re-tokenization
+  // We request ALL matches (no limit) so we can filter by category/tags correctly
+  const bm25Results = bm25Search(index, searchTokens);
 
-  // Map to full results and apply filters
-  let results: SearchResult[] = bm25Results
-    .map(({ id, score }) => {
-      const prompt = getPrompt(id);
-      if (!prompt) return null;
+  // 1. Filter first (cheaper than mapping/highlighting)
+  const filteredMatches = bm25Results.filter(({ id }) => {
+    const prompt = promptsMap.get(id);
+    if (!prompt) return false;
 
-      // Determine which fields matched (check both original query and expanded synonyms)
-      const matchedFields: string[] = [];
-      const titleLower = prompt.title.toLowerCase();
-      const descLower = prompt.description.toLowerCase();
-      const tagsLower = prompt.tags.map((t) => t.toLowerCase());
-      const contentLower = prompt.content.toLowerCase();
+    // Apply category filter
+    if (category && prompt.category !== category) return false;
 
-      // Check if any search term matches each field
-      for (const term of searchTokens) {
-        if (titleLower.includes(term) && !matchedFields.includes("title")) {
-          matchedFields.push("title");
-        }
-        if (descLower.includes(term) && !matchedFields.includes("description")) {
-          matchedFields.push("description");
-        }
-        if (tagsLower.some((t) => t.includes(term)) && !matchedFields.includes("tags")) {
-          matchedFields.push("tags");
-        }
-        if (contentLower.includes(term) && !matchedFields.includes("content")) {
-          matchedFields.push("content");
-        }
+    // Apply tags filter (match any)
+    if (tags?.length && !tags.some((tag) => prompt.tags.includes(tag))) {
+      return false;
+    }
+
+    return true;
+  });
+
+  // 2. Map to full results with highlighting (only for survivors)
+  const results: SearchResult[] = filteredMatches.map(({ id, score }) => {
+    const prompt = promptsMap.get(id)!; // Known to exist from filter step
+
+    // Determine which fields matched (check both original query and expanded synonyms)
+    const matchedFields: string[] = [];
+    
+    // Tokenize fields for accurate matching (aligns with BM25 logic)
+    // We use a Set for O(1) lookups during the check
+    const titleTokens = new Set(tokenize(prompt.title));
+    const descTokens = new Set(tokenize(prompt.description));
+    const tagTokens = new Set(prompt.tags.flatMap(t => tokenize(t)));
+    // Content is large, so we tokenize it lazily or just iterate if needed
+    // But for consistency and performance on small prompts, tokenizing is fine
+    const contentTokens = new Set(tokenize(prompt.content));
+
+    // Check if any search term matches any token in the field
+    for (const term of searchTokens) {
+      if (!matchedFields.includes("title") && titleTokens.has(term)) {
+        matchedFields.push("title");
       }
+      if (!matchedFields.includes("description") && descTokens.has(term)) {
+        matchedFields.push("description");
+      }
+      if (!matchedFields.includes("tags") && tagTokens.has(term)) {
+        matchedFields.push("tags");
+      }
+      if (!matchedFields.includes("content") && contentTokens.has(term)) {
+        matchedFields.push("content");
+      }
+    }
 
-      return { prompt, score, matchedFields };
-    })
-    .filter((r): r is SearchResult => r !== null);
-
-  // Apply category filter
-  if (category) {
-    results = results.filter((r) => r.prompt.category === category);
-  }
-
-  // Apply tags filter (match any)
-  if (tags?.length) {
-    results = results.filter((r) =>
-      tags.some((tag) => r.prompt.tags.includes(tag))
-    );
-  }
+    return { prompt, score, matchedFields };
+  });
 
   return results.slice(0, limit);
 }

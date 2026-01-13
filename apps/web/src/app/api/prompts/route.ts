@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildRegistryPayload, buildPromptList } from "@jeffreysprompts/core/export";
 import { prompts, categories, tags } from "@jeffreysprompts/core/prompts";
+import { createHash } from "crypto";
 
 // Version for ETag generation
 const REGISTRY_VERSION = process.env.JFP_REGISTRY_VERSION ?? "1.0.0";
 
-// Generate ETag from registry version, prompt count, and filter parameters
+// Compute a stable hash of the prompts registry at startup
+const REGISTRY_HASH = createHash("sha256")
+  .update(JSON.stringify(prompts))
+  .digest("hex")
+  .substring(0, 8);
+
+// Generate ETag from registry version, prompt hash, and filter parameters
 // Uses base64 encoding of params to guarantee no collisions
 function generateETag(params: {
   category?: string | null;
@@ -13,8 +20,8 @@ function generateETag(params: {
   featured?: string | null;
   minimal?: string | null;
 }): string {
-  // Include filter params in ETag to ensure different filters get different ETags
-  const content = `v${REGISTRY_VERSION}:n${prompts.length}:c${params.category ?? ""}:t${params.tag ?? ""}:f${params.featured ?? ""}:m${params.minimal ?? ""}`;
+  // Include filter params and content hash in ETag to ensure correct caching
+  const content = `v${REGISTRY_VERSION}:h${REGISTRY_HASH}:c${params.category ?? ""}:t${params.tag ?? ""}:f${params.featured ?? ""}:m${params.minimal ?? ""}`;
   // Use base64url encoding for a compact, collision-free ETag
   const encoded = Buffer.from(content).toString("base64url");
   return `"${encoded}"`;

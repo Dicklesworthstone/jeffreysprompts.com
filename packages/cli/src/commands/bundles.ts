@@ -1,8 +1,9 @@
-import { bundles, getBundle, getBundlePrompts } from "@jeffreysprompts/core/prompts/bundles";
+import { getBundlePrompts } from "@jeffreysprompts/core/prompts/bundles";
 import Table from "cli-table3";
 import boxen from "boxen";
 import chalk from "chalk";
 import { shouldOutputJson } from "../lib/utils";
+import { loadRegistry } from "../lib/registry-loader";
 
 interface BundlesListOptions {
   json?: boolean;
@@ -15,7 +16,10 @@ interface BundleShowOptions {
 /**
  * List all available bundles
  */
-export function bundlesCommand(options: BundlesListOptions) {
+export async function bundlesCommand(options: BundlesListOptions) {
+  const registry = await loadRegistry();
+  const bundles = registry.bundles;
+
   if (shouldOutputJson(options)) {
     const output = bundles.map((bundle) => ({
       id: bundle.id,
@@ -51,8 +55,9 @@ export function bundlesCommand(options: BundlesListOptions) {
 /**
  * Show detailed information about a bundle
  */
-export function bundleShowCommand(id: string, options: BundleShowOptions) {
-  const bundle = getBundle(id);
+export async function bundleShowCommand(id: string, options: BundleShowOptions) {
+  const registry = await loadRegistry();
+  const bundle = registry.bundles.find((b) => b.id === id);
 
   if (!bundle) {
     if (shouldOutputJson(options)) {
@@ -60,14 +65,22 @@ export function bundleShowCommand(id: string, options: BundleShowOptions) {
     } else {
       console.error(chalk.red("Bundle not found: " + id));
       console.log(chalk.dim("\nAvailable bundles:"));
-      for (const b of bundles) {
+      for (const b of registry.bundles) {
         console.log(chalk.dim("  - " + b.id));
       }
     }
     process.exit(1);
   }
 
-  const prompts = getBundlePrompts(bundle);
+  // We need to resolve prompt objects from IDs
+  // Since getBundlePrompts relies on the global 'getPrompt', we must map manually or inject dependencies
+  // But getBundlePrompts imports 'getPrompt' which uses static registry.
+  // We must implement lookup against our dynamic registry.prompts list.
+  
+  const promptsMap = new Map(registry.prompts.map(p => [p.id, p]));
+  const prompts = bundle.promptIds
+    .map(id => promptsMap.get(id))
+    .filter((p): p is NonNullable<typeof p> => p !== undefined);
 
   if (shouldOutputJson(options)) {
     console.log(JSON.stringify({

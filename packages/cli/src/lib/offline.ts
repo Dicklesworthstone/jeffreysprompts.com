@@ -177,7 +177,7 @@ export async function checkOffline(): Promise<boolean> {
 export function searchOfflineLibrary(
   query: string,
   limit = 10
-): SyncedPrompt[] {
+): { prompt: SyncedPrompt; score: number }[] {
   const prompts = readOfflineLibrary();
   if (!prompts.length) return [];
 
@@ -223,8 +223,7 @@ export function searchOfflineLibrary(
     })
     .filter((item) => item.score > 0)
     .sort((a, b) => b.score - a.score)
-    .slice(0, limit)
-    .map((item) => item.prompt);
+    .slice(0, limit);
 
   return scored;
 }

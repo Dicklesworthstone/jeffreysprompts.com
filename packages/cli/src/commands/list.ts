@@ -1,9 +1,10 @@
-import { prompts as publicPrompts, type Prompt } from "@jeffreysprompts/core/prompts";
+import { type Prompt } from "@jeffreysprompts/core/prompts";
 import Table from "cli-table3";
 import chalk from "chalk";
 import { apiClient, isAuthError, requiresPremium } from "../lib/api-client";
 import { isLoggedIn } from "../lib/credentials";
 import { shouldOutputJson } from "../lib/utils";
+import { loadRegistry } from "../lib/registry-loader";
 import {
   hasOfflineLibrary,
   normalizePromptCategory,
@@ -216,7 +217,10 @@ async function fetchPromptList(
 }
 
 export async function listCommand(options: ListOptions) {
-  let results = publicPrompts;
+  // Load registry dynamically (SWR pattern)
+  const registry = await loadRegistry();
+  let results = registry.prompts;
+  
   let isOfflineMode = false;
   let offlineAge: string | undefined;
 

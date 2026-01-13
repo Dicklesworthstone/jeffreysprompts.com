@@ -1,6 +1,8 @@
-import { searchPrompts, semanticRerank, type SearchResult, type RankedResult } from "@jeffreysprompts/core/search";
+import { searchPrompts, semanticRerank, buildIndex, type SearchResult, type RankedResult } from "@jeffreysprompts/core/search";
+import { type Prompt } from "@jeffreysprompts/core/prompts";
 import chalk from "chalk";
 import { shouldOutputJson } from "../lib/utils";
+import { loadRegistry } from "../lib/registry-loader";
 
 interface SuggestOptions {
   json?: boolean;
@@ -51,9 +53,21 @@ export async function suggestCommand(task: string, options: SuggestOptions) {
     process.exit(1);
   }
 
+  // Load registry dynamically (SWR pattern)
+  const registry = await loadRegistry();
+  const prompts = registry.prompts;
+  
+  // Build lookup map and search index
+  const promptsMap = new Map(prompts.map((p) => [p.id, p]));
+  const searchIndex = buildIndex(prompts);
+
   // Search using BM25 - get more results if semantic reranking will be applied
   const searchLimit = options.semantic ? Math.max(limit * 3, 10) : limit;
-  let results = searchPrompts(task, { limit: searchLimit });
+  let results = searchPrompts(task, { 
+    limit: searchLimit,
+    index: searchIndex,
+    promptsMap: promptsMap
+  });
 
   // Apply semantic reranking if requested
   if (options.semantic && results.length > 0) {
@@ -75,16 +89,19 @@ export async function suggestCommand(task: string, options: SuggestOptions) {
     });
 
     // Map back to SearchResult format, maintaining the reranked order
-    const rerankedIds = reranked.map((r) => r.id);
-    const resultById = new Map(results.map((r) => [r.prompt.id, r]));
-
-    results = rerankedIds
-      .map((id, idx) => {
-        const original = resultById.get(id);
-        if (!original) return null;
+    // We use promptsMap for O(1) lookups
+    results = reranked
+      .map((ranked, idx) => {
+        const prompt = promptsMap.get(ranked.id);
+        if (!prompt) return null;
+        
+        // Find original result to preserve matchedFields if possible, or recreate basic result
+        const original = results.find(r => r.prompt.id === ranked.id);
+        
         return {
-          ...original,
-          score: reranked[idx].score, // Use semantic score
+          prompt,
+          score: ranked.score, // Use semantic score
+          matchedFields: original?.matchedFields ?? [],
         };
       })
       .filter((r): r is SearchResult => r !== null)

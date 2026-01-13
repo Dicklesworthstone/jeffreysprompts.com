@@ -68,21 +68,34 @@ function setNestedValue(obj: Record<string, unknown>, path: string, value: unkno
 }
 
 /**
- * Parse a string value into the appropriate type
+ * Parse a string value into the appropriate type, guided by expected type
  */
-function parseValue(value: string): ConfigValue {
-  // Boolean
+function parseValue(value: string, expectedType?: string): ConfigValue {
+  // If we expect a string, preserve it exactly (avoids "true" -> true for string fields)
+  if (expectedType === "string") {
+    return value;
+  }
+
+  // If we expect a number, try to parse as number
+  if (expectedType === "number") {
+    const num = Number(value);
+    if (!Number.isNaN(num) && value.trim() !== "") return num;
+  }
+
+  // If we expect a boolean, try to parse as boolean
+  if (expectedType === "boolean") {
+    if (value.toLowerCase() === "true") return true;
+    if (value.toLowerCase() === "false") return false;
+  }
+
+  // Fallback / Inference
   if (value.toLowerCase() === "true") return true;
   if (value.toLowerCase() === "false") return false;
-
-  // Null
   if (value.toLowerCase() === "null") return null;
 
-  // Number
   const num = Number(value);
   if (!Number.isNaN(num) && value.trim() !== "") return num;
 
-  // String (default)
   return value;
 }
 
@@ -196,8 +209,9 @@ export async function configSetCommand(
     process.exit(1);
   }
 
-  // Parse and set the new value
-  const parsedValue = parseValue(value);
+  // Parse and set the new value, using existing type as a hint
+  const expectedType = existingValue === null ? undefined : typeof existingValue;
+  const parsedValue = parseValue(value, expectedType);
   setNestedValue(config, key, parsedValue);
 
   // Save the updated config

@@ -1,6 +1,6 @@
 import { select, search, Separator } from "@inquirer/prompts";
-import { prompts, getPrompt, type Prompt } from "@jeffreysprompts/core/prompts";
-import { searchPrompts } from "@jeffreysprompts/core/search";
+import { type Prompt } from "@jeffreysprompts/core/prompts";
+import { searchPrompts, buildIndex } from "@jeffreysprompts/core/search";
 import { generateSkillMd, generatePromptMarkdown } from "@jeffreysprompts/core/export";
 import chalk from "chalk";
 import boxen from "boxen";
@@ -16,6 +16,7 @@ import {
 } from "../lib/manifest";
 import { computeSkillHash } from "@jeffreysprompts/core/export";
 import { resolveSafeChildPath, isSafeSkillId } from "../lib/utils";
+import { loadRegistry } from "../lib/registry-loader";
 import type { SkillManifestEntry } from "@jeffreysprompts/core/export";
 
 interface InteractiveOptions {
@@ -220,6 +221,14 @@ async function promptAction(prompt: Prompt): Promise<"back" | "exit"> {
 }
 
 export async function interactiveCommand(_options: InteractiveOptions): Promise<void> {
+  // Load registry dynamically (SWR pattern)
+  const registry = await loadRegistry();
+  const dynamicPrompts = registry.prompts;
+  
+  // Build lookup map and search index
+  const promptsMap = new Map(dynamicPrompts.map((p) => [p.id, p]));
+  const searchIndex = buildIndex(dynamicPrompts);
+
   console.log(chalk.bold.cyan("\n🎯 JeffreysPrompts Interactive Mode"));
   console.log(chalk.dim("Type to search, use arrow keys to select, Enter to choose\n"));
 
@@ -231,15 +240,20 @@ export async function interactiveCommand(_options: InteractiveOptions): Promise<
         source: async (input) => {
           if (!input || input.trim().length === 0) {
             // Show all prompts when no input
-            return prompts.slice(0, 20).map((p) => ({
+            return dynamicPrompts.slice(0, 20).map((p) => ({
               name: `${p.title} ${chalk.dim(`[${p.category}]`)}`,
               value: p.id,
               description: p.description,
             }));
           }
 
-          // Use BM25 search
-          const results = searchPrompts(input.trim(), { limit: 15 });
+          // Use BM25 search with dynamic index and map
+          const results = searchPrompts(input.trim(), { 
+            limit: 15,
+            index: searchIndex,
+            promptsMap: promptsMap
+          });
+          
           return results.map(({ prompt: p, score }) => ({
             name: `${p.title} ${chalk.dim(`[${p.category}]`)} ${chalk.dim(`(${score.toFixed(1)})`)}`,
             value: p.id,
@@ -248,7 +262,7 @@ export async function interactiveCommand(_options: InteractiveOptions): Promise<
         },
       });
 
-      const prompt = getPrompt(selectedId);
+      const prompt = promptsMap.get(selectedId);
       if (!prompt) {
         console.log(chalk.red("Prompt not found"));
         continue;

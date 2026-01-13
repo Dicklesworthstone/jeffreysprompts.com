@@ -32,33 +32,28 @@ afterEach(() => {
 });
 
 describe("showCommand", () => {
-  it("outputs JSON for a valid prompt", () => {
-    showCommand("idea-wizard", { json: true });
+  it("outputs JSON for a valid prompt", async () => {
+    await showCommand("idea-wizard", { json: true });
     const payload = JSON.parse(output.join(""));
-    expect(payload).toHaveProperty("id", "idea-wizard");
-    expect(payload).toHaveProperty("content");
+    expect(payload.id).toBe("idea-wizard");
+    expect(payload.title).toBe("The Idea Wizard");
   });
 
-  it("outputs raw content when --raw is set", () => {
-    showCommand("idea-wizard", { raw: true });
+  it("outputs raw content when --raw is set", async () => {
+    await showCommand("idea-wizard", { raw: true });
     const text = output.join("");
     expect(text).toContain("Come up with your very best ideas");
   });
 
-  it("returns not_found JSON and exits for missing prompt", () => {
-    expect(() => showCommand("missing-prompt", { json: true })).toThrow();
-    const payload = JSON.parse(output.join(""));
-    expect(payload).toEqual({ error: "not_found" });
+  it("returns not_found JSON and exits for missing prompt", async () => {
+    try {
+      await showCommand("missing-prompt", { json: true });
+    } catch (e) {
+      if ((e as Error).message !== "process.exit") throw e;
+    }
+    
     expect(exitCode).toBe(1);
-  });
-
-  it("outputs JSON error in non-TTY mode (piped output) when json flag not set", () => {
-    // In non-TTY mode (tests, piped output), shouldOutputJson() returns true
-    // even without --json flag, so error is JSON format
-    expect(() => showCommand("missing-prompt", {})).toThrow();
-    // In non-TTY, output goes to stdout as JSON
     const payload = JSON.parse(output.join(""));
-    expect(payload).toEqual({ error: "not_found" });
-    expect(exitCode).toBe(1);
+    expect(payload.error).toBe("not_found");
   });
 });

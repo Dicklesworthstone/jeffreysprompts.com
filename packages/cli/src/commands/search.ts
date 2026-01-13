@@ -83,14 +83,14 @@ function searchLocal(query: string, limit: number): MergedSearchResult[] {
  * Search the offline library cache
  */
 function searchOffline(query: string, limit: number): MergedSearchResult[] {
-  const prompts = searchOfflineLibrary(query, limit);
-  return prompts.map((p) => ({
+  const results = searchOfflineLibrary(query, limit);
+  return results.map(({ prompt: p, score }) => ({
     id: p.id,
     title: p.title,
     description: p.description || "",
     category: normalizePromptCategory(p.category),
     tags: p.tags || [],
-    score: 1, // Offline results don't have scores, use 1
+    score: score,
     source: "saved" as const, // Offline library is saved prompts
   }));
 }

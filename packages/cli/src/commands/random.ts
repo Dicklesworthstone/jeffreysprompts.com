@@ -2,9 +2,10 @@
  * Random prompt command - get a random prompt for discovery
  */
 
-import { prompts, type Prompt, type PromptCategory } from "@jeffreysprompts/core/prompts";
+import { type Prompt } from "@jeffreysprompts/core/prompts";
 import chalk from "chalk";
 import { shouldOutputJson } from "../lib/utils";
+import { loadRegistry } from "../lib/registry-loader";
 
 interface RandomOptions {
   category?: string;
@@ -25,7 +26,9 @@ function writeJsonError(code: string, message: string): void {
  * Get a random prompt, optionally filtered by category or tag
  */
 export async function randomCommand(options: RandomOptions): Promise<void> {
-  let candidates = prompts;
+  // Load registry dynamically (SWR pattern)
+  const registry = await loadRegistry();
+  let candidates = registry.prompts;
 
   // Apply category filter
   if (options.category) {

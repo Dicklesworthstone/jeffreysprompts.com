@@ -223,22 +223,24 @@ function ToastItem({ toast, index, onRemove }: ToastItemProps) {
   React.useEffect(() => {
     if (isPaused) return;
 
+    const startTime = Date.now();
+    const startProgress = progress;
     const interval = 16; // ~60fps
-    const decrement = (100 / duration) * interval;
 
     const timer = setInterval(() => {
-      setProgress((prev) => {
-        const next = prev - decrement;
-        if (next <= 0) {
-          clearInterval(timer);
-          return 0;
-        }
-        return next;
-      });
+      const elapsed = Date.now() - startTime;
+      const remainingPercent = startProgress - (elapsed / duration) * 100;
+      
+      if (remainingPercent <= 0) {
+        setProgress(0);
+        clearInterval(timer);
+      } else {
+        setProgress(remainingPercent);
+      }
     }, interval);
 
     return () => clearInterval(timer);
-  }, [duration, isPaused]);
+  }, [duration, isPaused]); // Re-binds when paused state changes, capturing new 'progress' as start point
 
   // Auto-dismiss when progress reaches 0
   React.useEffect(() => {

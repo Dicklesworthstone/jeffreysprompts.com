@@ -2,14 +2,17 @@ import { getPrompt } from "@jeffreysprompts/core/prompts";
 import boxen from "boxen";
 import chalk from "chalk";
 import { shouldOutputJson } from "../lib/utils";
+import { loadRegistry } from "../lib/registry-loader";
 
 interface ShowOptions {
   json?: boolean;
   raw?: boolean;
 }
 
-export function showCommand(id: string, options: ShowOptions) {
-  const prompt = getPrompt(id);
+export async function showCommand(id: string, options: ShowOptions) {
+  // Load registry dynamically (SWR pattern)
+  const registry = await loadRegistry();
+  const prompt = registry.prompts.find((p) => p.id === id);
 
   if (!prompt) {
     if (shouldOutputJson(options)) {
