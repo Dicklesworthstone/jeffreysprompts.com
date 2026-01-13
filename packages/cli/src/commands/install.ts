@@ -54,30 +54,9 @@ export async function installCommand(ids: string[], options: InstallOptions) {
     }
 
     try {
-      // NOTE: generateBundleSkillMd might use static imports internally if not careful.
-      // Ideally we should pass prompts to it, but it imports getBundlePrompts which imports getPrompt.
-      // We need to ensure we pass fully resolved bundle object or that the helper uses dependency injection.
-      // For now, let's assume the bundle object is complete or we rebuild it.
-      // Wait, generateBundleSkillMd calls getBundlePrompts(bundle).
-      // getBundlePrompts calls getPrompt(id).
-      // This is still using static getPrompt!
-      // We must implement manual bundle generation here or refactor core.
-      // Refactoring core to accept prompts map is cleaner.
-      
-      // Let's implement a local helper for now to avoid cross-package refactor risk in this step.
-      const bundlePrompts = bundle.promptIds
-        .map(id => registry.prompts.find(p => p.id === id))
-        .filter((p): p is NonNullable<typeof p> => p !== undefined);
-        
-      // We need to recreate generateBundleSkillMd logic but with our dynamic prompts
-      // Actually, let's just stick to the existing one for now, acknowledging it might miss *new* prompts referenced by *old* bundles?
-      // No, if the bundle is new (from registry), it refers to prompts in registry.
-      // If we use the static `getPrompt`, we miss dynamic prompts.
-      // So we MUST patch `generateBundleSkillMd` or replicate it.
-      // I will replicate it here for safety and correctness in CLI context.
-      
-      // ... Re-implementing generateBundleSkillMd logic locally with dynamic prompts ...
-      const skillContent = generateDynamicBundleSkillMd(bundle, bundlePrompts);
+      // Create map of dynamic prompts for bundle resolution
+      const promptsMap = new Map(registry.prompts.map(p => [p.id, p]));
+      const skillContent = generateBundleSkillMd(bundle, promptsMap);
       
       const skillDir = resolveSafeChildPath(targetRoot, bundle.id);
       const skillPath = join(skillDir, "SKILL.md");
@@ -257,73 +236,4 @@ export async function installCommand(ids: string[], options: InstallOptions) {
       process.exit(1);
     }
   }
-}
-
-// Helper to generate bundle SKILL.md with dynamic prompts
-// Duplicates logic from @jeffreysprompts/core/export/skills but uses provided prompts
-import { escapeYamlValue, escapeYamlArrayItem } from "@jeffreysprompts/core/export/yaml"; // Ensure yaml export is available or duplicate it? 
-// It's available from @jeffreysprompts/core/export/yaml is not exported by index. 
-// We should check what's exported.
-// packages/core/src/index.ts exports from ./export/skills, markdown, json.
-// It does NOT export from ./export/yaml.
-// I will need to duplicate the simple escaping logic or rely on import internals (not ideal).
-// Actually, let's update packages/core/src/prompts/bundles.ts to accept prompts array.
-// But I can't easily edit core for this one command without breaking others?
-// I will implement a minimal local version.
-
-function generateDynamicBundleSkillMd(bundle: any, prompts: any[]): string {
-  const q = (v: string) => JSON.stringify(v); // Simple JSON stringify matches most YAML escaping needs for strings
-  // Actually, let's use a simpler safe string approach for YAML
-  
-  const frontmatter = [
-    "---",
-    `name: ${bundle.id}`,
-    `description: ${JSON.stringify(bundle.description)}`,
-    `version: ${JSON.stringify(bundle.version)}`,
-    `author: ${JSON.stringify(bundle.author)}`,
-    `type: bundle`,
-    `prompts: [${prompts.map((p) => JSON.stringify(p.id)).join(", ")}]`,
-    `source: https://jeffreysprompts.com/bundles/${bundle.id}`,
-    "x_jfp_generated: true",
-    "---",
-    "",
-  ].join("\n");
-
-  const content: string[] = [`# ${bundle.title}`, "", bundle.description, ""];
-
-  if (bundle.workflow) {
-    content.push("## Workflow", "", bundle.workflow, "");
-  }
-
-  if (bundle.whenToUse && bundle.whenToUse.length > 0) {
-    content.push("## When to Use This Bundle", "");
-    for (const item of bundle.whenToUse) {
-      content.push(`- ${item}`);
-    }
-    content.push("");
-  }
-
-  content.push("---", "", "## Included Prompts", "");
-
-  for (const prompt of prompts) {
-    content.push(`### ${prompt.title}`, "", `*${prompt.description}*`, "", prompt.content, "");
-
-    if (prompt.whenToUse && prompt.whenToUse.length > 0) {
-      content.push("**When to use:**");
-      for (const item of prompt.whenToUse) content.push(`- ${item}`);
-      content.push("");
-    }
-
-    if (prompt.tips && prompt.tips.length > 0) {
-      content.push("**Tips:**");
-      for (const item of prompt.tips) content.push(`- ${item}`);
-      content.push("");
-    }
-
-    content.push("---", "");
-  }
-
-  content.push(`*Bundle from [JeffreysPrompts.com](https://jeffreysprompts.com/bundles/${bundle.id})*`, "");
-
-  return frontmatter + content.join("\n");
 }

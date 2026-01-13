@@ -103,9 +103,9 @@ export function getBundle(id: string): Bundle | undefined {
 /**
  * Get all prompts in a bundle
  */
-export function getBundlePrompts(bundle: Bundle): Prompt[] {
+export function getBundlePrompts(bundle: Bundle, promptsMap?: Map<string, Prompt>): Prompt[] {
   return bundle.promptIds
-    .map((id) => getPrompt(id))
+    .map((id) => promptsMap ? promptsMap.get(id) : getPrompt(id))
     .filter((p): p is Prompt => p !== undefined);
 }
 
@@ -113,8 +113,8 @@ export function getBundlePrompts(bundle: Bundle): Prompt[] {
  * Generate SKILL.md content for a bundle (combined skill)
  * Creates a single skill file containing all prompts in the bundle
  */
-export function generateBundleSkillMd(bundle: Bundle): string {
-  const prompts = getBundlePrompts(bundle);
+export function generateBundleSkillMd(bundle: Bundle, promptsMap?: Map<string, Prompt>): string {
+  const prompts = getBundlePrompts(bundle, promptsMap);
 
   const frontmatter = [
     "---",
