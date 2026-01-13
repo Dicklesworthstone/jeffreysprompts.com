@@ -134,7 +134,7 @@ export function generateWorkflowSkillMd(workflow: Workflow): string {
 /**
  * Generate a unique HEREDOC delimiter that doesn't appear in content
  */
-function getUniqueDelimiter(content: string, base: string = "JFP_SKILL"): string {
+export function getUniqueDelimiter(content: string, base: string = "JFP_SKILL"): string {
   const MAX_ATTEMPTS = 100;
   let delimiter = base;
   let counter = 0;
