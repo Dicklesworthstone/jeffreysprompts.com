@@ -146,9 +146,10 @@ export function ShareDialog({
       // Mock API call - will be replaced with real API
       await new Promise((resolve) => setTimeout(resolve, 500));
 
+      const newLinkCode = generateMockLinkCode();
       const mockShare: ShareLink = {
-        linkCode: generateMockLinkCode(),
-        url: `https://jeffreysprompts.com/share/${generateMockLinkCode()}`,
+        linkCode: newLinkCode,
+        url: `https://jeffreysprompts.com/share/${newLinkCode}`,
         password: passwordEnabled ? password : null,
         expiresAt:
           expiration !== "never"

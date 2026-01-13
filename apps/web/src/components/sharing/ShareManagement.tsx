@@ -22,7 +22,6 @@ import {
   Eye,
   Trash2,
   ExternalLink,
-  MoreVertical,
   Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -68,7 +67,10 @@ function formatRelativeDate(dateString: string): string {
   if (diffDays === 0) return "Expires today";
   if (diffDays === 1) return "Expires tomorrow";
   if (diffDays < 7) return `Expires in ${diffDays} days`;
-  if (diffDays < 30) return `Expires in ${Math.floor(diffDays / 7)} weeks`;
+
+  const weeks = Math.floor(diffDays / 7);
+  if (diffDays < 30) return `Expires in ${weeks} ${weeks === 1 ? "week" : "weeks"}`;
+
   return `Expires ${formatDate(dateString)}`;
 }
 
