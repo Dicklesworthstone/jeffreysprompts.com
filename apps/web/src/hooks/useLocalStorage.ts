@@ -23,7 +23,6 @@ import {
   useCallback,
   useEffect,
   useRef,
-  useState,
   useSyncExternalStore,
   type MutableRefObject,
 } from "react";
@@ -51,17 +50,6 @@ export function useLocalStorage<T>(
   const prevKeyRef = useRef<string>(key);
   const listenersRef = useRef(new Set<() => void>());
 
-  const [isHydrated, setIsHydrated] = useState(false);
-
-  useEffect(() => {
-    setIsHydrated(true);
-  }, []);
-
-  // Keep initialValueRef updated for resets without re-running effects every render
-  useEffect(() => {
-    initialValueRef.current = initialValue;
-  }, [initialValue]);
-
   // Flush pending writes when switching keys
   useEffect(() => {
     const oldKey = prevKeyRef.current;
@@ -87,11 +75,6 @@ export function useLocalStorage<T>(
   }, []);
 
   const readValue = useCallback((): T => {
-    // Prevent hydration mismatch by returning initial value until mounted
-    if (!isHydrated) {
-      return initialValueRef.current;
-    }
-
     if (hasLatestValueRef.current && latestKeyRef.current === key) {
       return latestValueRef.current;
     }
@@ -126,7 +109,7 @@ export function useLocalStorage<T>(
       hasLatestValueRef.current = true;
       return initialValueRef.current;
     }
-  }, [key, isHydrated]);
+  }, [key]);
 
   const subscribe = useCallback(
     (listener: () => void) => {
