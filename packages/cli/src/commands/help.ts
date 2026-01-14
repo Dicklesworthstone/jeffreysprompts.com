@@ -59,6 +59,7 @@ function getHelpData() {
         { name: "uninstall [...ids]", description: "Remove installed skills", options: ["--project", "--confirm", "--json"] },
         { name: "installed", description: "List installed skills", options: ["--personal", "--project", "--json"] },
         { name: "update", description: "Update installed skills", options: ["--personal", "--project", "--dry-run", "--diff", "--force", "--json"] },
+        { name: "skills [action]", description: "Manage skills marketplace (premium)", options: ["--tool", "--category", "--mine", "--search", "--limit", "--force", "--stdout", "--output", "--name", "--description", "--json"] },
       ],
       bundles: [
         { name: "bundles", description: "List available bundles", options: ["--json"] },
@@ -144,6 +145,7 @@ JeffreysPrompts CLI v${version}
   sections.push(formatCommand("uninstall [...ids]", "Remove installed skills"));
   sections.push(formatCommand("installed", "List installed skills"));
   sections.push(formatCommand("update", "Update installed skills"));
+  sections.push(formatCommand("skills [action]", "Manage skills marketplace"));
   sections.push("");
 
   // Bundles
