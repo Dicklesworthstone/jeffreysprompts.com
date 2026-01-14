@@ -177,6 +177,14 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
           "hover:border-neutral-300 dark:hover:border-neutral-700"
         )}
         onClick={handleClick}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleClick();
+          }
+        }}
       >
         {/* Featured indicator - prominent top accent */}
         {prompt.featured && (
