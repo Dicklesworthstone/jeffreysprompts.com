@@ -112,6 +112,7 @@ cli
 cli
   .command("export [...ids]", "Export prompts to files")
   .option("--format <format>", "Format: skill or md (default: skill)")
+  .option("--output-dir <dir>", "Directory to write exported files (default: current directory)")
   .option("--all", "Export all prompts")
   .option("--stdout", "Print to stdout")
   .option("--json", "Output JSON")

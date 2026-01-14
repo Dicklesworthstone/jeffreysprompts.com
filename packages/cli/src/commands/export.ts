@@ -1,4 +1,5 @@
-import { writeFileSync } from "fs";
+import { writeFileSync, mkdirSync } from "fs";
+import { join } from "path";
 import { generateSkillMd } from "@jeffreysprompts/core/export/skills";
 import { generatePromptMarkdown } from "@jeffreysprompts/core/export/markdown";
 import chalk from "chalk";
@@ -7,6 +8,7 @@ import { loadRegistry } from "../lib/registry-loader";
 
 interface ExportOptions {
   format?: "skill" | "md";
+  outputDir?: string;
   all?: boolean;
   stdout?: boolean;
   json?: boolean;
@@ -14,6 +16,7 @@ interface ExportOptions {
 
 export async function exportCommand(ids: string[], options: ExportOptions) {
   const format = options.format || "skill";
+  const outputDir = options.outputDir || process.cwd();
   
   // Load registry dynamically (SWR pattern)
   const registry = await loadRegistry();
@@ -39,6 +42,21 @@ export async function exportCommand(ids: string[], options: ExportOptions) {
     promptsToExport = foundPrompts;
   }
 
+  // Ensure output directory exists if we are writing files
+  if (!options.stdout) {
+    try {
+      mkdirSync(outputDir, { recursive: true });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (shouldOutputJson(options)) {
+        console.log(JSON.stringify({ error: true, code: "fs_error", message }));
+      } else {
+        console.error(chalk.red(`Failed to create output directory: ${message}`));
+      }
+      process.exit(1);
+    }
+  }
+
   const results: {id: string, file: string}[] = [];
 
   const failed: { id: string; error: string }[] = [];
@@ -51,7 +69,7 @@ export async function exportCommand(ids: string[], options: ExportOptions) {
       if (promptsToExport.length > 1) console.log("\n---\n");
     } else {
       const ext = format === "skill" ? "-SKILL.md" : ".md";
-      const filename = `${prompt.id}${ext}`;
+      const filename = join(outputDir, `${prompt.id}${ext}`);
       try {
         writeFileSync(filename, content);
         results.push({ id: prompt.id, file: filename });
