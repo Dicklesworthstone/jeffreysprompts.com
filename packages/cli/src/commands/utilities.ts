@@ -201,6 +201,40 @@ export async function doctorCommand(options: JsonOptions): Promise<void> {
     });
   }
 
+  // Check Bun availability
+  try {
+    const whichCmd = platform() === "win32" ? "where" : "which";
+    const which = spawn(whichCmd, ["bun"]);
+    const hasBun = await new Promise<boolean>((resolve) => {
+      which.on("close", (code) => resolve(code === 0));
+      which.on("error", () => resolve(false));
+    });
+
+    if (hasBun) {
+      // Check version
+      const bunVer = spawn("bun", ["--version"]);
+      let version = "";
+      bunVer.stdout.on("data", (data) => {
+        version += data.toString().trim();
+      });
+      await new Promise<void>((resolve) => bunVer.on("close", () => resolve()));
+      
+      results.push({
+        check: "Bun runtime",
+        status: "ok",
+        message: `Available (v${version})`,
+      });
+    } else {
+      results.push({
+        check: "Bun runtime",
+        status: "ok", // Not required for binary
+        message: "Not found (optional for binary usage)",
+      });
+    }
+  } catch {
+    // Ignore check errors
+  }
+
   // Check registry
   results.push({
     check: "Prompt registry",
