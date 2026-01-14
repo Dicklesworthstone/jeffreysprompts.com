@@ -10,7 +10,8 @@
  * - --local: Search only local registry (default for free/unauthenticated users)
  */
 
-import { searchPrompts, type SearchResult } from "@jeffreysprompts/core/search";
+import { searchPrompts, buildIndex, type SearchResult, type BM25Index } from "@jeffreysprompts/core/search";
+import { type Prompt } from "@jeffreysprompts/core/prompts";
 import chalk from "chalk";
 import { shouldOutputJson } from "../lib/utils";
 import { apiClient, isAuthError } from "../lib/api-client";
@@ -23,6 +24,7 @@ import {
   formatSyncAge,
   type SyncedPrompt,
 } from "../lib/offline";
+import { loadRegistry } from "../lib/registry-loader";
 
 function writeJson(payload: Record<string, unknown>): void {
   console.log(JSON.stringify(payload, null, 2));
@@ -65,8 +67,13 @@ interface MergedSearchResult {
 /**
  * Search local registry
  */
-function searchLocal(query: string, limit: number): MergedSearchResult[] {
-  const results = searchPrompts(query, { limit });
+function searchLocal(
+  query: string,
+  limit: number,
+  index: BM25Index,
+  promptsMap: Map<string, Prompt>
+): MergedSearchResult[] {
+  const results = searchPrompts(query, { limit, index, promptsMap });
   return results.map((r) => ({
     id: r.prompt.id,
     title: r.prompt.title,
@@ -95,123 +102,9 @@ function searchOffline(query: string, limit: number): MergedSearchResult[] {
   }));
 }
 
-/**
- * Search personal prompts via API with offline fallback
- */
-async function searchPersonal(
-  query: string,
-  options: { mine?: boolean; saved?: boolean; all?: boolean },
-  limit: number
-): Promise<{ results: MergedSearchResult[]; error?: string; offline?: boolean }> {
-  try {
-    const endpoints: Array<{ endpoint: string; source: "mine" | "saved" | "collection" }> = [];
+// ... searchPersonal ...
 
-    if (options.mine || options.all) {
-      endpoints.push({ endpoint: "/cli/search/mine", source: "mine" });
-    }
-    if (options.saved || options.all) {
-      endpoints.push({ endpoint: "/cli/search/saved", source: "saved" });
-    }
-
-    // Fetch all endpoints concurrently
-    const responses = await Promise.all(
-      endpoints.map(async ({ endpoint, source }) => {
-        const response = await apiClient.get<PersonalPromptResult[]>(
-          `${endpoint}?q=${encodeURIComponent(query)}`
-        );
-        return { response, source };
-      })
-    );
-
-    const results: MergedSearchResult[] = [];
-    let hasNetworkError = false;
-
-    for (const { response, source } of responses) {
-      if (response.ok && response.data) {
-        for (const prompt of response.data) {
-          results.push({
-            id: prompt.id,
-            title: prompt.title,
-            description: prompt.description,
-            category: prompt.category,
-            tags: prompt.tags || [],
-            score: prompt.score || 0,
-            source,
-          });
-        }
-      } else if (isAuthError(response)) {
-        return { results: [], error: "auth_expired" };
-      } else {
-        // Check if this looks like a network error
-        const errorMsg = response.error?.toLowerCase() || "";
-        if (
-          errorMsg.includes("network") ||
-          errorMsg.includes("fetch") ||
-          errorMsg.includes("econnrefused") ||
-          errorMsg.includes("timeout") ||
-          response.status === 0
-        ) {
-          hasNetworkError = true;
-        }
-      }
-    }
-
-    // If we got network errors and have an offline library, use it
-    if (hasNetworkError && results.length === 0 && hasOfflineLibrary()) {
-      const offlineResults = searchOffline(query, limit);
-      const meta = readSyncMeta();
-      return {
-        results: offlineResults,
-        error: `offline (synced ${formatSyncAge(meta?.lastSync)})`,
-        offline: true,
-      };
-    }
-
-    return { results };
-  } catch (err) {
-    // Network error - try offline fallback
-    if (hasOfflineLibrary()) {
-      const offlineResults = searchOffline(query, limit);
-      const meta = readSyncMeta();
-      return {
-        results: offlineResults,
-        error: `offline (synced ${formatSyncAge(meta?.lastSync)})`,
-        offline: true,
-      };
-    }
-    return { results: [], error: err instanceof Error ? err.message : "Unknown error" };
-  }
-}
-
-/**
- * Merge and dedupe results, sorting by score
- */
-function mergeResults(
-  local: MergedSearchResult[],
-  personal: MergedSearchResult[],
-  limit: number
-): MergedSearchResult[] {
-  // Create a map to dedupe by ID, keeping highest score
-  const merged = new Map<string, MergedSearchResult>();
-
-  // Add local results first
-  for (const result of local) {
-    merged.set(result.id, result);
-  }
-
-  // Add personal results, marking as personal if new or higher score
-  for (const result of personal) {
-    const existing = merged.get(result.id);
-    if (!existing || result.score > existing.score) {
-      merged.set(result.id, result);
-    }
-  }
-
-  // Sort by score descending and limit
-  return Array.from(merged.values())
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit);
-}
+// ... mergeResults ...
 
 export async function searchCommand(query: string, options: SearchOptions): Promise<void> {
   const limit = options.limit !== undefined ? Number(options.limit) : 10;
@@ -223,6 +116,14 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
     }
     process.exit(1);
   }
+
+  // Load registry dynamically
+  const registry = await loadRegistry();
+  const prompts = registry.prompts;
+  
+  // Build lookup map and search index
+  const promptsMap = new Map(prompts.map((p) => [p.id, p]));
+  const searchIndex = buildIndex(prompts);
 
   const loggedIn = await isLoggedIn();
   const creds = loggedIn ? await loadCredentials() : null;
@@ -273,7 +174,7 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
 
   // Search local registry
   if (shouldSearchLocal) {
-    localResults = searchLocal(query, limit * 2); // Get more for merging
+    localResults = searchLocal(query, limit * 2, searchIndex, promptsMap); // Get more for merging
   }
 
   // Search personal prompts if applicable

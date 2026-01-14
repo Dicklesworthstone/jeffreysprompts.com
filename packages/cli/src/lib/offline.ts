@@ -6,7 +6,7 @@
 
 import { existsSync, readFileSync } from "fs";
 import { join } from "path";
-import type { PromptCategory } from "@jeffreysprompts/core/prompts";
+import type { Prompt, PromptCategory } from "@jeffreysprompts/core/prompts";
 import { getConfigDir } from "./config";
 
 export interface SyncedPrompt {
@@ -19,7 +19,7 @@ export interface SyncedPrompt {
   saved_at: string;
 }
 
-interface SyncMeta {
+export interface SyncMeta {
   lastSync: string;
   promptCount: number;
   version: string;
@@ -106,6 +106,27 @@ export function readOfflineLibrary(): SyncedPrompt[] {
 export function getOfflinePromptById(id: string): SyncedPrompt | null {
   const prompts = readOfflineLibrary();
   return prompts.find((prompt) => prompt.id === id) ?? null;
+}
+
+/**
+ * Get an offline prompt converted to the standard Prompt type
+ */
+export function getOfflinePromptAsPrompt(id: string): Prompt | null {
+  const offline = getOfflinePromptById(id);
+  if (!offline) return null;
+
+  return {
+    id: offline.id,
+    title: offline.title,
+    description: offline.description ?? "",
+    content: offline.content,
+    category: normalizePromptCategory(offline.category),
+    tags: offline.tags ?? [],
+    author: "", // Offline prompts don't store author yet, could be added later
+    version: "1.0.0",
+    created: offline.saved_at, // Mapping saved_at to created
+    featured: false,
+  };
 }
 
 /**

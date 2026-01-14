@@ -14,6 +14,7 @@ import boxen from "boxen";
 import { apiClient, isAuthError, requiresPremium } from "../lib/api-client";
 import { getAccessToken } from "../lib/credentials";
 import { shouldOutputJson } from "../lib/utils";
+import { loadRegistry } from "../lib/registry-loader";
 
 export interface NotesOptions {
   add?: string;
@@ -52,6 +53,19 @@ function writeJsonError(code: string, message: string, extra: Record<string, unk
  * Notes command - view, add, or delete notes on prompts
  */
 export async function notesCommand(promptId: string, options: NotesOptions = {}): Promise<void> {
+  // Check if prompt exists in registry (including offline/synced)
+  const registry = await loadRegistry();
+  const prompt = registry.prompts.find((p) => p.id === promptId);
+
+  if (!prompt) {
+    if (shouldOutputJson(options)) {
+      writeJsonError("not_found", `Prompt not found: ${promptId}`);
+    } else {
+      console.error(chalk.red(`Prompt not found: ${promptId}`));
+    }
+    process.exit(1);
+  }
+
   // Check authentication
   const token = await getAccessToken();
   if (!token) {

@@ -9,6 +9,7 @@ import type { Workflow } from "@jeffreysprompts/core/prompts/workflows";
 import { prompts as bundledPrompts, bundles as bundledBundles, workflows as bundledWorkflows } from "@jeffreysprompts/core/prompts";
 import type { RegistryPayload } from "@jeffreysprompts/core/export";
 import { loadConfig } from "./config";
+import { readOfflineLibrary, normalizePromptCategory } from "./offline";
 
 export interface RegistryMeta {
   version: string;
@@ -112,6 +113,22 @@ function loadLocalPrompts(dir: string): Prompt[] {
   return prompts;
 }
 
+function loadOfflinePrompts(): Prompt[] {
+  const offline = readOfflineLibrary();
+  return offline.map(p => ({
+    id: p.id,
+    title: p.title,
+    description: p.description ?? "",
+    content: p.content,
+    category: normalizePromptCategory(p.category),
+    tags: p.tags ?? [],
+    author: "", 
+    version: "1.0.0",
+    created: p.saved_at,
+    featured: false,
+  }));
+}
+
 async function fetchRegistry(
   url: string,
   timeoutMs: number,
@@ -168,13 +185,17 @@ export async function loadRegistry(): Promise<LoadedRegistry> {
   const localPrompts = config.localPrompts.enabled
     ? loadLocalPrompts(config.localPrompts.dir)
     : [];
+  
+  const offlinePrompts = loadOfflinePrompts();
 
   if (cachedPrompts?.length) {
     if (!isCacheFresh(cachedMeta, config.registry.cacheTtl) && config.registry.autoRefresh) {
       void refreshRegistry().catch(() => undefined);
     }
+    // offline -> cached -> local
+    const merged = mergePrompts(offlinePrompts, cachedPrompts);
     return {
-      prompts: mergePrompts(cachedPrompts, localPrompts),
+      prompts: mergePrompts(merged, localPrompts),
       bundles: cachedBundles,
       workflows: cachedWorkflows,
       meta: cachedMeta,
@@ -192,8 +213,10 @@ export async function loadRegistry(): Promise<LoadedRegistry> {
   if (remote.payload && remote.meta && remotePrompts) {
     writeJsonFile(config.registry.cachePath, remote.payload);
     writeJsonFile(config.registry.metaPath, remote.meta);
+    
+    const merged = mergePrompts(offlinePrompts, remotePrompts);
     return {
-      prompts: mergePrompts(remotePrompts, localPrompts),
+      prompts: mergePrompts(merged, localPrompts),
       bundles: remote.payload.bundles || [],
       workflows: remote.payload.workflows || [],
       meta: remote.meta,
@@ -201,8 +224,10 @@ export async function loadRegistry(): Promise<LoadedRegistry> {
     };
   }
 
+  // offline -> bundled -> local
+  const merged = mergePrompts(offlinePrompts, bundledPrompts);
   return {
-    prompts: mergePrompts(bundledPrompts, localPrompts),
+    prompts: mergePrompts(merged, localPrompts),
     bundles: bundledBundles,
     workflows: bundledWorkflows,
     meta: null,
@@ -224,6 +249,8 @@ export async function refreshRegistry(): Promise<LoadedRegistry> {
   const localPrompts = config.localPrompts.enabled
     ? loadLocalPrompts(config.localPrompts.dir)
     : [];
+  
+  const offlinePrompts = loadOfflinePrompts();
 
   const remote = await fetchRegistry(
     config.registry.remote,
@@ -238,8 +265,10 @@ export async function refreshRegistry(): Promise<LoadedRegistry> {
     if (refreshedMeta) {
       writeJsonFile(config.registry.metaPath, refreshedMeta);
     }
+    
+    const merged = mergePrompts(offlinePrompts, cachedPrompts);
     return {
-      prompts: mergePrompts(cachedPrompts, localPrompts),
+      prompts: mergePrompts(merged, localPrompts),
       bundles: cachedBundles,
       workflows: cachedWorkflows,
       meta: refreshedMeta,
@@ -251,8 +280,10 @@ export async function refreshRegistry(): Promise<LoadedRegistry> {
   if (remote.payload && remote.meta && remotePrompts) {
     writeJsonFile(config.registry.cachePath, remote.payload);
     writeJsonFile(config.registry.metaPath, remote.meta);
+    
+    const merged = mergePrompts(offlinePrompts, remotePrompts);
     return {
-      prompts: mergePrompts(remotePrompts, localPrompts),
+      prompts: mergePrompts(merged, localPrompts),
       bundles: remote.payload.bundles || [],
       workflows: remote.payload.workflows || [],
       meta: remote.meta,
@@ -261,8 +292,9 @@ export async function refreshRegistry(): Promise<LoadedRegistry> {
   }
 
   if (cachedPrompts?.length) {
+    const merged = mergePrompts(offlinePrompts, cachedPrompts);
     return {
-      prompts: mergePrompts(cachedPrompts, localPrompts),
+      prompts: mergePrompts(merged, localPrompts),
       bundles: cachedBundles,
       workflows: cachedWorkflows,
       meta: cachedMeta,
@@ -270,8 +302,9 @@ export async function refreshRegistry(): Promise<LoadedRegistry> {
     };
   }
 
+  const merged = mergePrompts(offlinePrompts, bundledPrompts);
   return {
-    prompts: mergePrompts(bundledPrompts, localPrompts),
+    prompts: mergePrompts(merged, localPrompts),
     bundles: bundledBundles,
     workflows: bundledWorkflows,
     meta: null,

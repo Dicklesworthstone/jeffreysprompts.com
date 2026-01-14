@@ -6,14 +6,22 @@
  */
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
-import { join } from "path";
 import chalk from "chalk";
 import boxen from "boxen";
 import ora from "ora";
 import { apiClient, isAuthError, isPermissionError } from "../lib/api-client";
 import { isLoggedIn, getCurrentUser } from "../lib/credentials";
-import { getConfigDir } from "../lib/config";
 import { shouldOutputJson } from "../lib/utils";
+import {
+  type SyncedPrompt,
+  type SyncMeta,
+  getLibraryDir,
+  getLibraryPath,
+  getMetaPath,
+  readOfflineLibrary,
+  readSyncMeta,
+  formatSyncAge,
+} from "../lib/offline";
 
 export interface SyncOptions {
   force?: boolean;
@@ -21,47 +29,10 @@ export interface SyncOptions {
   json?: boolean;
 }
 
-interface SyncedPrompt {
-  id: string;
-  title: string;
-  content: string;
-  category?: string;
-  tags?: string[];
-  saved_at: string;
-}
-
 interface SyncResponse {
   prompts: SyncedPrompt[];
   total: number;
   last_modified: string;
-}
-
-interface SyncMeta {
-  lastSync: string;
-  promptCount: number;
-  version: string;
-}
-
-function getLibraryDir(): string {
-  return join(getConfigDir(), "library");
-}
-
-function getLibraryPath(): string {
-  return join(getLibraryDir(), "prompts.json");
-}
-
-function getMetaPath(): string {
-  return join(getLibraryDir(), "sync.meta.json");
-}
-
-function readMeta(): SyncMeta | null {
-  const metaPath = getMetaPath();
-  if (!existsSync(metaPath)) return null;
-  try {
-    return JSON.parse(readFileSync(metaPath, "utf-8")) as SyncMeta;
-  } catch {
-    return null;
-  }
 }
 
 function writeMeta(meta: SyncMeta): void {
@@ -76,27 +47,6 @@ function writeLibrary(prompts: SyncedPrompt[]): void {
   writeFileSync(getLibraryPath(), JSON.stringify(prompts, null, 2));
 }
 
-function readLibrary(): SyncedPrompt[] {
-  const libraryPath = getLibraryPath();
-  if (!existsSync(libraryPath)) return [];
-  try {
-    return JSON.parse(readFileSync(libraryPath, "utf-8")) as SyncedPrompt[];
-  } catch {
-    return [];
-  }
-}
-
-function formatAge(isoDate: string | undefined | null): string {
-  if (!isoDate) return "never";
-  const date = new Date(isoDate);
-  if (isNaN(date.getTime())) return "unknown";
-  const ms = Date.now() - date.getTime();
-  if (ms < 60000) return "just now";
-  if (ms < 3600000) return `${Math.floor(ms / 60000)} min ago`;
-  if (ms < 86400000) return `${Math.floor(ms / 3600000)} hours ago`;
-  return `${Math.floor(ms / 86400000)} days ago`;
-}
-
 function writeJson(payload: Record<string, unknown>): void {
   console.log(JSON.stringify(payload, null, 2));
 }
@@ -109,8 +59,8 @@ function writeJsonError(code: string, message: string, extra: Record<string, unk
  * Show sync status
  */
 async function showStatus(options: SyncOptions): Promise<void> {
-  const meta = readMeta();
-  const prompts = readLibrary();
+  const meta = readSyncMeta();
+  const prompts = readOfflineLibrary();
   const user = await getCurrentUser();
   const loggedIn = await isLoggedIn();
 
@@ -146,7 +96,7 @@ async function showStatus(options: SyncOptions): Promise<void> {
   // Sync status
   content += "\n" + chalk.green("Library:") + "\n";
   if (meta) {
-    content += `  Last sync: ${formatAge(meta.lastSync)} (${meta.lastSync})\n`;
+    content += `  Last sync: ${formatSyncAge(meta.lastSync)} (${meta.lastSync})\n`;
     content += `  Prompts: ${prompts.length}\n`;
     content += `  Path: ${chalk.dim(getLibraryDir())}\n`;
   } else {
@@ -203,7 +153,7 @@ export async function syncCommand(options: SyncOptions = {}): Promise<void> {
   }
 
   // Step 3: Get current meta for incremental sync (unless --force)
-  const meta = options.force ? null : readMeta();
+  const meta = options.force ? null : readSyncMeta();
   const spinner = shouldOutputJson(options) ? null : ora("Syncing library...").start();
 
   try {
@@ -259,7 +209,7 @@ export async function syncCommand(options: SyncOptions = {}): Promise<void> {
     if (options.force) {
       allPrompts = data.prompts;
     } else {
-      const existing = readLibrary();
+      const existing = readOfflineLibrary();
       // Create a map of server prompts for efficient lookup
       const serverPromptMap = new Map(data.prompts.map((p) => [p.id, p]));
       // Update existing prompts with server versions, keep others unchanged
