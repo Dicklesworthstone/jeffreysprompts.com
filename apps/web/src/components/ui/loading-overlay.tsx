@@ -46,7 +46,12 @@ export function LoadingOverlay({
   if (!visible) return null;
 
   return (
-    <div className={cn("fixed inset-0 z-50 flex items-center justify-center", className)}>
+    <div
+      className={cn("fixed inset-0 z-50 flex items-center justify-center", className)}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="loading-message"
+    >
       <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" />
       <div className="relative w-full max-w-md rounded-xl border bg-card p-6 shadow-xl">
         <div className="flex items-start gap-3">
@@ -54,7 +59,9 @@ export function LoadingOverlay({
             <Loader2 className="size-5 animate-spin" />
           </div>
           <div className="space-y-1">
-            <div className="text-sm font-semibold text-foreground">{message}</div>
+            <div id="loading-message" className="text-sm font-semibold text-foreground">
+              {message}
+            </div>
             {detail && <div className="text-xs text-muted-foreground">{detail}</div>}
           </div>
         </div>
