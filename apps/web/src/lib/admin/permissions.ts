@@ -55,7 +55,7 @@ export interface AdminAuthResult {
   reason?: "unauthorized" | "forbidden" | "admin_token_not_configured";
 }
 
-export type HeaderAccessor = Pick<Headers, "get">;
+export type HeaderAccessor = { get(name: string): string | null };
 
 function getTokenFromRequest(request: NextRequest): string | null {
   const authHeader = request.headers.get("authorization");
