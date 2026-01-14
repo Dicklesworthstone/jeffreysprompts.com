@@ -270,6 +270,17 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: "This ticket is closed." }, { status: 400 });
   }
 
+  const spamCheck = checkContentForSpam(message);
+  if (spamCheck.isSpam) {
+    return NextResponse.json(
+      {
+        error: "Your message was flagged as potential spam. Please remove links or excessive formatting and try again.",
+        reasons: spamCheck.reasons,
+      },
+      { status: 400 }
+    );
+  }
+
   const updated = addSupportTicketReply({
     ticketNumber,
     author: "user",
@@ -278,6 +289,14 @@ export async function PUT(request: NextRequest) {
 
   if (!updated) {
     return NextResponse.json({ error: "Unable to update ticket." }, { status: 400 });
+  }
+
+  if (spamCheck.requiresReview) {
+    addSupportTicketNote({
+      ticketNumber: ticket.ticketNumber,
+      author: "support",
+      body: `Reply auto-flagged for review (${Math.round(spamCheck.confidence * 100)}% confidence): ${spamCheck.reasons.join("; ")}`,
+    });
   }
 
   return NextResponse.json({
