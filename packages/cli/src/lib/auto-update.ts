@@ -101,6 +101,9 @@ export function checkForUpdatesInBackground(): void {
 
       // Compare versions
       if (compareVersions(version, latestVersion) < 0) {
+        // Don't pollute JSON output
+        if (process.argv.includes("--json")) return;
+
         // Use setImmediate/setTimeout to print after CLI output settles
         setTimeout(() => {
           console.log();
