@@ -233,7 +233,10 @@ async function startCallbackServer(timeoutMs: number): Promise<CallbackServer> {
       });
     });
 
-    server.on("error", reject);
+    server.on("error", (err) => {
+      reject(err);
+      rejectToken(err);
+    });
   });
 }
 

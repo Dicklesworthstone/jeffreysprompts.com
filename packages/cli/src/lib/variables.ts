@@ -29,7 +29,7 @@ export function parseVariables(args: string[]): Record<string, string> {
 
 /**
  * Read file contents with size capping for 'file' type variables
- * @throws Error if file doesn't exist
+ * @throws Error if file doesn't exist or is not a file
  */
 export function readFileVariable(path: string, varName: string): string {
   if (!existsSync(path)) {
@@ -37,6 +37,10 @@ export function readFileVariable(path: string, varName: string): string {
   }
 
   const stats = statSync(path);
+  if (!stats.isFile()) {
+    throw new Error(`Path is not a file for variable ${varName}: ${path}`);
+  }
+
   if (stats.size > MAX_FILE_VAR_SIZE) {
     // Read only the bytes we need - prevents memory exhaustion from large files
     const fd = openSync(path, "r");

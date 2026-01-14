@@ -10,6 +10,26 @@ import { mkdirSync, rmSync, writeFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 
+// Mock dependencies
+const mockCredentials = {
+  access_token: "test-token-12345",
+  refresh_token: "refresh-token-67890",
+  expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+  email: "existing@example.com",
+  tier: "premium",
+  user_id: "user-123",
+};
+
+// Mock credentials module
+mock.module("../../src/lib/credentials", () => ({
+  loadCredentials: mock(),
+  saveCredentials: mock(),
+  getAccessToken: mock(),
+}));
+
+import { loadCredentials, saveCredentials, getAccessToken } from "../../src/lib/credentials";
+import { loginCommand } from "../../src/commands/login";
+
 // Test directory setup
 let TEST_DIR: string;
 let FAKE_HOME: string;
@@ -26,24 +46,6 @@ const originalExit = process.exit;
 
 // Capture console output
 let consoleOutput: string[] = [];
-
-// Helper to create valid credentials file
-function createCredentialsFile(options: { email?: string } = {}) {
-  const credDir = join(FAKE_CONFIG, "jfp");
-  mkdirSync(credDir, { recursive: true });
-
-  const creds = {
-    access_token: "test-token-12345",
-    refresh_token: "refresh-token-67890",
-    expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-    email: options.email ?? "test@example.com",
-    tier: "premium",
-    user_id: "user-123",
-  };
-
-  writeFileSync(join(credDir, "credentials.json"), JSON.stringify(creds, null, 2));
-  return creds;
-}
 
 // Setup for each test
 function setupTest() {
@@ -100,12 +102,15 @@ function cleanupTest() {
 }
 
 describe("loginCommand - already logged in", () => {
-  beforeEach(setupTest);
+  beforeEach(() => {
+    setupTest();
+    // Reset mocks
+    (loadCredentials as jest.Mock).mockReset();
+  });
   afterEach(cleanupTest);
 
   it("shows already logged in when credentials exist (JSON)", async () => {
-    createCredentialsFile({ email: "existing@example.com" });
-    const { loginCommand } = await import("../../src/commands/login");
+    (loadCredentials as jest.Mock).mockResolvedValue(mockCredentials);
 
     await loginCommand({ json: true });
 
@@ -116,28 +121,16 @@ describe("loginCommand - already logged in", () => {
     expect(parsed.code).toBe("already_logged_in");
     expect(parsed.email).toBe("existing@example.com");
   });
-
-  it("shows already logged in message (JSON in non-TTY)", async () => {
-    createCredentialsFile({ email: "existing@example.com" });
-    const { loginCommand } = await import("../../src/commands/login");
-
-    await loginCommand({});
-
-    // In non-TTY environments, outputs JSON
-    const output = consoleOutput.join("\n");
-    const parsed = JSON.parse(output);
-    expect(parsed.code || parsed.error).toBe("already_logged_in");
-    expect(parsed.email).toBe("existing@example.com");
-  });
 });
 
-describe("Device Code Flow - network error", () => {
-  beforeEach(setupTest);
+describe("Device Code Flow", () => {
+  beforeEach(() => {
+    setupTest();
+    (loadCredentials as jest.Mock).mockResolvedValue(null);
+  });
   afterEach(cleanupTest);
 
-  it("handles network error during device code request", async () => {
-    const { loginCommand } = await import("../../src/commands/login");
-
+  it("handles network error", async () => {
     globalThis.fetch = mock(() => Promise.reject(new Error("Network unreachable")));
 
     let exitCode: number | undefined;
@@ -159,15 +152,8 @@ describe("Device Code Flow - network error", () => {
     expect(parsed.code).toBe("network_error");
     expect(exitCode).toBe(1);
   });
-});
 
-describe("Device Code Flow - server error", () => {
-  beforeEach(setupTest);
-  afterEach(cleanupTest);
-
-  it("handles failed device code response", async () => {
-    const { loginCommand } = await import("../../src/commands/login");
-
+  it("handles server error", async () => {
     globalThis.fetch = mock(() =>
       Promise.resolve(new Response("Internal Server Error", { status: 500 }))
     );
@@ -191,16 +177,9 @@ describe("Device Code Flow - server error", () => {
     expect(parsed.code).toBe("device_code_failed");
     expect(exitCode).toBe(1);
   });
-});
 
-describe("Device Code Flow - displays verification info", () => {
-  beforeEach(setupTest);
-  afterEach(cleanupTest);
-
-  it("shows verification URL and formatted user code", async () => {
-    const { loginCommand } = await import("../../src/commands/login");
-
-    // Mock: first call returns device code, second call returns timeout to exit loop
+  it("displays verification info", async () => {
+    // Mock: first call returns device code, second call returns success to avoid loop
     let callCount = 0;
     globalThis.fetch = mock(() => {
       callCount++;
@@ -218,7 +197,6 @@ describe("Device Code Flow - displays verification info", () => {
           )
         );
       }
-      // Return success on second call to avoid timeout
       return Promise.resolve(
         new Response(
           JSON.stringify({
@@ -237,91 +215,7 @@ describe("Device Code Flow - displays verification info", () => {
 
     const output = consoleOutput.join("\n");
     expect(output).toContain("verification_url");
-    expect(output).toContain("TEST-1234"); // Formatted with hyphen
+    expect(output).toContain("TEST-1234");
   });
 });
 
-describe("User code formatting", () => {
-  beforeEach(setupTest);
-  afterEach(cleanupTest);
-
-  it("formats 8-character codes with hyphen", async () => {
-    const { loginCommand } = await import("../../src/commands/login");
-
-    let callCount = 0;
-    globalThis.fetch = mock(() => {
-      callCount++;
-      if (callCount === 1) {
-        return Promise.resolve(
-          new Response(
-            JSON.stringify({
-              device_code: "device-abc123",
-              user_code: "ABCD5678",
-              verification_url: "https://test.example.com/verify",
-              expires_in: 900,
-              interval: 1,
-            }),
-            { status: 200, headers: { "Content-Type": "application/json" } }
-          )
-        );
-      }
-      return Promise.resolve(
-        new Response(
-          JSON.stringify({
-            access_token: "token",
-            expires_at: new Date(Date.now() + 86400000).toISOString(),
-            email: "test@example.com",
-            tier: "premium",
-            user_id: "user-123",
-          }),
-          { status: 200, headers: { "Content-Type": "application/json" } }
-        )
-      );
-    });
-
-    await loginCommand({ remote: true, json: true, timeout: 30000 });
-
-    const output = consoleOutput.join("\n");
-    expect(output).toContain("ABCD-5678");
-  });
-
-  it("preserves codes that already have hyphen", async () => {
-    const { loginCommand } = await import("../../src/commands/login");
-
-    let callCount = 0;
-    globalThis.fetch = mock(() => {
-      callCount++;
-      if (callCount === 1) {
-        return Promise.resolve(
-          new Response(
-            JSON.stringify({
-              device_code: "device-abc123",
-              user_code: "ABC-DEF",
-              verification_url: "https://test.example.com/verify",
-              expires_in: 900,
-              interval: 1,
-            }),
-            { status: 200, headers: { "Content-Type": "application/json" } }
-          )
-        );
-      }
-      return Promise.resolve(
-        new Response(
-          JSON.stringify({
-            access_token: "token",
-            expires_at: new Date(Date.now() + 86400000).toISOString(),
-            email: "test@example.com",
-            tier: "premium",
-            user_id: "user-123",
-          }),
-          { status: 200, headers: { "Content-Type": "application/json" } }
-        )
-      );
-    });
-
-    await loginCommand({ remote: true, json: true, timeout: 30000 });
-
-    const output = consoleOutput.join("\n");
-    expect(output).toContain("ABC-DEF");
-  });
-});

@@ -69,7 +69,7 @@ export async function spawnCli(options: SpawnOptions): Promise<SpawnResult> {
   const timeoutId = setTimeout(() => {
     timedOut = true;
     if (proc) {
-      proc.kill();
+      proc.kill("SIGKILL");
     }
     logger?.error(`Command timed out after ${timeout}ms`);
   }, timeout);
