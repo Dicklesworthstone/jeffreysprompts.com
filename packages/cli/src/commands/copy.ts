@@ -1,4 +1,3 @@
-import { spawn } from "child_process";
 import { type Prompt } from "@jeffreysprompts/core/prompts";
 import {
   renderPrompt,
@@ -13,49 +12,11 @@ import {
   processVariableValue,
 } from "../lib/variables";
 import { loadRegistry } from "../lib/registry-loader";
+import { copyToClipboard } from "../lib/clipboard";
 
 interface CopyOptions {
   fill?: boolean;
   json?: boolean;
-}
-
-/**
- * Copy text to clipboard using platform-specific tools
- */
-async function copyToClipboard(text: string): Promise<boolean> {
-  const platform = process.platform;
-  let cmd: string;
-  let args: string[] = [];
-
-  if (platform === "darwin") {
-    cmd = "pbcopy";
-  } else if (platform === "win32") {
-    cmd = "clip";
-  } else {
-    // Linux: prefer wl-copy (Wayland), fall back to xclip (X11)
-    const hasWlCopy = await new Promise<boolean>((resolve) => {
-      const check = spawn("which", ["wl-copy"]);
-      check.on("close", (code) => resolve(code === 0));
-      check.on("error", () => resolve(false));
-    });
-
-    if (hasWlCopy) {
-      cmd = "wl-copy";
-    } else {
-      cmd = "xclip";
-      args = ["-selection", "clipboard"];
-    }
-  }
-
-  return new Promise<boolean>((resolve) => {
-    const proc = spawn(cmd, args, { stdio: ["pipe", "inherit", "inherit"] });
-
-    proc.on("error", () => resolve(false));
-    proc.on("close", (code) => resolve(code === 0));
-
-    proc.stdin?.write(text);
-    proc.stdin?.end();
-  });
 }
 
 export async function copyCommand(id: string, options: CopyOptions) {

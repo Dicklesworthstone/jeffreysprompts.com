@@ -17,84 +17,11 @@ import {
 import { computeSkillHash } from "@jeffreysprompts/core/export";
 import { resolveSafeChildPath, isSafeSkillId } from "../lib/utils";
 import { loadRegistry } from "../lib/registry-loader";
+import { copyToClipboard } from "../lib/clipboard";
 import type { SkillManifestEntry } from "@jeffreysprompts/core/export";
 
 interface InteractiveOptions {
   // No options yet, placeholder for future
-}
-
-async function copyToClipboard(text: string): Promise<boolean> {
-  try {
-    // Try native clipboard
-    if (typeof navigator !== "undefined" && navigator.clipboard) {
-      await navigator.clipboard.writeText(text);
-      return true;
-    }
-
-    // Try pbcopy (macOS) or xclip (Linux) via Bun.spawn
-    const { spawn } = await import("bun");
-
-    if (process.platform === "win32") {
-      try {
-        const proc = spawn(["clip"], { stdin: "pipe" });
-        proc.stdin.write(text);
-        proc.stdin.end();
-        await proc.exited;
-        if (proc.exitCode === 0) return true;
-      } catch {
-        // clip not available
-      }
-      return false;
-    }
-
-    // Try pbcopy first (macOS)
-    try {
-      const proc = spawn(["pbcopy"], { stdin: "pipe" });
-      proc.stdin.write(text);
-      proc.stdin.end();
-      await proc.exited;
-      if (proc.exitCode === 0) return true;
-    } catch {
-      // pbcopy not available
-    }
-
-    // Try wl-copy (Wayland)
-    try {
-      const proc = spawn(["wl-copy"], { stdin: "pipe" });
-      proc.stdin.write(text);
-      proc.stdin.end();
-      await proc.exited;
-      if (proc.exitCode === 0) return true;
-    } catch {
-      // wl-copy not available
-    }
-
-    // Try xclip (X11)
-    try {
-      const proc = spawn(["xclip", "-selection", "clipboard"], { stdin: "pipe" });
-      proc.stdin.write(text);
-      proc.stdin.end();
-      await proc.exited;
-      if (proc.exitCode === 0) return true;
-    } catch {
-      // xclip not available
-    }
-
-    // Try xsel (Linux)
-    try {
-      const proc = spawn(["xsel", "--clipboard", "--input"], { stdin: "pipe" });
-      proc.stdin.write(text);
-      proc.stdin.end();
-      await proc.exited;
-      if (proc.exitCode === 0) return true;
-    } catch {
-      // xsel not available
-    }
-
-    return false;
-  } catch {
-    return false;
-  }
 }
 
 function displayPrompt(prompt: Prompt): void {

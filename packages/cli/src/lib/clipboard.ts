@@ -1,0 +1,72 @@
+import { type Subprocess } from "bun";
+
+/**
+ * Copy text to clipboard using platform-specific tools.
+ * Tries multiple tools in order of preference.
+ */
+export async function copyToClipboard(text: string): Promise<boolean> {
+  // 1. Try native clipboard API (if available, e.g. in browser context or supported runtime)
+  // Bun doesn't have navigator.clipboard in CLI context usually, but just in case.
+  if (typeof navigator !== "undefined" && navigator.clipboard) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // Ignore and fall back to CLI tools
+    }
+  }
+
+  // 2. CLI Tools via Bun.spawn
+  const platform = process.platform;
+
+  // Windows
+  if (platform === "win32") {
+    return trySpawn(["clip"], text);
+  }
+
+  // macOS
+  if (platform === "darwin") {
+    return trySpawn(["pbcopy"], text);
+  }
+
+  // Linux / Unix
+  // Try wl-copy (Wayland)
+  if (await trySpawn(["wl-copy"], text)) return true;
+  
+  // Try xclip (X11)
+  if (await trySpawn(["xclip", "-selection", "clipboard"], text)) return true;
+  
+  // Try xsel (X11)
+  if (await trySpawn(["xsel", "--clipboard", "--input"], text)) return true;
+
+  // Try pbcopy (sometimes available on Linux via aliases/WSL)
+  if (await trySpawn(["pbcopy"], text)) return true;
+
+  return false;
+}
+
+/**
+ * Helper to spawn a process and pipe text to stdin.
+ * Returns true if exit code is 0.
+ */
+async function trySpawn(cmd: string[], input: string): Promise<boolean> {
+  try {
+    const { spawn } = await import("bun");
+    const proc = spawn(cmd, {
+      stdin: "pipe",
+      stdout: "ignore", // We don't need output
+      stderr: "ignore", // Silence errors (e.g. missing tool)
+    });
+
+    if (proc.stdin) {
+      const writer = proc.stdin.getWriter();
+      writer.write(input);
+      writer.close(); // Important to close stdin to signal EOF
+    }
+
+    const exitCode = await proc.exited;
+    return exitCode === 0;
+  } catch {
+    return false;
+  }
+}
