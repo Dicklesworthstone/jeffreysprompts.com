@@ -250,8 +250,14 @@ export function checkSkillModification(
 
   // Determine if modified
   let wasModified = false;
-  if (exists && manifestEntry && currentHash) {
-    wasModified = manifestEntry.hash !== currentHash;
+  if (exists) {
+    if (manifestEntry && currentHash) {
+      wasModified = manifestEntry.hash !== currentHash;
+    } else {
+      // File exists but no manifest entry (orphaned) - treat as modified/unsafe
+      // to prevent accidental overwrite of user changes we can't verify.
+      wasModified = true;
+    }
   }
 
   // Can overwrite if:
