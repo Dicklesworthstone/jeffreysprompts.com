@@ -15,7 +15,7 @@ const STOPWORDS = new Set([
 ]);
 
 // Single-letter words to preserve (e.g., programming languages)
-const ALLOWLIST = new Set(["c", "r"]);
+const ALLOWLIST = new Set(["c", "r", "v", "x", "k"]);
 
 /**
  * Tokenize text into lowercase words, removing stopwords and punctuation.

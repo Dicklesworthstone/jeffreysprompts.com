@@ -50,9 +50,12 @@ export async function copyToClipboard(text: string): Promise<boolean> {
  * Returns true if exit code is 0.
  */
 async function trySpawn(cmd: string[], input: string): Promise<boolean> {
+  const TIMEOUT_MS = 2000;
+  let proc: Subprocess | null = null;
+
   try {
     const { spawn } = await import("bun");
-    const proc = spawn(cmd, {
+    proc = spawn(cmd, {
       stdin: "pipe",
       stdout: "ignore", // We don't need output
       stderr: "ignore", // Silence errors (e.g. missing tool)
@@ -64,9 +67,20 @@ async function trySpawn(cmd: string[], input: string): Promise<boolean> {
       writer.close(); // Important to close stdin to signal EOF
     }
 
-    const exitCode = await proc.exited;
+    // Race between process exit and timeout
+    const exitCode = await Promise.race([
+      proc.exited,
+      new Promise<number | null>((resolve) => setTimeout(() => resolve(null), TIMEOUT_MS)),
+    ]);
+
+    if (exitCode === null) {
+      proc.kill(); // Kill the hung process
+      return false;
+    }
+
     return exitCode === 0;
   } catch {
+    if (proc) proc.kill();
     return false;
   }
 }
