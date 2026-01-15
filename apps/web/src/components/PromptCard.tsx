@@ -99,7 +99,7 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
           navigator.vibrate(50);
         }
 
-        success("Copied prompt", prompt.title, 3000);
+        success("Copied prompt", prompt.title, { duration: 3000 });
         trackEvent("prompt_copy", { id: prompt.id, source: "card" });
         onCopy?.(prompt);
 
@@ -137,7 +137,7 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
           navigator.vibrate(50);
         }
 
-        success("Added to basket", prompt.title, 3000);
+        success("Added to basket", prompt.title, { duration: 3000 });
         trackEvent("basket_add", { id: prompt.id, source: "card" });
 
         // Reset flash quickly
@@ -176,6 +176,7 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
           "dark:hover:shadow-[0_8px_30px_-10px_rgba(0,0,0,0.4)]",
           "hover:border-neutral-300 dark:hover:border-neutral-700"
         )}
+        onClick={handleClick}
       >
         {/* Featured indicator - prominent top accent */}
         {prompt.featured && (

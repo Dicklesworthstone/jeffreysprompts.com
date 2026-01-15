@@ -50,7 +50,7 @@ export function InstallSkillButton({
         success(
           "Install command copied",
           `Paste in terminal to install "${prompt.title}"`,
-          4000
+          { duration: 4000 }
         );
         trackEvent("skill_install", { id: prompt.id, source: "install_button", project });
         if (resetTimerRef.current) {
@@ -156,7 +156,7 @@ export function InstallAllSkillsButton({
       success(
         "Install command copied",
         `Paste in terminal to install ${skillCount}`,
-        4000
+        { duration: 4000 }
       );
       trackEvent("skill_install", {
         count: promptIds?.length ?? "all",

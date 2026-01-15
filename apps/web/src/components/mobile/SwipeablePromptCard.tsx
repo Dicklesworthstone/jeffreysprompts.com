@@ -162,7 +162,7 @@ export function SwipeablePromptCard({
 
     if (result.success) {
       haptic.success();
-      success("Copied prompt", prompt.title, 3000);
+      success("Copied prompt", prompt.title, { duration: 3000 });
       trackEvent("prompt_copy", { id: prompt.id, source: "swipe" });
       onCopy?.(prompt);
       setActionTriggered("copy");
@@ -178,7 +178,7 @@ export function SwipeablePromptCard({
     if (inBasket) return;
     addItem(prompt.id);
     haptic.success();
-    success("Added to basket", prompt.title, 3000);
+    success("Added to basket", prompt.title, { duration: 3000 });
     setActionTriggered("basket");
     safeTimeout(() => setActionTriggered(null), 1500);
   }, [prompt, inBasket, addItem, haptic, success, safeTimeout]);

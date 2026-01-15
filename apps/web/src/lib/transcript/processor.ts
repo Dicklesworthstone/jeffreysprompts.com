@@ -221,8 +221,8 @@ function detectSections(messages: TranscriptMessage[]): TranscriptSection[] {
       // Extend section while there's substantial thinking
       while (
         endIdx + 1 < messages.length &&
-        messages[endIdx + 1].thinking &&
-        messages[endIdx + 1].thinking.length > 500
+        messages[endIdx + 1]?.thinking &&
+        (messages[endIdx + 1]?.thinking?.length ?? 0) > 500
       ) {
         endIdx++;
       }

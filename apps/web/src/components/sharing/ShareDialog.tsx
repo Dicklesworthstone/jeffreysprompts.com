@@ -132,7 +132,7 @@ export function ShareDialog({
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
       if ("vibrate" in navigator) navigator.vibrate(50);
-      success("Link copied", "Share link copied to clipboard", 3000);
+      success("Link copied", "Share link copied to clipboard", { duration: 3000 });
       trackEvent("share_link_copy", { contentType, contentId });
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -162,7 +162,7 @@ export function ShareDialog({
       };
 
       onShareCreated?.(mockShare);
-      success("Share link created", "Your content is now shareable", 3000);
+      success("Share link created", "Your content is now shareable", { duration: 3000 });
       trackEvent("share_link_create", { contentType, contentId });
     } catch {
       toastError("Failed to create share link", "Please try again");
@@ -187,7 +187,7 @@ export function ShareDialog({
       await new Promise((resolve) => setTimeout(resolve, 500));
 
       onShareRevoked?.();
-      success("Share link revoked", "The link is no longer accessible", 3000);
+      success("Share link revoked", "The link is no longer accessible", { duration: 3000 });
       trackEvent("share_link_revoke", { contentType, contentId });
     } catch {
       toastError("Failed to revoke link", "Please try again");
@@ -222,14 +222,14 @@ export function ShareDialog({
         success(
           "Published to Swap Meet",
           "Your prompt is now visible to the community",
-          3000
+          { duration: 3000 }
         );
         trackEvent("prompt_publish", { contentId });
       } else {
         success(
           "Made private",
           "Your prompt is no longer visible in Swap Meet",
-          3000
+          { duration: 3000 }
         );
         trackEvent("prompt_unpublish", { contentId });
       }

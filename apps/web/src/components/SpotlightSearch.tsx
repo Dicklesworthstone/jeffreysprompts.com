@@ -359,7 +359,7 @@ export function SpotlightSearch({
         try {
           await navigator.clipboard.writeText(prompt.content)
           setCopied(promptId)
-          success("Copied prompt", prompt.title, 2500)
+          success("Copied prompt", prompt.title, { duration: 2500 })
           // Keep dialog open briefly to show feedback
           setTimeout(() => setIsOpen(false), 500)
         } catch (err) {

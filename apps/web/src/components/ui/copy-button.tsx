@@ -122,7 +122,7 @@ export function CopyButton({
           : `"${text}"`
         : undefined;
 
-      success(successMessage, preview, 3000);
+      success(successMessage, preview, { duration: 3000 });
 
       // Optional haptic feedback on supported devices
       if (typeof navigator !== "undefined" && "vibrate" in navigator) {

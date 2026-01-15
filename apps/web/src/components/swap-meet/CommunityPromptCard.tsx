@@ -98,7 +98,7 @@ export function CommunityPromptCard({
           navigator.vibrate(50);
         }
 
-        success("Copied prompt", prompt.title, 3000);
+        success("Copied prompt", prompt.title, { duration: 3000 });
         trackEvent("prompt_copy", { id: prompt.id, source: "swap-meet-card" });
         onCopy?.(prompt);
 
@@ -267,7 +267,7 @@ export function CommunityPromptCard({
                   onClick={(e) => {
                     e.stopPropagation();
                     // Save/bookmark functionality
-                    success("Saved to library", prompt.title, 3000);
+                    success("Saved to library", prompt.title, { duration: 3000 });
                   }}
                   aria-label="Save to library"
                 >

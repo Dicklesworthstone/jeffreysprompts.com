@@ -197,7 +197,7 @@ export function ShareManagement({
         await navigator.clipboard.writeText(url);
         setCopiedCode(code);
         if ("vibrate" in navigator) navigator.vibrate(50);
-        success("Link copied", "Share link copied to clipboard", 3000);
+        success("Link copied", "Share link copied to clipboard", { duration: 3000 });
         trackEvent("share_link_copy", { source: "management" });
         setTimeout(() => setCopiedCode(null), 2000);
       } catch {
@@ -214,7 +214,7 @@ export function ShareManagement({
         // Mock API call - will be replaced with real API
         await new Promise((resolve) => setTimeout(resolve, 500));
         onRevoke?.(linkCode);
-        success("Link revoked", "The share link is no longer active", 3000);
+        success("Link revoked", "The share link is no longer active", { duration: 3000 });
         trackEvent("share_link_revoke", { source: "management" });
       } catch {
         toastError("Failed to revoke", "Please try again");

@@ -186,7 +186,7 @@ export default function SharePage() {
       await navigator.clipboard.writeText(shareData.content.content);
       setCopied(true);
       if ("vibrate" in navigator) navigator.vibrate(50);
-      success("Copied to clipboard", shareData.content.title, 3000);
+      success("Copied to clipboard", shareData.content.title, { duration: 3000 });
       trackEvent("share_copy", { linkCode });
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -234,7 +234,7 @@ export default function SharePage() {
     success(
       "Saved to library",
       "This prompt has been added to your library",
-      3000
+      { duration: 3000 }
     );
     trackEvent("share_save", { linkCode });
   }, [linkCode, success]);
@@ -244,7 +244,7 @@ export default function SharePage() {
     success(
       "Forked to your library",
       "You can now edit this prompt",
-      3000
+      { duration: 3000 }
     );
     trackEvent("share_fork", { linkCode });
   }, [linkCode, success]);

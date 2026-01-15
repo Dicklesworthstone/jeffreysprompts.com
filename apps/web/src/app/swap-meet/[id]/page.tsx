@@ -189,7 +189,7 @@ export default function CommunityPromptDetailPage() {
     if (result.success) {
       setCopied(true);
       if ("vibrate" in navigator) navigator.vibrate(50);
-      success("Copied to clipboard", prompt.title, 3000);
+      success("Copied to clipboard", prompt.title, { duration: 3000 });
       trackEvent("prompt_copy", { id: prompt.id, source: "swap-meet-detail" });
       setTimeout(() => setCopied(false), 2000);
     } else {
@@ -202,7 +202,7 @@ export default function CommunityPromptDetailPage() {
     success(
       rating === "up" ? "Thanks for the feedback!" : "Thanks for the feedback",
       "Your rating helps improve recommendations",
-      3000
+      { duration: 3000 }
     );
   }, [success]);
 

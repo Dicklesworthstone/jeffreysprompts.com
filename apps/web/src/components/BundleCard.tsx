@@ -64,7 +64,7 @@ export function BundleCard({ bundle, index = 0 }: BundleCardProps) {
         await navigator.clipboard.writeText(command);
         setCopied(true);
         const preview = command.length > 70 ? `${command.slice(0, 70)}...` : command;
-        success("Install command copied", preview, 3000);
+        success("Install command copied", preview, { duration: 3000 });
         if (resetTimerRef.current) {
           clearTimeout(resetTimerRef.current);
         }
