@@ -38,10 +38,10 @@ export type Credentials = z.infer<typeof CredentialsSchema>;
  * Get XDG Base Directory compliant credentials path
  * Re-reads HOME env var each time for testability
  */
-export function getCredentialsPath(): string {
-  const xdgConfig = process.env.XDG_CONFIG_HOME;
-  // Use process.env.HOME directly for testability (homedir() caches)
-  const home = process.env.HOME || homedir();
+export function getCredentialsPath(env = process.env): string {
+  const xdgConfig = env.XDG_CONFIG_HOME;
+  // Use env.HOME directly for testability (homedir() caches)
+  const home = env.HOME || homedir();
   const configDir = xdgConfig || join(home, ".config");
   return join(configDir, "jfp", "credentials.json");
 }
@@ -49,8 +49,8 @@ export function getCredentialsPath(): string {
 /**
  * Get config directory path
  */
-function getConfigDir(): string {
-  return dirname(getCredentialsPath());
+function getConfigDir(env = process.env): string {
+  return dirname(getCredentialsPath(env));
 }
 
 /**
@@ -58,8 +58,8 @@ function getConfigDir(): string {
  * Returns null if not logged in or credentials are invalid
  * Uses Zod schema for complete runtime validation
  */
-export async function loadCredentials(): Promise<Credentials | null> {
-  const path = getCredentialsPath();
+export async function loadCredentials(env = process.env): Promise<Credentials | null> {
+  const path = getCredentialsPath(env);
 
   if (!existsSync(path)) {
     return null;
@@ -72,7 +72,7 @@ export async function loadCredentials(): Promise<Credentials | null> {
     // Validate with Zod schema - ensures all required fields are present with correct types
     const result = CredentialsSchema.safeParse(parsed);
     if (!result.success) {
-      debugLog(`Invalid credentials file: ${result.error.message}`);
+      debugLog(`Invalid credentials file: ${result.error.message}`, env);
       return null;
     }
 
@@ -110,9 +110,9 @@ export function needsRefresh(creds: Credentials): boolean {
  * Save credentials to disk
  * Atomic write with temp file to prevent corruption
  */
-export async function saveCredentials(creds: Credentials): Promise<void> {
-  const path = getCredentialsPath();
-  const dir = getConfigDir();
+export async function saveCredentials(creds: Credentials, env = process.env): Promise<void> {
+  const path = getCredentialsPath(env);
+  const dir = getConfigDir(env);
 
   // Ensure config directory exists with secure permissions
   if (!existsSync(dir)) {
@@ -141,8 +141,8 @@ export async function saveCredentials(creds: Credentials): Promise<void> {
 /**
  * Clear stored credentials (logout)
  */
-export async function clearCredentials(): Promise<void> {
-  const path = getCredentialsPath();
+export async function clearCredentials(env = process.env): Promise<void> {
+  const path = getCredentialsPath(env);
 
   if (existsSync(path)) {
     await unlink(path);
@@ -152,8 +152,8 @@ export async function clearCredentials(): Promise<void> {
 /**
  * Debug logging helper
  */
-function debugLog(message: string): void {
-  if (process.env.JFP_DEBUG) {
+function debugLog(message: string, env = process.env): void {
+  if (env.JFP_DEBUG) {
     console.error(`[jfp] ${message}`);
   }
 }
@@ -162,8 +162,8 @@ function debugLog(message: string): void {
  * Attempt to refresh the access token using the refresh token
  * Returns new credentials on success, null on failure
  */
-async function refreshAccessToken(refreshToken: string): Promise<Credentials | null> {
-  debugLog("Access token expired, attempting refresh...");
+async function refreshAccessToken(refreshToken: string, env = process.env): Promise<Credentials | null> {
+  debugLog("Access token expired, attempting refresh...", env);
 
   try {
     const response = await fetch(`${PREMIUM_URL}/api/cli/token/refresh`, {
@@ -176,7 +176,7 @@ async function refreshAccessToken(refreshToken: string): Promise<Credentials | n
     });
 
     if (!response.ok) {
-      debugLog(`Refresh failed: ${response.status} ${response.statusText}`);
+      debugLog(`Refresh failed: ${response.status} ${response.statusText}`, env);
       return null;
     }
 
@@ -189,7 +189,7 @@ async function refreshAccessToken(refreshToken: string): Promise<Credentials | n
       user_id: string;
     };
 
-    debugLog(`Refresh successful, new token expires: ${data.expires_at}`);
+    debugLog(`Refresh successful, new token expires: ${data.expires_at}`, env);
 
     return {
       access_token: data.access_token,
@@ -201,7 +201,7 @@ async function refreshAccessToken(refreshToken: string): Promise<Credentials | n
     };
   } catch (err) {
     // Network error - return null to fail gracefully
-    debugLog(`Refresh error: ${err instanceof Error ? err.message : String(err)}`);
+    debugLog(`Refresh error: ${err instanceof Error ? err.message : String(err)}`, env);
     return null;
   }
 }
@@ -212,14 +212,14 @@ async function refreshAccessToken(refreshToken: string): Promise<Credentials | n
  * Returns null if not logged in or refresh fails
  * Handles environment variable override (for CI/CD)
  */
-export async function getAccessToken(): Promise<string | null> {
+export async function getAccessToken(env = process.env): Promise<string | null> {
   // Environment variable takes precedence (for CI/CD)
-  const envToken = process.env.JFP_TOKEN;
+  const envToken = env.JFP_TOKEN;
   if (envToken) {
     return envToken;
   }
 
-  const creds = await loadCredentials();
+  const creds = await loadCredentials(env);
   if (!creds) {
     return null;
   }
@@ -231,24 +231,24 @@ export async function getAccessToken(): Promise<string | null> {
 
   // Token expired - try to refresh
   if (creds.refresh_token) {
-    const refreshed = await refreshAccessToken(creds.refresh_token);
+    const refreshed = await refreshAccessToken(creds.refresh_token, env);
     if (refreshed) {
       // Save new credentials
-      await saveCredentials(refreshed);
+      await saveCredentials(refreshed, env);
       return refreshed.access_token;
     }
   }
 
   // No refresh token or refresh failed
-  debugLog("Session expired. Please run 'jfp login' to sign in again.");
+  debugLog("Session expired. Please run 'jfp login' to sign in again.", env);
   return null;
 }
 
 /**
  * Check if user is currently logged in
  */
-export async function isLoggedIn(): Promise<boolean> {
-  const token = await getAccessToken();
+export async function isLoggedIn(env = process.env): Promise<boolean> {
+  const token = await getAccessToken(env);
   return token !== null;
 }
 
@@ -260,12 +260,12 @@ export async function isLoggedIn(): Promise<boolean> {
  * - Using JFP_TOKEN env var (no user info available)
  * - Refresh failed and credentials are expired
  */
-export async function getCurrentUser(): Promise<{ email: string; tier: string; userId: string } | null> {
+export async function getCurrentUser(env = process.env): Promise<{ email: string; tier: string; userId: string } | null> {
   // Trigger auto-refresh if needed (this may update the credentials file)
-  await getAccessToken();
+  await getAccessToken(env);
 
   // Load credentials (possibly refreshed)
-  const creds = await loadCredentials();
+  const creds = await loadCredentials(env);
   if (!creds || isExpired(creds)) {
     return null;
   }
@@ -284,12 +284,13 @@ export async function getCurrentUser(): Promise<{ email: string; tier: string; u
  */
 export async function authenticatedFetch(
   url: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  env = process.env
 ): Promise<Response | null> {
-  const token = await getAccessToken();
+  const token = await getAccessToken(env);
 
   if (!token) {
-    debugLog("No valid token available for authenticated request");
+    debugLog("No valid token available for authenticated request", env);
     return null;
   }
 

@@ -7,14 +7,13 @@
 
 import { getAccessToken, getCurrentUser } from "./credentials";
 
-// Premium API base URL - use env var if available, otherwise default
-const PREMIUM_API_URL = process.env.JFP_PREMIUM_API_URL ?? "https://pro.jeffreysprompts.com/api";
-
 export interface ApiClientOptions {
   /** Base URL for API requests */
   baseUrl?: string;
   /** Request timeout in milliseconds */
   timeout?: number;
+  /** Environment variables override (for testing) */
+  env?: NodeJS.ProcessEnv;
 }
 
 export interface ApiResponse<T> {
@@ -36,9 +35,14 @@ export interface ApiError {
 export class ApiClient {
   private baseUrl: string;
   private timeout: number;
+  private env: NodeJS.ProcessEnv;
 
   constructor(options: ApiClientOptions = {}) {
-    this.baseUrl = options.baseUrl ?? PREMIUM_API_URL;
+    this.env = options.env ?? process.env;
+    this.baseUrl =
+      options.baseUrl ??
+      this.env.JFP_PREMIUM_API_URL ??
+      "https://pro.jeffreysprompts.com/api";
     this.timeout = options.timeout ?? 30000; // 30 second default
   }
 
@@ -53,7 +57,7 @@ export class ApiClient {
     const url = endpoint.startsWith("http") ? endpoint : `${this.baseUrl}${endpoint}`;
 
     // Get auth token (may be null for unauthenticated users)
-    const token = await getAccessToken();
+    const token = await getAccessToken(this.env);
 
     // Build headers
     const headers = new Headers(options.headers);
@@ -190,7 +194,7 @@ export class ApiClient {
    * Check if the current user is authenticated
    */
   async isAuthenticated(): Promise<boolean> {
-    const token = await getAccessToken();
+    const token = await getAccessToken(this.env);
     return token !== null;
   }
 
@@ -198,7 +202,7 @@ export class ApiClient {
    * Get current user info (from local credentials)
    */
   async getUser(): Promise<{ email: string; tier: string; userId: string } | null> {
-    return getCurrentUser();
+    return getCurrentUser(this.env);
   }
 
   /**
