@@ -334,8 +334,8 @@ function ToastItem({ toast, index, onRemove }: ToastItemProps) {
               onClick={toast.action.onClick}
               className={cn(
                 "mt-2 text-sm font-medium",
-                "text-indigo-600 dark:text-indigo-400",
-                "hover:text-indigo-700 dark:hover:text-indigo-300",
+                "text-sky-600 dark:text-sky-400",
+                "hover:text-sky-700 dark:hover:text-sky-300",
                 "transition-colors"
               )}
             >

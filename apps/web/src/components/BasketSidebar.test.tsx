@@ -111,7 +111,7 @@ describe("BasketSidebar", () => {
 
       expect(screen.getByText("Your basket is empty")).toBeInTheDocument();
       expect(
-        screen.getByText("Add prompts to export them together")
+        screen.getByText("Save prompts here to download or install them all at once.")
       ).toBeInTheDocument();
     });
 

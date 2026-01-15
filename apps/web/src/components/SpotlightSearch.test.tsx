@@ -87,9 +87,9 @@ describe("SpotlightSearch", () => {
     });
 
     // Check for category pills
-    expect(screen.getByRole("button", { name: "All" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "ideation" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "documentation" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /show all categories/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /filter by ideation/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /filter by documentation/i })).toBeInTheDocument();
   });
 
   it("closes with Escape key", async () => {

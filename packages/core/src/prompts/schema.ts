@@ -40,7 +40,7 @@ export const PromptSchema = z.object({
   title: z.string().min(1).max(100),
   description: z.string().min(1).max(200),
   category: PromptCategorySchema,
-  tags: z.array(z.string()).min(1),
+  tags: z.array(z.string().regex(/^[a-z0-9-]+$/, "Tags must be lowercase kebab-case")).min(1),
   author: z.string().min(1),
   twitter: z.string().regex(/^@[a-zA-Z0-9_]+$/).optional(),
   version: z.string().regex(/^\d+\.\d+\.\d+$/),

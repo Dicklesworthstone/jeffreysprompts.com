@@ -31,12 +31,31 @@ export const SYNONYMS: Record<string, string[]> = {
 };
 
 /**
+ * Get synonyms for a single term
+ */
+export function getSynonyms(term: string): string[] {
+  return SYNONYMS[term.toLowerCase()] ?? [];
+}
+
+// Precompute reverse mapping for O(1) lookups
+const REVERSE_SYNONYMS: Record<string, string[]> = {};
+for (const [key, syns] of Object.entries(SYNONYMS)) {
+  for (const syn of syns) {
+    if (!REVERSE_SYNONYMS[syn]) {
+      REVERSE_SYNONYMS[syn] = [];
+    }
+    REVERSE_SYNONYMS[syn].push(key);
+  }
+}
+
+/**
  * Expand a query with synonyms
  */
 export function expandQuery(tokens: string[]): string[] {
   const expanded = new Set(tokens);
 
   for (const token of tokens) {
+    // Add direct synonyms
     const synonyms = SYNONYMS[token];
     if (synonyms) {
       for (const syn of synonyms) {
@@ -44,20 +63,14 @@ export function expandQuery(tokens: string[]): string[] {
       }
     }
 
-    // Also check if token is a synonym of something
-    for (const [key, syns] of Object.entries(SYNONYMS)) {
-      if (syns.includes(token)) {
-        expanded.add(key);
+    // Add reverse synonyms (terms that have this token as a synonym)
+    const reverseSyns = REVERSE_SYNONYMS[token];
+    if (reverseSyns) {
+      for (const syn of reverseSyns) {
+        expanded.add(syn);
       }
     }
   }
 
   return [...expanded];
-}
-
-/**
- * Get synonyms for a single term
- */
-export function getSynonyms(term: string): string[] {
-  return SYNONYMS[term.toLowerCase()] ?? [];
 }

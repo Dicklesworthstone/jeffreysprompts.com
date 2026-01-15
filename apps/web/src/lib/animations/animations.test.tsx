@@ -41,8 +41,8 @@ import {
 // ============================================================================
 
 // Mock framer-motion
-vi.mock("framer-motion", async () => {
-  const actual = await vi.importActual<typeof import("framer-motion")>("framer-motion");
+vi.mock("framer-motion", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("framer-motion")>();
   return {
     ...actual,
     useScroll: () => ({
