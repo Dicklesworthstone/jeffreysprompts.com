@@ -23,7 +23,7 @@ export function tokenize(text: string): string[] {
   return text
     .normalize("NFC")
     .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s]/gu, " ") // Remove everything except letters, numbers, whitespace
+    .replace(/[^\p{L}\p{N}\s+#]/gu, " ") // Remove everything except letters, numbers, whitespace, +, #
     .split(/\s+/)
     .filter((word) => word.length > 1 && !STOPWORDS.has(word));
 }
@@ -36,7 +36,7 @@ export function tokenizeRaw(text: string): string[] {
   return text
     .normalize("NFC")
     .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s]/gu, " ") // Remove everything except letters, numbers, whitespace
+    .replace(/[^\p{L}\p{N}\s+#]/gu, " ") // Remove everything except letters, numbers, whitespace, +, #
     .split(/\s+/)
     .filter((word) => word.length > 0);
 }

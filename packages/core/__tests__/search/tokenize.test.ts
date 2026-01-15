@@ -48,6 +48,15 @@ describe("tokenize", () => {
     expect(result).toContain("tab");
     expect(result).toContain("newline");
   });
+
+  it("should preserve programming language symbols", () => {
+    const result = tokenize("c++ c# .net node.js 1+1");
+    expect(result).toContain("c++");
+    expect(result).toContain("c#");
+    expect(result).toContain("1+1");
+    // .net -> net (dot removed)
+    // node.js -> node js (dot removed)
+  });
 });
 
 describe("tokenizeRaw", () => {

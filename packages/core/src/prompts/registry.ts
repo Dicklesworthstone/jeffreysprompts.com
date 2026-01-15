@@ -123,7 +123,7 @@ Use ultrathink to design the interface before implementing.`,
     difficulty: "intermediate",
     estimatedTokens: 200,
     created: "2025-08-31",
-    content: `I want you to a do a spectacular job building absolutely world-class UI/UX components, with an intense focus on making the most visually appealing, user-friendly, intuitive, slick, polished, "Stripe level" of quality UI/UX possible for this that leverages the good libraries that are already part of the project.`,
+    content: `I want you to do a spectacular job building absolutely world-class UI/UX components, with an intense focus on making the most visually appealing, user-friendly, intuitive, slick, polished, "Stripe level" of quality UI/UX possible for this that leverages the good libraries that are already part of the project.`,
     whenToUse: [
       "When building new UI components",
       "When polishing existing interfaces",
@@ -173,7 +173,7 @@ Use ultrathink to design the interface before implementing.`,
     difficulty: "intermediate",
     estimatedTokens: 350,
     created: "2026-01-03",
-    content: `I want you to read through the complete text carefully and look for any telltale signs of "AI slop" style writing; one big tell is the use of emdash. You should try to replace this with a semicolon, a comma, or just recast the sentence accordingly so it sounds good while avoiding emdash.
+    content: `I want you to read through the complete text carefully and look for any telltale signs of "AI slop" style writing; one big tell is the use of em dash. You should try to replace this with a semicolon, a comma, or just recast the sentence accordingly so it sounds good while avoiding em dash.
 
 Also, you want to avoid certain telltale writing tropes, like sentences of the form "It's not [just] XYZ, it's ABC" or "Here's why" or "Here's why it matters:". Basically, anything that sounds like the kind of thing an LLM would write disproportionately more commonly that a human writer and which sounds inauthentic/cringe.
 
@@ -184,7 +184,7 @@ And you can't do this sort of thing using regex or a script, you MUST manually r
       "When polishing any AI-generated text for human readers",
     ],
     tips: [
-      "Pay special attention to emdashes — they're a dead giveaway",
+      "Pay special attention to em dashes — they're a dead giveaway",
       "Watch for 'Here's why' and similar AI-isms",
       "Read the output aloud to catch unnatural phrasing",
     ],
