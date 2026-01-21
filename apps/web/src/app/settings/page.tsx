@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Ticket, User, Bell, Palette, Shield, ChevronRight, Link2 } from "lucide-react";
+import { Ticket, User, Bell, Palette, Shield, ChevronRight, Link2, Clock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -136,6 +136,13 @@ export default function SettingsPage() {
             Preferences
           </h3>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <SettingCard
+              href="/history"
+              icon={<Clock className="h-6 w-6 text-amber-600 dark:text-amber-400" />}
+              iconBg="bg-amber-100 dark:bg-amber-900/30"
+              title="Recently Viewed"
+              description="Review the prompts and searches you've opened."
+            />
             <SettingCard
               icon={<Bell className="h-6 w-6 text-amber-600 dark:text-amber-400" />}
               iconBg="bg-amber-100 dark:bg-amber-900/30"

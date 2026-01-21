@@ -23,6 +23,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { CopyButton } from "@/components/ui/copy-button";
 import { ReportDialog } from "@/components/reporting/ReportDialog";
+import { HistoryTracker } from "@/components/history/HistoryTracker";
 
 // ============================================================================
 // Icon Mapping
@@ -103,6 +104,7 @@ export default async function BundleDetailPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-violet-50/50 to-white dark:from-neutral-950 dark:to-neutral-900">
+      <HistoryTracker resourceType="bundle" resourceId={bundle.id} source="bundle_page" />
       {/* Header */}
       <div className="border-b dark:border-neutral-800">
         <div className="container mx-auto px-4 py-8">

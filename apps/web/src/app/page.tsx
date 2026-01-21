@@ -14,8 +14,10 @@ import { Button } from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { useFilterState } from "@/hooks/useFilterState";
 import { FeaturedPromptsSection } from "@/components/landing";
+import { RecentlyViewedSidebar } from "@/components/history/RecentlyViewedSidebar";
 import { AnimatedSection } from "@/components/AnimatedSection";
 import { trackEvent } from "@/lib/analytics";
+import { trackHistoryView } from "@/lib/history/client";
 import { useAnnounceCount } from "@/hooks/useAnnounce";
 import type { Prompt, PromptCategory } from "@jeffreysprompts/core/prompts/types";
 
@@ -165,6 +167,7 @@ function HomeContent() {
 
     if (queryChanged && filters.query.trim()) {
       trackEvent("search", { query: filters.query.trim(), source: "browse" });
+      trackHistoryView({ resourceType: "search", searchQuery: filters.query.trim(), source: "browse" });
     }
 
     previousFiltersRef.current = filters;
@@ -273,41 +276,49 @@ function HomeContent() {
           onClearAll={clearFilters}
         />
 
-        {/* Results count - contextual based on active filters */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div>
-            {hasActiveFilters ? (
-              <>
-                <h3 className="text-lg font-semibold text-neutral-900 dark:text-white">
-                  {filters.category ? (
-                    <span className="capitalize">{filters.category}</span>
-                  ) : filters.query ? (
-                    "Search Results"
-                  ) : (
-                    "Filtered Results"
-                  )}
-                </h3>
-                <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
-                  {filteredPrompts.length} prompt{filteredPrompts.length !== 1 ? "s" : ""}
-                  {filters.query && ` matching "${filters.query}"`}
-                  {filters.tags.length > 0 && ` with tags: ${filters.tags.join(", ")}`}
-                </p>
-              </>
-            ) : (
-              <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                Showing all {filteredPrompts.length} prompts
-              </p>
-            )}
+            {/* Results count - contextual based on active filters */}
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                {hasActiveFilters ? (
+                  <>
+                    <h3 className="text-lg font-semibold text-neutral-900 dark:text-white">
+                      {filters.category ? (
+                        <span className="capitalize">{filters.category}</span>
+                      ) : filters.query ? (
+                        "Search Results"
+                      ) : (
+                        "Filtered Results"
+                      )}
+                    </h3>
+                    <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
+                      {filteredPrompts.length} prompt{filteredPrompts.length !== 1 ? "s" : ""}
+                      {filters.query && ` matching "${filters.query}"`}
+                      {filters.tags.length > 0 && ` with tags: ${filters.tags.join(", ")}`}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                    Showing all {filteredPrompts.length} prompts
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Prompt Grid */}
+            <ErrorBoundary fallback={<PromptGridFallback onRefresh={handleRefresh} />}>
+              <PromptGrid
+                prompts={filteredPrompts}
+                onPromptClick={handlePromptClick}
+              />
+            </ErrorBoundary>
+          </div>
+
+          <div className="lg:pt-12">
+            <RecentlyViewedSidebar />
           </div>
         </div>
-
-        {/* Prompt Grid */}
-        <ErrorBoundary fallback={<PromptGridFallback onRefresh={handleRefresh} />}>
-          <PromptGrid
-            prompts={filteredPrompts}
-            onPromptClick={handlePromptClick}
-          />
-        </ErrorBoundary>
       </main>
 
       {/* Minimal Footer */}
