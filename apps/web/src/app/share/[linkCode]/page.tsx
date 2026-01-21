@@ -35,6 +35,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
+import { HistoryTracker } from "@/components/history/HistoryTracker";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
 import type { Prompt } from "@jeffreysprompts/core/prompts";
@@ -58,6 +59,7 @@ interface ShareApiResponse {
 interface ShareData {
   linkCode: string;
   contentType: "prompt" | "bundle" | "workflow" | "collection";
+  contentId: string | null;
   requiresPassword: boolean;
   isExpired: boolean;
   expiresAt: string | null;
@@ -105,6 +107,7 @@ export default function SharePage() {
           setShareData({
             linkCode,
             contentType: "prompt",
+            contentId: null,
             requiresPassword: false,
             isExpired: true,
             expiresAt: null,
@@ -122,6 +125,7 @@ export default function SharePage() {
             setShareData({
               linkCode,
               contentType: "prompt",
+              contentId: null,
               requiresPassword: true,
               isExpired: false,
               expiresAt: null,
@@ -143,6 +147,7 @@ export default function SharePage() {
         setShareData({
           linkCode: data.link.code,
           contentType: data.link.contentType,
+          contentId: data.link.contentId,
           requiresPassword: false,
           isExpired: false,
           expiresAt: data.link.expiresAt,
@@ -373,6 +378,13 @@ export default function SharePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-neutral-50 to-white dark:from-neutral-950 dark:to-neutral-900">
+      {shareData.contentId ? (
+        <HistoryTracker
+          resourceType={shareData.contentType}
+          resourceId={shareData.contentId}
+          source="share_page"
+        />
+      ) : null}
       {/* Header */}
       <div className="border-b border-neutral-200 bg-white/80 backdrop-blur-lg dark:border-neutral-800 dark:bg-neutral-900/80">
         <div className="mx-auto max-w-3xl px-4 py-4 sm:px-6 lg:px-8">
