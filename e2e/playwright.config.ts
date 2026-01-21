@@ -6,7 +6,7 @@ import { defineConfig, devices } from "@playwright/test";
  */
 export default defineConfig({
   testDir: ".",
-  testMatch: ["web/**/*.spec.ts", "swapmeet/**/*.spec.ts", "docs/**/*.spec.ts", "ratings/**/*.spec.ts", "discovery/**/*.spec.ts", "referral/**/*.spec.ts", "roadmap/**/*.spec.ts", "comments/**/*.spec.ts", "social/**/*.spec.ts"],
+  testMatch: ["web/**/*.spec.ts", "swapmeet/**/*.spec.ts", "docs/**/*.spec.ts", "ratings/**/*.spec.ts", "discovery/**/*.spec.ts", "referral/**/*.spec.ts", "roadmap/**/*.spec.ts", "comments/**/*.spec.ts", "social/**/*.spec.ts", "admin/**/*.spec.ts"],
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
