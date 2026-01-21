@@ -11,6 +11,9 @@ import {
   Clock,
   Filter,
   RefreshCw,
+  Square,
+  CheckSquare,
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -135,6 +138,14 @@ export default function AdminModerationPage() {
     priority: "all",
   });
 
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
+  const [showBulkConfirm, setShowBulkConfirm] = useState<{
+    action: "dismiss" | "warn" | "remove";
+    count: number;
+  } | null>(null);
+
   const loadReports = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
@@ -173,6 +184,83 @@ export default function AdminModerationPage() {
   useEffect(() => {
     loadReports();
   }, [loadReports]);
+
+  // Clear selection when filters change or reports reload
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [reports]);
+
+  // Get pending report IDs for "select all" functionality
+  const pendingReportIds = useMemo(
+    () => reports.filter((r) => r.status === "pending").map((r) => r.id),
+    [reports]
+  );
+
+  const allPendingSelected = pendingReportIds.length > 0 &&
+    pendingReportIds.every((id) => selectedIds.has(id));
+
+  const somePendingSelected = pendingReportIds.some((id) => selectedIds.has(id));
+
+  const toggleSelectAll = useCallback(() => {
+    if (allPendingSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(pendingReportIds));
+    }
+  }, [allPendingSelected, pendingReportIds]);
+
+  const toggleSelectOne = useCallback((reportId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(reportId)) {
+        next.delete(reportId);
+      } else {
+        next.add(reportId);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleBulkAction = useCallback(
+    async (action: "dismiss" | "warn" | "remove") => {
+      if (selectedIds.size === 0) return;
+
+      setBulkActionLoading(true);
+      setShowBulkConfirm(null);
+
+      try {
+        const response = await fetch("/api/admin/moderation/bulk-action", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            itemIds: Array.from(selectedIds),
+            action,
+            reason: `Bulk ${action} action`,
+          }),
+        });
+        const payload = await response.json().catch(() => null);
+
+        if (!response.ok) {
+          toastError("Bulk action failed", payload?.error ?? "Unable to process bulk action.");
+          return;
+        }
+
+        const { summary } = payload;
+        toastSuccess(
+          "Bulk action completed",
+          `${summary.succeeded} of ${summary.total} reports processed with action: ${action}`
+        );
+
+        setSelectedIds(new Set());
+        await loadReports();
+      } catch {
+        toastError("Bulk action failed", "Unable to process bulk action.");
+      } finally {
+        setBulkActionLoading(false);
+      }
+    },
+    [selectedIds, loadReports, toastError, toastSuccess]
+  );
 
   const handleAction = useCallback(
     async (reportId: string, action: "dismiss" | "warn" | "remove" | "ban") => {
@@ -265,6 +353,22 @@ export default function AdminModerationPage() {
         <CardContent className="p-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-wrap items-center gap-2">
+              {/* Select All checkbox */}
+              <button
+                type="button"
+                onClick={toggleSelectAll}
+                className="flex items-center gap-1 rounded p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                title={allPendingSelected ? "Deselect all" : "Select all pending"}
+                disabled={pendingReportIds.length === 0}
+              >
+                {allPendingSelected ? (
+                  <CheckSquare className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+                ) : somePendingSelected ? (
+                  <CheckSquare className="h-5 w-5 text-neutral-400" />
+                ) : (
+                  <Square className="h-5 w-5 text-neutral-400" />
+                )}
+              </button>
               <Filter className="h-4 w-4 text-neutral-400" />
               <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
                 Filter:
@@ -344,6 +448,106 @@ export default function AdminModerationPage() {
         </CardContent>
       </Card>
 
+      {/* Bulk action toolbar */}
+      {selectedIds.size > 0 && (
+        <Card className="border-violet-200 bg-violet-50 dark:border-violet-500/30 dark:bg-violet-500/10">
+          <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-400">
+                {selectedIds.size} selected
+              </Badge>
+              <span className="text-sm text-neutral-600 dark:text-neutral-400">
+                Choose a bulk action:
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-500/10"
+                onClick={() => setShowBulkConfirm({ action: "dismiss", count: selectedIds.size })}
+                disabled={bulkActionLoading}
+              >
+                {bulkActionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
+                Dismiss All
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-500/10"
+                onClick={() => setShowBulkConfirm({ action: "warn", count: selectedIds.size })}
+                disabled={bulkActionLoading}
+              >
+                {bulkActionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MessageSquare className="mr-2 h-4 w-4" />}
+                Warn All
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
+                onClick={() => setShowBulkConfirm({ action: "remove", count: selectedIds.size })}
+                disabled={bulkActionLoading}
+              >
+                {bulkActionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <XCircle className="mr-2 h-4 w-4" />}
+                Remove All
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedIds(new Set())}
+                disabled={bulkActionLoading}
+              >
+                Clear Selection
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Bulk action confirmation modal */}
+      {showBulkConfirm && (
+        <Card className="border-amber-200 bg-amber-50 dark:border-amber-500/30 dark:bg-amber-500/10">
+          <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              <span className="text-sm font-medium text-neutral-900 dark:text-white">
+                Confirm bulk {showBulkConfirm.action}
+              </span>
+              <span className="text-sm text-neutral-600 dark:text-neutral-400">
+                This will {showBulkConfirm.action === "dismiss" ? "dismiss" : showBulkConfirm.action === "warn" ? "warn users for" : "remove"} {showBulkConfirm.count} report{showBulkConfirm.count !== 1 ? "s" : ""}.
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowBulkConfirm(null)}
+                disabled={bulkActionLoading}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                className={
+                  showBulkConfirm.action === "dismiss"
+                    ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                    : showBulkConfirm.action === "warn"
+                    ? "bg-amber-600 text-white hover:bg-amber-700"
+                    : "bg-red-600 text-white hover:bg-red-700"
+                }
+                onClick={() => handleBulkAction(showBulkConfirm.action)}
+                disabled={bulkActionLoading}
+              >
+                {bulkActionLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                Confirm {showBulkConfirm.action}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {loadError && (
         <Card>
           <CardContent className="flex flex-col gap-3 p-6">
@@ -366,7 +570,9 @@ export default function AdminModerationPage() {
             key={report.id}
             report={report}
             onAction={handleAction}
-            busy={loading || actioningId === report.id}
+            busy={loading || actioningId === report.id || bulkActionLoading}
+            selected={selectedIds.has(report.id)}
+            onToggleSelect={() => toggleSelectOne(report.id)}
           />
         ))}
       </div>
@@ -428,6 +634,8 @@ function ReportCard({
   report,
   onAction,
   busy,
+  selected,
+  onToggleSelect,
 }: {
   report: {
     id: string;
@@ -443,6 +651,8 @@ function ReportCard({
   };
   onAction: (reportId: string, action: "dismiss" | "warn" | "remove" | "ban") => void;
   busy: boolean;
+  selected: boolean;
+  onToggleSelect: () => void;
 }) {
   const priority = report.priority;
   const priorityLevel: ReportPriorityLevel = priority?.level ?? "low";
@@ -472,13 +682,30 @@ function ReportCard({
   const slaText = priority ? formatSla(priority.slaDeadlineAt, priority.slaStatus) : "SLA unknown";
   const slaClassName = priority ? slaColors[priority.slaStatus] : "text-neutral-500";
 
+  const isPending = report.status === "pending";
+
   return (
-    <Card className={report.status === "pending" ? "border-amber-200 dark:border-amber-500/30" : ""}>
+    <Card className={`${report.status === "pending" ? "border-amber-200 dark:border-amber-500/30" : ""} ${selected ? "ring-2 ring-violet-500 dark:ring-violet-400" : ""}`}>
       <CardContent className="p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           {/* Report info */}
           <div className="flex-1 space-y-3">
             <div className="flex items-start gap-3">
+              {/* Selection checkbox */}
+              {isPending && (
+                <button
+                  type="button"
+                  onClick={onToggleSelect}
+                  className="mt-2 flex-shrink-0 rounded p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                  title={selected ? "Deselect" : "Select for bulk action"}
+                >
+                  {selected ? (
+                    <CheckSquare className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+                  ) : (
+                    <Square className="h-5 w-5 text-neutral-400" />
+                  )}
+                </button>
+              )}
               <div className="rounded-lg bg-violet-100 p-2 text-violet-600 dark:bg-violet-500/20 dark:text-violet-400">
                 <Flag className="h-5 w-5" />
               </div>
