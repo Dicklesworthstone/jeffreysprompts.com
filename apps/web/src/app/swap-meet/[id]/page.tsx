@@ -6,7 +6,7 @@
  * Shows full prompt details with author info, ratings, and related prompts.
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -33,6 +33,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
+import { trackHistoryView } from "@/lib/history/client";
 import { copyToClipboard } from "@/lib/clipboard";
 import { CommunityPromptCard } from "@/components/swap-meet/CommunityPromptCard";
 import type { CommunityPrompt } from "@/lib/swap-meet/types";
@@ -183,6 +184,11 @@ export default function CommunityPromptDetailPage() {
 
   const promptId = params.id as string;
   const prompt = mockPrompts[promptId];
+
+  useEffect(() => {
+    if (!prompt) return;
+    trackHistoryView({ resourceType: "prompt", resourceId: prompt.id, source: "swap_meet" });
+  }, [prompt]);
 
   const handleCopy = useCallback(async () => {
     if (!prompt) return;

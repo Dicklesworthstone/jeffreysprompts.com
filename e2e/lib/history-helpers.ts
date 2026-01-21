@@ -106,12 +106,61 @@ export async function clearHistoryViaAPI(
   expect(json.success).toBe(true);
 }
 
-// Selectors
+// Selectors - RecentlyViewedSidebar
 
 export function getHistorySidebar(page: Page): Locator {
+  // The sidebar is a Card with "Recently Viewed" title
   return page.locator("[data-testid='history-sidebar']").or(
-    page.locator("aside").filter({ hasText: /recently viewed/i })
+    page.locator("div").filter({ hasText: /^Recently Viewed/ }).first()
   );
+}
+
+export function getSidebarTitle(page: Page): Locator {
+  return page.getByText("Recently Viewed").first();
+}
+
+export function getSidebarClearButton(page: Page): Locator {
+  return page.getByRole("button", { name: /clear history/i });
+}
+
+export function getSidebarEmptyState(page: Page): Locator {
+  return page.locator("text=/no recent activity|open a prompt to start/i");
+}
+
+export function getSidebarViewFullHistoryLink(page: Page): Locator {
+  return page.getByRole("link", { name: /view full history/i });
+}
+
+export function getSidebarItems(page: Page): Locator {
+  // Items are div elements with badges and titles inside the sidebar
+  return getHistorySidebar(page).locator("div.rounded-lg.border").filter({ has: page.locator("a, span") });
+}
+
+// Selectors - History Page (/history)
+
+export function getHistoryPageTitle(page: Page): Locator {
+  return page.getByRole("heading", { name: /recently viewed/i });
+}
+
+export function getHistoryPageBackLink(page: Page): Locator {
+  return page.getByRole("link", { name: /back to prompts/i });
+}
+
+export function getHistoryPageClearButton(page: Page): Locator {
+  return page.getByRole("button", { name: /clear history/i });
+}
+
+export function getHistoryPageSearchInput(page: Page): Locator {
+  return page.getByPlaceholder(/search history/i);
+}
+
+export function getHistoryPageItemCount(page: Page): Locator {
+  return page.locator("text=/\\d+ items?/");
+}
+
+export function getHistoryPageCards(page: Page): Locator {
+  // Cards in the grid layout
+  return page.locator(".grid > div").filter({ has: page.locator("[class*='Card']") });
 }
 
 export function getHistoryItems(page: Page): Locator {
@@ -144,7 +193,7 @@ export function getHistoryPageLink(page: Page): Locator {
 
 export function getHistoryEmptyState(page: Page): Locator {
   return page.locator("[data-testid='history-empty']").or(
-    page.locator("text=/no.*recently.*viewed|no.*history/i")
+    page.locator("text=/no.*history.*yet|no.*recently.*viewed|no.*recent.*activity/i")
   );
 }
 

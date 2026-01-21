@@ -467,3 +467,373 @@ test.describe("History API - Validation", () => {
     });
   });
 });
+
+/**
+ * UI Tests for History Page (/history)
+ */
+test.describe("History Page - UI", () => {
+  let testUserId: string;
+
+  test.beforeEach(async ({ request, page, logger }) => {
+    testUserId = generateUniqueUserId();
+    await logger.step("clear any existing history", async () => {
+      await clearHistoryViaAPI(request, testUserId);
+    });
+
+    // Set the userId in localStorage so the page uses it
+    await logger.step("navigate to history page", async () => {
+      await page.goto("/history");
+      await page.evaluate((userId) => {
+        localStorage.setItem("jp_user_id", userId);
+      }, testUserId);
+      await page.reload();
+    });
+  });
+
+  test.afterEach(async ({ request }) => {
+    await clearHistoryViaAPI(request, testUserId);
+  });
+
+  test("displays page header and navigation", async ({ page, logger }) => {
+    await logger.step("verify page header", async () => {
+      await expect(page.getByRole("heading", { name: /recently viewed/i })).toBeVisible();
+    });
+
+    await logger.step("verify back link", async () => {
+      await expect(page.getByRole("link", { name: /back to prompts/i })).toBeVisible();
+    });
+
+    await logger.step("verify clear button exists", async () => {
+      await expect(page.getByRole("button", { name: /clear history/i })).toBeVisible();
+    });
+  });
+
+  test("shows empty state when no history", async ({ page, logger }) => {
+    await logger.step("verify empty state message", async () => {
+      await expect(page.locator("text=/no history yet|open a prompt/i")).toBeVisible();
+    });
+
+    await logger.step("verify clear button is disabled", async () => {
+      const clearButton = page.getByRole("button", { name: /clear history/i });
+      await expect(clearButton).toBeDisabled();
+    });
+  });
+
+  test("displays history items after adding entries", async ({ page, request, logger }) => {
+    await logger.step("add history entries via API", async () => {
+      await recordHistoryViaAPI(request, {
+        userId: testUserId,
+        resourceType: "prompt",
+        resourceId: "test-prompt-ui",
+        source: "browse",
+      });
+      await recordHistoryViaAPI(request, {
+        userId: testUserId,
+        resourceType: "search",
+        searchQuery: "test search query",
+        source: "search",
+      });
+    });
+
+    await logger.step("reload page to see new entries", async () => {
+      await page.reload();
+      await page.waitForLoadState("networkidle");
+    });
+
+    await logger.step("verify items are displayed", async () => {
+      // Should show 2 items
+      await expect(page.locator("text=/2 items/")).toBeVisible();
+    });
+
+    await logger.step("verify search entry shows query", async () => {
+      await expect(page.locator("text=/test search query/i")).toBeVisible();
+    });
+  });
+
+  test("search filter works", async ({ page, request, logger }) => {
+    await logger.step("add multiple entries", async () => {
+      await recordHistoryViaAPI(request, {
+        userId: testUserId,
+        resourceType: "prompt",
+        resourceId: "apple-prompt",
+        source: "browse",
+      });
+      await recordHistoryViaAPI(request, {
+        userId: testUserId,
+        resourceType: "prompt",
+        resourceId: "banana-prompt",
+        source: "browse",
+      });
+    });
+
+    await logger.step("reload and verify entries", async () => {
+      await page.reload();
+      await page.waitForLoadState("networkidle");
+      await expect(page.locator("text=/2 items/")).toBeVisible();
+    });
+
+    await logger.step("search for apple", async () => {
+      const searchInput = page.getByPlaceholder(/search history/i);
+      await searchInput.fill("apple");
+    });
+
+    await logger.step("verify filtered results", async () => {
+      await expect(page.locator("text=/1 item(?!s)/")).toBeVisible();
+      await expect(page.locator("text=/apple-prompt/i")).toBeVisible();
+    });
+  });
+
+  test("clear history button works", async ({ page, request, logger }) => {
+    await logger.step("add history entry", async () => {
+      await recordHistoryViaAPI(request, {
+        userId: testUserId,
+        resourceType: "prompt",
+        resourceId: "clear-test-prompt",
+        source: "browse",
+      });
+    });
+
+    await logger.step("reload page", async () => {
+      await page.reload();
+      await page.waitForLoadState("networkidle");
+    });
+
+    await logger.step("verify entry exists", async () => {
+      await expect(page.locator("text=/1 item/")).toBeVisible();
+    });
+
+    await logger.step("click clear button", async () => {
+      const clearButton = page.getByRole("button", { name: /clear history/i });
+      await clearButton.click();
+    });
+
+    await logger.step("verify history is cleared", async () => {
+      await expect(page.locator("text=/0 items/")).toBeVisible();
+      await expect(page.locator("text=/no history yet|no matches/i")).toBeVisible();
+    });
+  });
+
+  test("back link navigates to home", async ({ page, logger }) => {
+    await logger.step("click back link", async () => {
+      const backLink = page.getByRole("link", { name: /back to prompts/i });
+      await backLink.click();
+    });
+
+    await logger.step("verify navigation to home", async () => {
+      await page.waitForURL("/");
+      expect(page.url()).toMatch(/\/$/);
+    });
+  });
+});
+
+/**
+ * UI Tests for RecentlyViewedSidebar component (displayed on homepage)
+ */
+test.describe("RecentlyViewedSidebar - UI", () => {
+  let testUserId: string;
+
+  test.beforeEach(async ({ request, page, logger }) => {
+    testUserId = generateUniqueUserId();
+    await logger.step("clear any existing history", async () => {
+      await clearHistoryViaAPI(request, testUserId);
+    });
+
+    // Set the userId in localStorage
+    await logger.step("setup localStorage userId and navigate to home", async () => {
+      await page.goto("/");
+      await page.evaluate((userId) => {
+        localStorage.setItem("jp_user_id", userId);
+      }, testUserId);
+      await page.reload();
+      await page.waitForLoadState("networkidle");
+    });
+  });
+
+  test.afterEach(async ({ request }) => {
+    await clearHistoryViaAPI(request, testUserId);
+  });
+
+  test("displays sidebar with title", async ({ page, logger }) => {
+    await logger.step("verify sidebar title", async () => {
+      await expect(page.getByText("Recently Viewed").first()).toBeVisible();
+    });
+  });
+
+  test("shows empty state when no history", async ({ page, logger }) => {
+    await logger.step("verify empty state", async () => {
+      await expect(page.locator("text=/no recent activity|open a prompt/i")).toBeVisible();
+    });
+  });
+
+  test("displays view full history link", async ({ page, logger }) => {
+    await logger.step("verify full history link", async () => {
+      const link = page.getByRole("link", { name: /view full history/i });
+      await expect(link).toBeVisible();
+    });
+
+    await logger.step("verify link href", async () => {
+      const link = page.getByRole("link", { name: /view full history/i });
+      await expect(link).toHaveAttribute("href", "/history");
+    });
+  });
+
+  test("shows items after adding history", async ({ page, request, logger }) => {
+    await logger.step("add history entries via API", async () => {
+      await recordHistoryViaAPI(request, {
+        userId: testUserId,
+        resourceType: "prompt",
+        resourceId: "sidebar-test-prompt",
+        source: "browse",
+      });
+    });
+
+    await logger.step("reload to see entries", async () => {
+      await page.reload();
+      await page.waitForLoadState("networkidle");
+    });
+
+    await logger.step("verify item appears", async () => {
+      // The sidebar shows resourceId or title
+      await expect(page.locator("text=/sidebar-test-prompt/i")).toBeVisible();
+    });
+  });
+
+  test("view full history link navigates to history page", async ({ page, logger }) => {
+    await logger.step("click view full history", async () => {
+      const link = page.getByRole("link", { name: /view full history/i });
+      await link.click();
+    });
+
+    await logger.step("verify navigation to history page", async () => {
+      await page.waitForURL("/history");
+      await expect(page.getByRole("heading", { name: /recently viewed/i })).toBeVisible();
+    });
+  });
+
+  test("sidebar limits to 8 items", async ({ page, request, logger }) => {
+    await logger.step("add 10 history entries", async () => {
+      for (let i = 1; i <= 10; i++) {
+        await recordHistoryViaAPI(request, {
+          userId: testUserId,
+          resourceType: "prompt",
+          resourceId: `limit-test-prompt-${i}`,
+          source: "browse",
+        });
+      }
+    });
+
+    await logger.step("reload page", async () => {
+      await page.reload();
+      await page.waitForLoadState("networkidle");
+    });
+
+    await logger.step("verify most recent 8 are shown", async () => {
+      // prompt-10 should be visible (most recent)
+      await expect(page.locator("text=/limit-test-prompt-10/")).toBeVisible();
+      // prompt-3 should be visible (8th most recent)
+      await expect(page.locator("text=/limit-test-prompt-3/")).toBeVisible();
+      // prompt-2 should NOT be visible (9th most recent, beyond limit)
+      await expect(page.locator("text=/limit-test-prompt-2/")).not.toBeVisible();
+    });
+  });
+});
+
+/**
+ * Integration tests - tracking views through page navigation
+ */
+test.describe("History Tracking Integration", () => {
+  let testUserId: string;
+
+  test.beforeEach(async ({ request, page, logger }) => {
+    testUserId = generateUniqueUserId();
+    await logger.step("clear any existing history", async () => {
+      await clearHistoryViaAPI(request, testUserId);
+    });
+
+    await logger.step("setup localStorage userId", async () => {
+      await page.goto("/");
+      await page.evaluate((userId) => {
+        localStorage.setItem("jp_user_id", userId);
+      }, testUserId);
+    });
+  });
+
+  test.afterEach(async ({ request }) => {
+    await clearHistoryViaAPI(request, testUserId);
+  });
+
+  test("history updates reflect across pages", async ({ page, request, logger }) => {
+    await logger.step("add entry via API", async () => {
+      await recordHistoryViaAPI(request, {
+        userId: testUserId,
+        resourceType: "prompt",
+        resourceId: "cross-page-test",
+        source: "api",
+      });
+    });
+
+    await logger.step("verify sidebar shows entry on homepage", async () => {
+      await page.goto("/");
+      await page.waitForLoadState("networkidle");
+      await expect(page.locator("text=/cross-page-test/")).toBeVisible();
+    });
+
+    await logger.step("verify history page shows entry", async () => {
+      await page.goto("/history");
+      await page.waitForLoadState("networkidle");
+      await expect(page.locator("text=/cross-page-test/")).toBeVisible();
+    });
+  });
+
+  test("clearing history on page reflects in sidebar", async ({ page, request, logger }) => {
+    await logger.step("add entry via API", async () => {
+      await recordHistoryViaAPI(request, {
+        userId: testUserId,
+        resourceType: "prompt",
+        resourceId: "clear-sync-test",
+        source: "api",
+      });
+    });
+
+    await logger.step("go to history page and clear", async () => {
+      await page.goto("/history");
+      await page.waitForLoadState("networkidle");
+      const clearButton = page.getByRole("button", { name: /clear history/i });
+      await clearButton.click();
+    });
+
+    await logger.step("verify history page is empty", async () => {
+      await expect(page.locator("text=/no history yet/i")).toBeVisible();
+    });
+
+    await logger.step("verify sidebar on homepage is empty", async () => {
+      await page.goto("/");
+      await page.waitForLoadState("networkidle");
+      await expect(page.locator("text=/no recent activity/i")).toBeVisible();
+    });
+  });
+
+  test("search entries show with query text", async ({ page, request, logger }) => {
+    await logger.step("add search entry", async () => {
+      await recordHistoryViaAPI(request, {
+        userId: testUserId,
+        resourceType: "search",
+        searchQuery: "react hooks tutorial",
+        source: "search",
+      });
+    });
+
+    await logger.step("verify on sidebar", async () => {
+      await page.goto("/");
+      await page.waitForLoadState("networkidle");
+      await expect(page.locator("text=/react hooks tutorial/i")).toBeVisible();
+    });
+
+    await logger.step("verify on history page", async () => {
+      await page.goto("/history");
+      await page.waitForLoadState("networkidle");
+      await expect(page.locator("text=/react hooks tutorial/i")).toBeVisible();
+      await expect(page.locator("text=/Query:/i")).toBeVisible();
+    });
+  });
+});
