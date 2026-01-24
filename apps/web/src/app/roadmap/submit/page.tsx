@@ -39,19 +39,19 @@ export default function SubmitFeaturePage() {
         <h2 className="font-medium text-sm mb-2">Submission Guidelines</h2>
         <ul className="space-y-1 text-sm text-muted-foreground">
           <li className="flex items-start gap-2">
-            <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+            <CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5 shrink-0" />
             Be specific and clear about what you want
           </li>
           <li className="flex items-start gap-2">
-            <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+            <CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5 shrink-0" />
             Explain the use case - who needs this and why?
           </li>
           <li className="flex items-start gap-2">
-            <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+            <CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5 shrink-0" />
             Check existing requests first to avoid duplicates
           </li>
           <li className="flex items-start gap-2">
-            <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+            <CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5 shrink-0" />
             One feature per request - break down complex ideas
           </li>
         </ul>

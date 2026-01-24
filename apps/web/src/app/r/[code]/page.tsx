@@ -25,13 +25,10 @@ export default async function ReferralLandingPage({ params }: ReferralLandingPag
   const resolvedParams = await params;
   const code = resolvedParams.code;
 
-  // Validate referral code
-  const referralCode = getReferralCodeByCode(code);
-
-  // If code doesn't exist, still show the page
-  // This allows first-time visitors to see the referral landing even if the code
-  // was created dynamically and isn't in server memory
-  // Note: referralCode is used to validate that the code exists in the store
+  // Validate referral code (calling function for side effects, result intentionally unused)
+  // If code doesn't exist, still show the page since it allows first-time visitors
+  // to see the referral landing even if the code was created dynamically
+  getReferralCodeByCode(code);
 
   const benefits = [
     `${REFERRAL_CONSTANTS.REFEREE_EXTENDED_TRIAL_DAYS}-day free trial (instead of 14 days)`,
@@ -108,8 +105,8 @@ export default async function ReferralLandingPage({ params }: ReferralLandingPag
             <ul className="space-y-3">
               {benefits.map((benefit, index) => (
                 <li key={index} className="flex items-center gap-3">
-                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-                    <Check className="size-4 text-green-600 dark:text-green-400" />
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/30">
+                    <Check className="size-4 text-emerald-600 dark:text-emerald-400" />
                   </div>
                   <span>{benefit}</span>
                 </li>

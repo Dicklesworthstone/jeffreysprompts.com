@@ -72,8 +72,8 @@ export function FeatureSubmitForm() {
   if (isSuccess) {
     return (
       <Card className="p-8 text-center">
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-500/10 mb-4">
-          <CheckCircle2 className="h-6 w-6 text-green-500" />
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-500/10 mb-4">
+          <CheckCircle2 className="h-6 w-6 text-emerald-500" />
         </div>
         <h2 className="text-xl font-bold mb-2">Feature Submitted!</h2>
         <p className="text-muted-foreground">

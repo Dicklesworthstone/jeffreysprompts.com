@@ -106,8 +106,8 @@ export function ReferralStats({ userId, className }: ReferralStatsProps) {
       label: "Converted",
       value: data.stats.convertedReferrals,
       icon: CheckCircle,
-      color: "text-green-500",
-      bgColor: "bg-green-50 dark:bg-green-950/30",
+      color: "text-emerald-500",
+      bgColor: "bg-emerald-50 dark:bg-emerald-950/30",
     },
     {
       label: "Rewarded",
@@ -187,7 +187,7 @@ export function ReferralStats({ userId, className }: ReferralStatsProps) {
                       className={cn(
                         "size-2 rounded-full",
                         referral.status === "pending" && "bg-amber-500",
-                        referral.status === "converted" && "bg-green-500",
+                        referral.status === "converted" && "bg-emerald-500",
                         referral.status === "rewarded" && "bg-violet-500"
                       )}
                     />
@@ -204,7 +204,7 @@ export function ReferralStats({ userId, className }: ReferralStatsProps) {
                     className={cn(
                       "text-xs font-medium px-2 py-1 rounded-full",
                       referral.status === "pending" && "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
-                      referral.status === "converted" && "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300",
+                      referral.status === "converted" && "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
                       referral.status === "rewarded" && "bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300"
                     )}
                   >

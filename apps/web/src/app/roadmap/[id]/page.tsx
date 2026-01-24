@@ -124,7 +124,7 @@ export default async function FeatureDetailPage({ params }: Props) {
 
             {/* Shipped date */}
             {feature.shippedAt && (
-              <div className="flex items-center gap-2 text-green-600 mb-4">
+              <div className="flex items-center gap-2 text-emerald-600 mb-4">
                 <CheckCircle2 className="h-5 w-5" />
                 <span className="text-sm font-medium">
                   Shipped on {formatDate(feature.shippedAt)}

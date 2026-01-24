@@ -160,7 +160,7 @@ export default function RoadmapPage() {
           <div className="text-sm text-muted-foreground">In Progress</div>
         </Card>
         <Card className="p-4 text-center">
-          <div className="text-2xl font-bold text-green-600">
+          <div className="text-2xl font-bold text-emerald-600">
             {stats.shipped}
           </div>
           <div className="text-sm text-muted-foreground">Shipped</div>
@@ -197,7 +197,7 @@ export default function RoadmapPage() {
       {roadmap.shipped.length > 0 && (
         <div className="mt-12">
           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <CheckCircle2 className="h-5 w-5 text-green-600" />
+            <CheckCircle2 className="h-5 w-5 text-emerald-600" />
             Recently Shipped
           </h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">

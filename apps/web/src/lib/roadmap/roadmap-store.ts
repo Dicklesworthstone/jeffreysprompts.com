@@ -71,7 +71,7 @@ export const STATUS_CONFIG: Record<
   },
   shipped: {
     label: "Shipped",
-    color: "bg-green-500/10 text-green-600 border-green-500/30",
+    color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/30",
     description: "Live in production",
   },
   declined: {

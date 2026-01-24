@@ -94,6 +94,7 @@ const arbitraryTextAllowlist = [
   "components/mobile/BottomTabBar.tsx", // Tab labels need text-[10px]
   "components/BottomNav.tsx", // Bottom navigation labels need text-[10px]
   "components/onboarding/", // Compact gesture hint labels need text-[10px]
+  "components/history/RecentlyViewedSidebar.tsx", // Compact badge labels need text-[10px]
 ];
 
 describe("Color Palette Consistency", () => {

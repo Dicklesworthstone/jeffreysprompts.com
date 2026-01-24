@@ -5,8 +5,7 @@
  * and logs command execution with timing for E2E test debugging.
  */
 
-import { spawn } from "bun";
-import type { SpawnOptions as BunSpawnOptionsType } from "bun";
+import { spawn, type Subprocess } from "bun";
 import { TestLogger } from "./logger";
 
 export interface SpawnOptions {
@@ -82,7 +81,7 @@ export async function spawnCli(options: SpawnOptions): Promise<SpawnResult> {
       env: { ...process.env, ...env },
       stdout: "pipe",
       stderr: "pipe",
-    } as BunSpawnOptionsType);
+    });
 
     // Collect output
     const stdoutChunks: Uint8Array[] = [];

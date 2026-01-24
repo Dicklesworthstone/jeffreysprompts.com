@@ -108,7 +108,7 @@ export function ReferralCard({ userId, className }: ReferralCardProps) {
               aria-label={copied ? "Copied" : "Copy link"}
             >
               {copied ? (
-                <Check className="size-4 text-green-500" />
+                <Check className="size-4 text-emerald-500" />
               ) : (
                 <Copy className="size-4" />
               )}

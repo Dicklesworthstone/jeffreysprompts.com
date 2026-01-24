@@ -472,7 +472,7 @@ export const BADGE_CONFIG: Record<
   },
   contributor: {
     label: "Contributor",
-    color: "bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400",
+    color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400",
     description: "Published 5+ public prompts",
   },
   popular: {
