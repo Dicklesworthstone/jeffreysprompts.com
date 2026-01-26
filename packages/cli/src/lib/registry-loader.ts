@@ -118,7 +118,7 @@ function loadLocalPrompts(dir: string): Prompt[] {
         if (item && typeof item === "object" && "id" in item) {
           console.warn(
             chalk.yellow(`Warning: Invalid local prompt in ${entry.name}:`),
-            result.error.errors[0]?.message
+            result.error.issues[0]?.message
           );
         }
       }

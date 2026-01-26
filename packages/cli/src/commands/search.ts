@@ -126,10 +126,10 @@ async function searchPersonal(
 
     if (!response.ok) {
       if (response.status === 401) return { results: [], error: "auth_expired" };
-      return { results: [], error: `API Error: ${response.status} ${response.statusText}` };
+      return { results: [], error: `API Error: ${response.status}` };
     }
 
-    const data = (await response.json()) as { results: PersonalPromptResult[] };
+    const data = response.data as { results: PersonalPromptResult[] };
 
     return {
       results: data.results.map((r) => ({

@@ -49,7 +49,8 @@ describe("Card", () => {
     it("applies hover styles when hover prop is true", () => {
       render(<Card hover="lift">Content</Card>);
       const card = screen.getByText("Content");
-      expect(card).toHaveClass("hover:shadow-lg");
+      // The lift hover variant applies translate and enhanced shadows
+      expect(card).toHaveClass("hover:-translate-y-1.5");
     });
   });
 

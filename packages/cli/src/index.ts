@@ -395,7 +395,7 @@ cli
 cli
   .command("completion", "Generate shell completion script")
   .option("--shell <shell>", "Shell: bash, zsh, or fish")
-  .action((options) => completionCommand(options, cli));
+  .action((options) => completionCommand(options));
 
 cli
   .command("serve", "Start MCP server for agent-native access")

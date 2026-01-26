@@ -7,9 +7,9 @@ import { type Subprocess } from "bun";
 export async function copyToClipboard(text: string): Promise<boolean> {
   // 1. Try native clipboard API (if available, e.g. in browser context or supported runtime)
   // Bun doesn't have navigator.clipboard in CLI context usually, but just in case.
-  if (typeof navigator !== "undefined" && navigator.clipboard) {
+  if (typeof navigator !== "undefined" && "clipboard" in navigator) {
     try {
-      await navigator.clipboard.writeText(text);
+      await (navigator as Navigator & { clipboard: { writeText: (text: string) => Promise<void> } }).clipboard.writeText(text);
       return true;
     } catch {
       // Ignore and fall back to CLI tools
@@ -61,10 +61,11 @@ async function trySpawn(cmd: string[], input: string): Promise<boolean> {
       stderr: "ignore", // Silence errors (e.g. missing tool)
     });
 
-    if (proc.stdin) {
-      const writer = proc.stdin.getWriter();
-      writer.write(input);
-      writer.close(); // Important to close stdin to signal EOF
+    if (proc.stdin && typeof proc.stdin !== "number") {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(input);
+      await proc.stdin.write(data);
+      await proc.stdin.end();
     }
 
     // Race between process exit and timeout

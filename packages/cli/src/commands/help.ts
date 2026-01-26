@@ -244,9 +244,12 @@ async function outputWithPager(text: string): Promise<void> {
       stderr: "inherit",
     });
 
-    const writer = proc.stdin.getWriter();
-    writer.write(text);
-    writer.close();
+    if (proc.stdin && typeof proc.stdin !== "number") {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(text);
+      await proc.stdin.write(data);
+      await proc.stdin.end();
+    }
 
     // Wait for pager to complete (user quits with 'q')
     await proc.exited;

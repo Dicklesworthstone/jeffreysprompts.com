@@ -99,7 +99,7 @@ function extractPromptPayload(payload: unknown): PromptPayload | null {
     return data.prompt as PromptPayload;
   }
   if (typeof data.id === "string") {
-    return data as PromptPayload;
+    return data as unknown as PromptPayload;
   }
   return null;
 }
