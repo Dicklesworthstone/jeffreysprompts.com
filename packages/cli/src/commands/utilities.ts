@@ -71,7 +71,7 @@ export async function tagsCommand(options: JsonOptions): Promise<void> {
   }
 
   // Sort tags by count (descending)
-  const sortedTags = [...tags].sort((a, b) => (counts[b] ?? 0) - (counts[a] ?? 0));
+  const sortedTags = [...tags].sort((a, b) => (counts[b] ?? 0) - (counts[a] ?? 0) || a.localeCompare(b));
 
   if (shouldOutputJson(options)) {
     const data = sortedTags.map((tag) => ({

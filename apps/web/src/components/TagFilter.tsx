@@ -39,7 +39,7 @@ export function TagFilter({
 
   // Sort tags by count if available, otherwise alphabetically
   const sortedTags = counts
-    ? [...tags].sort((a, b) => (counts[b] ?? 0) - (counts[a] ?? 0))
+    ? [...tags].sort((a, b) => (counts[b] ?? 0) - (counts[a] ?? 0) || a.localeCompare(b))
     : [...tags].sort();
 
   const visibleTags = sortedTags.slice(0, maxVisible);

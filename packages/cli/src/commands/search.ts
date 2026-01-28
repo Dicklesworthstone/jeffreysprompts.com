@@ -261,7 +261,7 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
         saved: searchSaved || searchAll,
         all: searchAll,
       },
-      limit
+      limit * 2
     );
     personalResults = results;
     personalError = error;
