@@ -11,7 +11,7 @@
  * - Simplified action row
  */
 
-import { useState, useCallback, useRef, useEffect, type MouseEvent } from "react";
+import { useState, useCallback, useRef, useEffect, type MouseEvent, type KeyboardEvent } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   Copy,
@@ -125,6 +125,16 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
     onClick?.(prompt);
   }, [prompt, onClick]);
 
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onClick?.(prompt);
+      }
+    },
+    [prompt, onClick]
+  );
+
   const handleAddToBasket = useCallback(
     (e: MouseEvent) => {
       e.stopPropagation();
@@ -177,6 +187,9 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
           "hover:border-neutral-300 dark:hover:border-neutral-700"
         )}
         onClick={handleClick}
+        role="button"
+        tabIndex={0}
+        onKeyDown={handleKeyDown}
       >
         {/* Featured indicator - prominent top accent */}
         {prompt.featured && (
@@ -348,8 +361,7 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
 
                 <Button
                   size="sm"
-                  className="h-8 px-3 text-sm font-medium bg-neutral-900 hover:bg-neutral-800 dark:bg-neutral-100 dark:hover:bg-neutral-200 dark:text-neutral-900 after:absolute after:inset-0 after:z-0"
-                  onClick={handleClick}
+                  className="h-8 px-3 text-sm font-medium bg-neutral-900 hover:bg-neutral-800 dark:bg-neutral-100 dark:hover:bg-neutral-200 dark:text-neutral-900"
                 >
                   View
                   <ChevronRight className="w-4 h-4 ml-1" />
