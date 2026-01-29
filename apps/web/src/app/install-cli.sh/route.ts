@@ -112,6 +112,15 @@ command_exists() {
   command -v "$1" >/dev/null 2>&1
 }
 
+# Create a temp file (portable across macOS/Linux)
+make_temp_file() {
+  if command_exists mktemp; then
+    mktemp -t jfp.XXXXXX 2>/dev/null || mktemp "\${TMPDIR:-/tmp}/jfp.XXXXXX"
+  else
+    error "mktemp not found. Please install coreutils."
+  fi
+}
+
 # Download file
 download() {
   local url="$1"
@@ -158,7 +167,7 @@ main() {
   # Download binary
   info "Downloading jfp..."
   local temp_file
-  temp_file="$(mktemp)"
+  temp_file="$(make_temp_file)"
   trap "rm -f '$temp_file'" EXIT
 
   if ! download "$download_url" "$temp_file"; then
@@ -168,7 +177,7 @@ main() {
   # Download and verify checksum if available
   local checksum_url="\${download_url}.sha256"
   local checksum_file
-  checksum_file="$(mktemp)"
+  checksum_file="$(make_temp_file)"
 
   if download "$checksum_url" "$checksum_file" 2>/dev/null; then
     info "Verifying SHA256 checksum..."
