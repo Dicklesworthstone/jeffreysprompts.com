@@ -145,7 +145,7 @@ export async function renderCommand(id: string, options: RenderOptions) {
     try {
       await Promise.race([readStdin(), timeoutPromise]);
     } catch (err) {
-      if ((err as Error).message === "stdin_timeout") {
+      if (err instanceof Error && err.message === "stdin_timeout") {
         if (shouldOutputJson(options)) {
           console.log(JSON.stringify({ error: "stdin_timeout", message: "Timed out waiting for stdin input (30s)" }));
         } else {

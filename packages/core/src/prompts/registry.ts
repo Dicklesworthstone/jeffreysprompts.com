@@ -638,6 +638,7 @@ export function getPromptsByTag(tag: string): Prompt[] {
 /**
  * Simple text search across prompt fields
  * Searches id, title, description, tags, and content
+ * @deprecated Use `searchPrompts` from `@jeffreysprompts/core/search` for better results (BM25 + semantic)
  */
 export function searchPromptsByText(query: string): Prompt[] {
   const lowerQuery = query.toLowerCase().trim();
