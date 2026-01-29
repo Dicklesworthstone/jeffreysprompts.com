@@ -294,9 +294,11 @@ fn main() -> ExitCode {
         Commands::Bundle { id } => {
             commands::bundles::show_bundle(&id, use_json)
         }
-        _ => {
-            eprintln!("Command not yet implemented");
-            ExitCode::FAILURE
+        Commands::Interactive => {
+            commands::interactive::run(use_json)
+        }
+        Commands::UpdateCli { check, force } => {
+            commands::update_cli::run(check, force, use_json)
         }
     }
 }
