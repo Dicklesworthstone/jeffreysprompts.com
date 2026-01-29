@@ -35,6 +35,10 @@ export function RecentlyViewedSidebar() {
 
   useEffect(() => {
     loadHistory();
+
+    const handleUpdate = () => loadHistory();
+    window.addEventListener("jfp:history-update", handleUpdate);
+    return () => window.removeEventListener("jfp:history-update", handleUpdate);
   }, [loadHistory]);
 
   const handleClear = useCallback(async () => {

@@ -106,6 +106,7 @@ export async function trackHistoryView(input: {
   // Add new item and limit size
   const newItems = [newItem, ...items].slice(0, MAX_HISTORY_ITEMS);
   saveHistoryItems(newItems);
+  window.dispatchEvent(new CustomEvent("jfp:history-update"));
 }
 
 export async function listHistory(
@@ -129,4 +130,5 @@ export async function listHistory(
 export async function clearHistoryForUser(): Promise<void> {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(HISTORY_STORAGE_KEY);
+  window.dispatchEvent(new CustomEvent("jfp:history-update"));
 }
