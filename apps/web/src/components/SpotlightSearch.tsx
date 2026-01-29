@@ -393,10 +393,11 @@ export function SpotlightSearch({
   // Handle keyboard navigation
   const handleKeyDown = React.useCallback(
     (e: React.KeyboardEvent) => {
+      const maxIndex = Math.max(0, results.length - 1)
       switch (e.key) {
         case "ArrowDown":
           e.preventDefault()
-          setSelectedIndex((prev) => Math.min(prev + 1, results.length - 1))
+          setSelectedIndex((prev) => Math.min(prev + 1, maxIndex))
           break
         case "ArrowUp":
           e.preventDefault()
