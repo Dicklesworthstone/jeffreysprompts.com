@@ -7,14 +7,13 @@
  * - jfp collections <name> --add <prompt-id>: Add prompt to collection
  */
 
-import { writeFileSync } from "fs";
+import { atomicWriteFileSync, exitWithDeprecatedSkillCommand, isSafeSkillId, shouldOutputJson } from "../lib/utils";
 import Table from "cli-table3";
 import boxen from "boxen";
 import chalk from "chalk";
 import { ApiClient, isAuthError } from "../lib/api-client";
 import { isLoggedIn, loadCredentials } from "../lib/credentials";
 import { getOfflinePromptById, normalizePromptCategory } from "../lib/offline";
-import { exitWithDeprecatedSkillCommand, isSafeSkillId, shouldOutputJson } from "../lib/utils";
 import { type Prompt } from "@jeffreysprompts/core/prompts";
 import { generatePromptMarkdown } from "@jeffreysprompts/core/export/markdown";
 import { loadRegistry } from "../lib/registry-loader";
@@ -691,7 +690,7 @@ export async function exportCollectionCommand(
     const filename = `${resolved.prompt.id}.md`;
 
     try {
-      writeFileSync(filename, content);
+      atomicWriteFileSync(filename, content);
       exported.push({
         id: resolved.prompt.id,
         file: filename,
