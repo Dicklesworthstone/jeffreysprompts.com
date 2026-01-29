@@ -54,7 +54,11 @@ export async function GET(request: NextRequest) {
     | undefined;
 
   const limitParam = searchParams.get("limit");
-  const limit = limitParam ? parseInt(limitParam, 10) : undefined;
+  const parsedLimit = limitParam ? parseInt(limitParam, 10) : undefined;
+  const limit =
+    parsedLimit !== undefined && Number.isFinite(parsedLimit) && parsedLimit > 0
+      ? parsedLimit
+      : undefined;
 
   const features = getFeatures({ status, sortBy, limit });
 
