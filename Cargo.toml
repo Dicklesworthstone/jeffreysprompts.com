@@ -53,6 +53,9 @@ toml = "0.8"
 # Random
 rand = "0.9"
 
+# Terminal detection
+atty = "0.2"
+
 # Testing
 pretty_assertions = "1"
 tempfile = "3"

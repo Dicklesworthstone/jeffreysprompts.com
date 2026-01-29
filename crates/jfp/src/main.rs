@@ -273,6 +273,12 @@ fn main() -> ExitCode {
         Commands::Status => {
             commands::status::run(use_json)
         }
+        Commands::Copy { id, fill } => {
+            commands::copy::run(&id, fill, use_json)
+        }
+        Commands::Export { ids, format, output_dir, stdout } => {
+            commands::export::run(ids, &format, output_dir, stdout, use_json)
+        }
         _ => {
             eprintln!("Command not yet implemented");
             ExitCode::FAILURE
