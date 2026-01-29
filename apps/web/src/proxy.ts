@@ -3,43 +3,16 @@
  *
  * Handles locale detection and routing for multi-language support.
  * - Detects user's preferred language from browser/cookie
- * - Redirects to locale-prefixed URLs
+ * - Rewrites URLs to include locale segment internally
  * - Sets locale cookie for persistence
  *
  * Note: In Next.js 16, middleware.ts was renamed to proxy.ts
  */
 
 import createMiddleware from "next-intl/middleware";
-import { locales, defaultLocale } from "./i18n/config";
-import type { NextRequest } from "next/server";
+import { routing } from "./i18n/routing";
 
-const intlMiddleware = createMiddleware({
-  // Supported locales
-  locales,
-
-  // Default locale when no locale is detected
-  defaultLocale,
-
-  // Don't redirect default locale (en) to /en prefix
-  // This keeps English URLs clean (/ instead of /en/)
-  localePrefix: "as-needed",
-
-  // Detect locale from browser Accept-Language header
-  localeDetection: true,
-});
-
-export async function proxy(request: NextRequest) {
-  // Temporarily bypass i18n middleware to debug 404 issue
-  const { NextResponse } = await import("next/server");
-
-  // For root path, just continue without redirect
-  const pathname = request.nextUrl.pathname;
-  if (pathname === "/" || pathname === "") {
-    return NextResponse.next();
-  }
-
-  return intlMiddleware(request);
-}
+export const proxy = createMiddleware(routing);
 
 export const config = {
   // Match all pathnames except for:
