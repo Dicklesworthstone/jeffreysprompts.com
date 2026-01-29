@@ -62,6 +62,30 @@ const deprecatedSkillCommands = new Set([
   "skills",
 ]);
 
+const deprecatedCommand = (() => {
+  const args = process.argv.slice(2);
+  for (const arg of args) {
+    if (!arg.startsWith("-")) {
+      return deprecatedSkillCommands.has(arg) ? arg : null;
+    }
+  }
+  return null;
+})();
+
+if (deprecatedCommand) {
+  const message =
+    deprecatedCommand === "install"
+      ? "This command moved to jsm. Run: jsm install <skill>"
+      : "Skill management moved to jsm. Run: jsm --help";
+  const wantsJson = process.argv.includes("--json") || !process.stdout.isTTY;
+  if (wantsJson) {
+    console.log(JSON.stringify({ error: true, code: "deprecated_command", message }));
+  } else {
+    console.error(message);
+  }
+  process.exit(1);
+}
+
 // Global options (applied to all commands)
 cli.option("--no-color", "Disable colored output");
 
@@ -206,34 +230,37 @@ cli
       return collectionsCommand(options);
     }
 
-    switch (action) {
-      case "create":
-        if (!name) {
-          outputError("missing_argument", "Usage: jfp collections create <name>");
-          return;
-        }
-        return collectionCreateCommand(name, options);
-      case "add":
-        if (!name || !promptId) {
-          outputError("missing_argument", "Usage: jfp collections add <collection> <prompt-id>");
-          return;
-        }
-        return collectionAddCommand(name, promptId, options);
-      case "export":
-        if (!name) {
-          outputError("missing_argument", "Usage: jfp collections export <collection>");
-          return;
-        }
-        return exportCollectionCommand(name, options);
-      default:
-        if (options.add) {
-          return collectionAddCommand(action, options.add, options);
-        }
-        if (options.export) {
-          return exportCollectionCommand(action, options);
-        }
-        return collectionShowCommand(action, options);
+    if (action === "create") {
+      if (!name) {
+        outputError("missing_argument", "Usage: jfp collections create <name>");
+        return;
+      }
+      return collectionCreateCommand(name, options);
     }
+
+    if (action === "add") {
+      if (!name || !promptId) {
+        outputError("missing_argument", "Usage: jfp collections add <collection> <prompt-id>");
+        return;
+      }
+      return collectionAddCommand(name, promptId, options);
+    }
+
+    if (action === "export") {
+      if (!name) {
+        outputError("missing_argument", "Usage: jfp collections export <collection>");
+        return;
+      }
+      return exportCollectionCommand(name, options);
+    }
+
+    if (options.add) {
+      return collectionAddCommand(action, options.add, options);
+    }
+    if (options.export) {
+      return exportCollectionCommand(action, options);
+    }
+    return collectionShowCommand(action, options);
   });
 
 cli
@@ -308,29 +335,30 @@ cli
       process.exit(1);
     };
 
-    switch (action) {
-      case "list":
-      case undefined:
-        return configListCommand(options);
-      case "get":
-        if (!key) {
-          outputError("missing_argument", "Usage: jfp config get <key>");
-          return;
-        }
-        return configGetCommand(key, options);
-      case "set":
-        if (!key || value === undefined) {
-          outputError("missing_argument", "Usage: jfp config set <key> <value>");
-          return;
-        }
-        return configSetCommand(key, value, options);
-      case "reset":
-        return configResetCommand(options);
-      case "path":
-        return configPathCommand(options);
-      default:
-        outputError("unknown_action", `Unknown config action: ${action}. Available: list, get, set, reset, path`);
+    if (action === undefined || action === "list") {
+      return configListCommand(options);
     }
+    if (action === "get") {
+      if (!key) {
+        outputError("missing_argument", "Usage: jfp config get <key>");
+        return;
+      }
+      return configGetCommand(key, options);
+    }
+    if (action === "set") {
+      if (!key || value === undefined) {
+        outputError("missing_argument", "Usage: jfp config set <key> <value>");
+        return;
+      }
+      return configSetCommand(key, value, options);
+    }
+    if (action === "reset") {
+      return configResetCommand(options);
+    }
+    if (action === "path") {
+      return configPathCommand(options);
+    }
+    outputError("unknown_action", `Unknown config action: ${action}. Available: list, get, set, reset, path`);
   });
 
 cli
