@@ -13,22 +13,29 @@ export async function GET(request: NextRequest) {
   const limit = Number.isFinite(parsedLimit) ? Math.min(100, Math.max(1, parsedLimit)) : 20;
   const id = searchParams.get("id");
 
+  const cacheHeaders = {
+    "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60",
+  };
+
   // Get single incident by ID
   if (id) {
     const incident = getIncident(id);
     if (!incident) {
       return NextResponse.json({ error: "Incident not found." }, { status: 404 });
     }
-    return NextResponse.json({ incident });
+    return NextResponse.json({ incident }, { headers: cacheHeaders });
   }
 
   // Get resolved incidents (for history)
   if (status === "resolved") {
     const incidents = getResolvedIncidents(limit);
-    return NextResponse.json({
-      incidents,
-      total: incidents.length,
-    });
+    return NextResponse.json(
+      {
+        incidents,
+        total: incidents.length,
+      },
+      { headers: cacheHeaders }
+    );
   }
 
   // Get all incidents with optional status filter
@@ -39,8 +46,11 @@ export async function GET(request: NextRequest) {
 
   const incidents = listIncidents({ status: statusFilter, limit });
 
-  return NextResponse.json({
-    incidents,
-    total: incidents.length,
-  });
+  return NextResponse.json(
+    {
+      incidents,
+      total: incidents.length,
+    },
+    { headers: cacheHeaders }
+  );
 }

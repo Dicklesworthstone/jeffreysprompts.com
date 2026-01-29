@@ -35,10 +35,22 @@ export async function GET(request: NextRequest) {
   const summary = getRatingSummary({ contentType, contentId });
   const userRating = userId ? getUserRating({ contentType, contentId, userId }) : null;
 
-  return NextResponse.json({
-    summary,
-    userRating,
-  });
+  // If userId was provided, the response includes user-specific data
+  const cacheControl = userId
+    ? "private, max-age=30"
+    : "public, s-maxage=30, stale-while-revalidate=60";
+
+  return NextResponse.json(
+    {
+      summary,
+      userRating,
+    },
+    {
+      headers: {
+        "Cache-Control": cacheControl,
+      },
+    }
+  );
 }
 
 export async function POST(request: NextRequest) {

@@ -68,15 +68,22 @@ export async function GET(request: NextRequest) {
         category: category ?? undefined,
         limit,
       });
-      return NextResponse.json({
-        success: true,
-        data: items,
-        meta: {
-          type: "staff_pick",
-          count: items.length,
-          limit,
+      return NextResponse.json(
+        {
+          success: true,
+          data: items,
+          meta: {
+            type: "staff_pick",
+            count: items.length,
+            limit,
+          },
         },
-      });
+        {
+          headers: {
+            "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+          },
+        }
+      );
     }
 
     if (featureType === "featured") {
@@ -85,15 +92,22 @@ export async function GET(request: NextRequest) {
         category: category ?? undefined,
         limit,
       });
-      return NextResponse.json({
-        success: true,
-        data: items,
-        meta: {
-          type: "featured",
-          count: items.length,
-          limit,
+      return NextResponse.json(
+        {
+          success: true,
+          data: items,
+          meta: {
+            type: "featured",
+            count: items.length,
+            limit,
+          },
         },
-      });
+        {
+          headers: {
+            "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+          },
+        }
+      );
     }
 
     // General query
@@ -104,16 +118,23 @@ export async function GET(request: NextRequest) {
       limit,
     });
 
-    return NextResponse.json({
-      success: true,
-      data: items,
-      meta: {
-        type: featureType,
-        resourceType,
-        count: items.length,
-        limit,
+    return NextResponse.json(
+      {
+        success: true,
+        data: items,
+        meta: {
+          type: featureType,
+          resourceType,
+          count: items.length,
+          limit,
+        },
       },
-    });
+      {
+        headers: {
+          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+        },
+      }
+    );
   } catch (error) {
     console.error("Error fetching featured content:", error);
     return NextResponse.json(

@@ -52,10 +52,18 @@ export async function GET(request: NextRequest) {
     limit,
   });
 
-  return NextResponse.json({
-    items,
-    count: items.length,
-  });
+  return NextResponse.json(
+    {
+      items,
+      count: items.length,
+    },
+    {
+      headers: {
+        // User-specific data - prevent CDN caching, allow browser caching
+        "Cache-Control": "private, max-age=60",
+      },
+    }
+  );
 }
 
 export async function POST(request: NextRequest) {

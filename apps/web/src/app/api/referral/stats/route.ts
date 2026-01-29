@@ -100,5 +100,10 @@ export async function GET(request: NextRequest) {
     }));
   }
 
-  return NextResponse.json(response);
+  return NextResponse.json(response, {
+    headers: {
+      // User-specific data - prevent CDN caching
+      "Cache-Control": "private, max-age=60",
+    },
+  });
 }

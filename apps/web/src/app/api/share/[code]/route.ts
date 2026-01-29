@@ -84,17 +84,25 @@ export async function GET(
     userAgent: request.headers.get("user-agent"),
   });
 
-  return NextResponse.json({
-    link: {
-      code: link.linkCode,
-      contentType: link.contentType,
-      contentId: link.contentId,
-      viewCount: link.viewCount,
-      expiresAt: link.expiresAt,
-      createdAt: link.createdAt,
+  return NextResponse.json(
+    {
+      link: {
+        code: link.linkCode,
+        contentType: link.contentType,
+        contentId: link.contentId,
+        viewCount: link.viewCount,
+        expiresAt: link.expiresAt,
+        createdAt: link.createdAt,
+      },
+      content,
     },
-    content,
-  });
+    {
+      headers: {
+        // Public share links - short cache since view count updates
+        "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60",
+      },
+    }
+  );
 }
 
 export async function PUT(
