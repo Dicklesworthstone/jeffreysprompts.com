@@ -82,6 +82,11 @@ A GitHub Action (`.github/workflows/sync-vercel-aliases.yml`) automatically sync
 - Re-aliases pro subdomain if they differ
 - **Hard-fails if `VERCEL_TOKEN` is missing** (so drift never goes unnoticed)
 - **Verifies alias target alignment** (pro alias must point to the same deployment URL as the main site)
+- **Runs every 15 minutes** to aggressively correct drift
+
+**Critical drift source (must be eliminated):**
+If the **pro domain is attached to a separate Vercel project** (e.g. `jeffreysprompts-pro`), any deploy in that project can **reclaim the alias** and break CSS again.  
+**Fix:** Remove `pro.jeffreysprompts.com` from the pro project’s Vercel Domains, or disable automatic production aliasing there, so only the main project owns the pro subdomain.
 
 **One-time setup required:**
 1. Generate a Vercel token: https://vercel.com/account/tokens
