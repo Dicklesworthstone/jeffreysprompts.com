@@ -22,6 +22,15 @@ async function runJfp(args: string[], cwd = process.cwd()) {
   return { stdout, stderr, exitCode };
 }
 
+function parseJson<T>(text: string): T {
+  try {
+    return JSON.parse(text) as T;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Invalid JSON output: ${message}`);
+  }
+}
+
 describe("CLI (jfp)", () => {
   afterAll(() => {
     try {
@@ -35,7 +44,8 @@ describe("CLI (jfp)", () => {
     const { stdout, exitCode } = await runJfp(["--help"]);
     expect(exitCode).toBe(0);
     expect(stdout).toContain("Usage:");
-    expect(stdout).toContain("jfp install");
+    expect(stdout).toContain("jfp list");
+    expect(stdout).toContain("jfp export");
   });
 
   it("should list prompts", async () => {
@@ -50,7 +60,7 @@ describe("CLI (jfp)", () => {
     expect(exitCode).toBe(0);
     // In non-TTY mode (piped), CLI outputs JSON
     if (stdout.startsWith("{")) {
-      const data = JSON.parse(stdout);
+      const data = parseJson<{ title: string; category: string }>(stdout);
       expect(data.title).toBe("The Idea Wizard");
       expect(data.category).toBe("ideation");
     } else {
@@ -77,34 +87,36 @@ describe("CLI (jfp)", () => {
     expect(stdout).toContain("idea-wizard");
   });
 
-  it("should install help works", async () => {
-    const { stdout, exitCode } = await runJfp(["install", "--help"]);
-    expect(exitCode).toBe(0);
-    expect(stdout).toContain("--all");
-    expect(stdout).toContain("--project");
+  it("should reject deprecated install command", async () => {
+    const { stdout, stderr, exitCode } = await runJfp(["install"]);
+    expect(exitCode).toBe(1);
+    const output = `${stdout}${stderr}`;
+    expect(output).toContain("moved to jsm");
   });
   
   it("should output JSON when requested", async () => {
      const { stdout, exitCode } = await runJfp(["list", "--json"]);
      expect(exitCode).toBe(0);
-     const data = JSON.parse(stdout);
+     const data = parseJson<{ prompts: Array<{ id: string }> }>(stdout);
      // list --json outputs { prompts: [...], count: N }
      expect(data).toHaveProperty("prompts");
      expect(Array.isArray(data.prompts)).toBe(true);
      expect(data.prompts[0]).toHaveProperty("id");
   });
 
-  it("should install a prompt to a custom project directory", async () => {
-    // Run install in the temp directory with --project flag
-    const { stdout, exitCode } = await runJfp(["install", "idea-wizard", "--project"], TEST_DIR);
-    
+  it("should export a prompt to a custom directory", async () => {
+    const outputDir = join(TEST_DIR, "exports");
+    const { stdout, exitCode } = await runJfp(
+      ["export", "idea-wizard", "--output-dir", outputDir, "--json"],
+      TEST_DIR
+    );
+
     expect(exitCode).toBe(0);
-    
-    const skillFile = join(TEST_DIR, ".claude/skills/idea-wizard/SKILL.md");
-    expect(existsSync(skillFile)).toBe(true);
-    
-    const content = readFileSync(skillFile, "utf-8");
-    expect(content).toContain("name: idea-wizard");
-    expect(content).toContain("The Idea Wizard");
+    const data = parseJson<{ exported: Array<{ file: string }> }>(stdout);
+    const file = data.exported[0].file;
+    expect(existsSync(file)).toBe(true);
+
+    const content = readFileSync(file, "utf-8");
+    expect(content).toContain("# The Idea Wizard");
   }, 10000);
 });

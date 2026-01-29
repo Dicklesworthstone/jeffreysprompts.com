@@ -25,6 +25,19 @@ const iconMap: Record<BundleIcon, ComponentType<{ className?: string }>> = {
   star: Star,
 };
 
+const buildInstallCommand = (promptIds: string[]) => {
+  const baseUrl = typeof window !== "undefined"
+    ? window.location.origin
+    : "https://jeffreysprompts.com";
+  const params = new URLSearchParams();
+  if (promptIds.length > 0) {
+    params.set("ids", promptIds.join(","));
+  }
+  const query = params.toString();
+  const url = query ? `${baseUrl}/install.sh?${query}` : `${baseUrl}/install.sh`;
+  return `curl -fsSL "${url}" | bash`;
+};
+
 // ============================================================================
 // Props
 // ============================================================================
@@ -60,7 +73,7 @@ export function BundleCard({ bundle, index = 0 }: BundleCardProps) {
       e.preventDefault();
       e.stopPropagation();
       try {
-        const command = "jfp install " + bundle.promptIds.join(" ");
+        const command = buildInstallCommand(bundle.promptIds);
         await navigator.clipboard.writeText(command);
         setCopied(true);
         const preview = command.length > 70 ? `${command.slice(0, 70)}...` : command;

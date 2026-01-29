@@ -226,13 +226,13 @@ curl -s "https://jeffreysprompts.com/api/skills/idea-wizard" \\
   -o ~/.config/claude/skills/idea-wizard/SKILL.md`,
             },
             {
-              label: "jfp CLI",
+              label: "install.sh",
               language: "bash",
-              code: `# Using the jfp CLI (recommended)
-jfp install idea-wizard
+              code: `# Install a single skill
+curl -fsSL "https://jeffreysprompts.com/install.sh?ids=idea-wizard" | bash
 
 # Install all skills
-jfp install --all`,
+curl -fsSL "https://jeffreysprompts.com/install.sh" | bash`,
             },
           ]}
         />

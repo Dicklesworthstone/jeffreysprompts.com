@@ -40,6 +40,18 @@ const iconMap: Record<BundleIcon, React.ComponentType<{ className?: string }>> =
   star: Star,
 };
 
+const buildInstallCommand = (promptIds: string[]) => {
+  const params = new URLSearchParams();
+  if (promptIds.length > 0) {
+    params.set("ids", promptIds.join(","));
+  }
+  const query = params.toString();
+  const url = query
+    ? `https://jeffreysprompts.com/install.sh?${query}`
+    : "https://jeffreysprompts.com/install.sh";
+  return `curl -fsSL "${url}" | bash`;
+};
+
 // ============================================================================
 // Static Generation
 // ============================================================================
@@ -95,11 +107,12 @@ export default async function BundleDetailPage({ params }: PageProps) {
 
   if (!bundle) {
     notFound();
+    return null;
   }
 
   const prompts = getBundlePrompts(bundle);
   const IconComponent = bundle.icon ? iconMap[bundle.icon] : Package;
-  const installCommand = `jfp install ${bundle.promptIds.join(" ")}`;
+  const installCommand = buildInstallCommand(bundle.promptIds);
   const skillMdContent = generateBundleSkillMd(bundle);
 
   return (

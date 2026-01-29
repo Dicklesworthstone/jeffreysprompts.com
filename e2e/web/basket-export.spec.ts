@@ -176,9 +176,10 @@ test.describe("Basket Export - Copy Install Command", () => {
       await expect(page.getByText(/copied/i).first()).toBeVisible({ timeout: 3000 });
     });
 
-    await logger.step("verify clipboard contains jfp install command", async () => {
+    await logger.step("verify clipboard contains install.sh command", async () => {
       const clipboardText = await page.evaluate(() => navigator.clipboard.readText());
-      expect(clipboardText).toMatch(/^jfp install/);
+      expect(clipboardText).toMatch(/^curl -fsSL /);
+      expect(clipboardText).toContain("install.sh");
       expect(clipboardText).toContain("idea-wizard");
     });
   });
@@ -203,9 +204,12 @@ test.describe("Basket Export - Copy Install Command", () => {
 
     await logger.step("verify clipboard contains multiple IDs", async () => {
       const clipboardText = await page.evaluate(() => navigator.clipboard.readText());
-      expect(clipboardText).toMatch(/^jfp install/);
-      // Should contain space-separated IDs
-      const ids = clipboardText.replace("jfp install ", "").split(" ");
+      expect(clipboardText).toMatch(/^curl -fsSL /);
+      const urlMatch = clipboardText.match(/curl -fsSL "([^"]+)"/);
+      expect(urlMatch).not.toBeNull();
+      const url = new URL(urlMatch![1]);
+      const idsParam = url.searchParams.get("ids") ?? "";
+      const ids = idsParam.split(",").filter(Boolean);
       expect(ids.length).toBeGreaterThanOrEqual(2);
     });
   });

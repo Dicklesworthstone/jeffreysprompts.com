@@ -39,20 +39,27 @@ error() { echo -e "\${RED}[ERROR]\${NC} $1"; exit 1; }
 
 # Detect platform
 detect_platform() {
-  local os arch
+  local os arch uname_s uname_m
+  uname_s="$(uname -s)"
 
-  case "$(uname -s)" in
-    Linux*)  os="linux" ;;
-    Darwin*) os="darwin" ;;
-    MINGW*|MSYS*|CYGWIN*) os="windows" ;;
-    *) error "Unsupported operating system: $(uname -s)" ;;
-  esac
+  if [[ "$uname_s" == Linux* ]]; then
+    os="linux"
+  elif [[ "$uname_s" == Darwin* ]]; then
+    os="darwin"
+  elif [[ "$uname_s" == MINGW* || "$uname_s" == MSYS* || "$uname_s" == CYGWIN* ]]; then
+    os="windows"
+  else
+    error "Unsupported operating system: $uname_s"
+  fi
 
-  case "$(uname -m)" in
-    x86_64|amd64) arch="x64" ;;
-    aarch64|arm64) arch="arm64" ;;
-    *) error "Unsupported architecture: $(uname -m)" ;;
-  esac
+  uname_m="$(uname -m)"
+  if [[ "$uname_m" == "x86_64" || "$uname_m" == "amd64" ]]; then
+    arch="x64"
+  elif [[ "$uname_m" == "aarch64" || "$uname_m" == "arm64" ]]; then
+    arch="arm64"
+  else
+    error "Unsupported architecture: $uname_m"
+  fi
 
   echo "\${os}-\${arch}"
 }
@@ -62,23 +69,29 @@ get_download_url() {
   local platform="$1"
   local base_url="${RELEASE_BASE_URL}"
 
-  case "$platform" in
-    linux-x64)   echo "\${base_url}/jfp-linux-x64" ;;
-    linux-arm64) echo "\${base_url}/jfp-linux-arm64" ;;
-    darwin-x64)  echo "\${base_url}/jfp-darwin-x64" ;;
-    darwin-arm64) echo "\${base_url}/jfp-darwin-arm64" ;;
-    windows-x64) echo "\${base_url}/jfp-windows-x64.exe" ;;
-    *) error "No binary available for platform: $platform" ;;
-  esac
+  if [[ "$platform" == "linux-x64" ]]; then
+    echo "\${base_url}/jfp-linux-x64"
+  elif [[ "$platform" == "linux-arm64" ]]; then
+    echo "\${base_url}/jfp-linux-arm64"
+  elif [[ "$platform" == "darwin-x64" ]]; then
+    echo "\${base_url}/jfp-darwin-x64"
+  elif [[ "$platform" == "darwin-arm64" ]]; then
+    echo "\${base_url}/jfp-darwin-arm64"
+  elif [[ "$platform" == "windows-x64" ]]; then
+    echo "\${base_url}/jfp-windows-x64.exe"
+  else
+    error "No binary available for platform: $platform"
+  fi
 }
 
 # Get binary name for platform
 get_binary_name() {
   local platform="$1"
-  case "$platform" in
-    windows-*) echo "jfp.exe" ;;
-    *) echo "jfp" ;;
-  esac
+  if [[ "$platform" == windows-* ]]; then
+    echo "jfp.exe"
+  else
+    echo "jfp"
+  fi
 }
 
 # Determine install directory
@@ -192,23 +205,20 @@ main() {
     echo ""
 
     # Check if install_dir is in PATH
-    case ":\${PATH}:" in
-      *":\${install_dir}:"*)
-        info "Run 'jfp --help' to get started"
-        ;;
-      *)
-        warn "\\$install_dir is not in your PATH"
-        echo ""
-        echo "  Add it to your shell config:"
-        echo ""
-        echo "    # For bash (~/.bashrc):"
-        printf '    export PATH="$PATH:%s"\\n' "$install_dir"
-        echo ""
-        echo "    # For zsh (~/.zshrc):"
-        printf '    export PATH="$PATH:%s"\\n' "$install_dir"
-        echo ""
-        ;;
-    esac
+    if [[ ":\${PATH}:" == *":\${install_dir}:"* ]]; then
+      info "Run 'jfp --help' to get started"
+    else
+      warn "\\$install_dir is not in your PATH"
+      echo ""
+      echo "  Add it to your shell config:"
+      echo ""
+      echo "    # For bash (~/.bashrc):"
+      printf '    export PATH="$PATH:%s"\\n' "$install_dir"
+      echo ""
+      echo "    # For zsh (~/.zshrc):"
+      printf '    export PATH="$PATH:%s"\\n' "$install_dir"
+      echo ""
+    fi
   else
     error "Installation failed"
   fi
@@ -218,7 +228,7 @@ main() {
   echo "    jfp list          # List all prompts"
   echo "    jfp search <term> # Search prompts"
   echo "    jfp show <id>     # View a prompt"
-  echo "    jfp install       # Install prompts as skills"
+  echo "    curl -fsSL \"https://jeffreysprompts.com/install.sh\" | bash  # Install all skills"
   echo ""
 }
 

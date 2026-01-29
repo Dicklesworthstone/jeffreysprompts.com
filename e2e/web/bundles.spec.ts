@@ -259,7 +259,7 @@ test.describe("Bundle Detail Page - Sidebar", () => {
     });
 
     await logger.step("verify install command is displayed", async () => {
-      const codeBlock = page.locator("code").filter({ hasText: "jfp install" });
+      const codeBlock = page.locator("code").filter({ hasText: "install.sh" });
       await expect(codeBlock).toBeVisible();
     });
 

@@ -30,6 +30,19 @@ interface BasketSidebarProps {
   onClose: () => void;
 }
 
+const buildInstallCommand = (promptIds: string[]) => {
+  const baseUrl = typeof window !== "undefined"
+    ? window.location.origin
+    : "https://jeffreysprompts.com";
+  const params = new URLSearchParams();
+  if (promptIds.length > 0) {
+    params.set("ids", promptIds.join(","));
+  }
+  const query = params.toString();
+  const url = query ? `${baseUrl}/install.sh?${query}` : `${baseUrl}/install.sh`;
+  return `curl -fsSL "${url}" | bash`;
+};
+
 export function BasketSidebar({ isOpen, onClose }: BasketSidebarProps) {
   const { items, removeItem, clearBasket } = useBasket();
   const { toast } = useToast();
@@ -141,8 +154,8 @@ export function BasketSidebar({ isOpen, onClose }: BasketSidebarProps) {
   const handleCopyInstallCommand = async () => {
     if (basketPrompts.length === 0) return;
 
-    const ids = basketPrompts.map((p) => p.id).join(" ");
-    const command = `jfp install ${ids}`;
+    const ids = basketPrompts.map((p) => p.id);
+    const command = buildInstallCommand(ids);
     const result = await copyToClipboard(command);
 
     if (result.success) {
