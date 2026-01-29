@@ -279,6 +279,21 @@ fn main() -> ExitCode {
         Commands::Export { ids, format, output_dir, stdout } => {
             commands::export::run(ids, &format, output_dir, stdout, use_json)
         }
+        Commands::Refresh => {
+            commands::refresh::run(use_json)
+        }
+        Commands::Render { id, fill, context } => {
+            commands::render::run(&id, fill, context, use_json)
+        }
+        Commands::Suggest { task, limit, semantic } => {
+            commands::suggest::run(&task, limit, semantic, use_json)
+        }
+        Commands::Bundles => {
+            commands::bundles::list_bundles(use_json)
+        }
+        Commands::Bundle { id } => {
+            commands::bundles::show_bundle(&id, use_json)
+        }
         _ => {
             eprintln!("Command not yet implemented");
             ExitCode::FAILURE

@@ -1,6 +1,7 @@
 //! Command implementations
 
 pub mod about;
+pub mod bundles;
 pub mod categories;
 pub mod completion;
 pub mod config;
@@ -10,7 +11,10 @@ pub mod export;
 pub mod list;
 pub mod open;
 pub mod random;
+pub mod refresh;
+pub mod render;
 pub mod search;
 pub mod show;
 pub mod status;
+pub mod suggest;
 pub mod tags;
