@@ -120,3 +120,6 @@ apps/web/public/registry.manifest.json
 .bv/
 a.out
 .env*.local
+
+# Screenshots (browser snipping tool artifacts)
+Snipping_*.png
