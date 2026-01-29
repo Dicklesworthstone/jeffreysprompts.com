@@ -29,8 +29,10 @@ export async function GET(request: NextRequest) {
   const category = searchParams.get("category") ?? "all";
   const priority = searchParams.get("priority") ?? "all";
   const search = searchParams.get("search") ?? "";
-  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
-  const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") ?? "20", 10)));
+  const parsedPage = parseInt(searchParams.get("page") ?? "1", 10);
+  const page = Number.isFinite(parsedPage) ? Math.max(1, parsedPage) : 1;
+  const parsedLimit = parseInt(searchParams.get("limit") ?? "20", 10);
+  const limit = Number.isFinite(parsedLimit) ? Math.min(50, Math.max(1, parsedLimit)) : 20;
 
   const normalizedStatus = status === "all" || isSupportStatus(status) ? status : "all";
   const normalizedCategory = category === "all" || isSupportCategory(category) ? category : "all";

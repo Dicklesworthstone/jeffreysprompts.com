@@ -27,8 +27,10 @@ export async function GET(request: NextRequest) {
   }
 
   const searchParams = request.nextUrl.searchParams;
-  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
-  const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") ?? "20", 10)));
+  const parsedPage = parseInt(searchParams.get("page") ?? "1", 10);
+  const page = Number.isFinite(parsedPage) ? Math.max(1, parsedPage) : 1;
+  const parsedLimit = parseInt(searchParams.get("limit") ?? "20", 10);
+  const limit = Number.isFinite(parsedLimit) ? Math.min(100, Math.max(1, parsedLimit)) : 20;
   const search = searchParams.get("search") ?? "";
   const tier = searchParams.get("tier") ?? "all";
   const status = searchParams.get("status") ?? "all";
