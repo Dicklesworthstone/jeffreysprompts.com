@@ -168,9 +168,13 @@ export async function checkMultipleLimits(
 
   const results = await Promise.all(checks.map(({ limiter, key }) => limiter.check(key)));
 
-  // Find the most restrictive result (first denied, or fewest remaining)
-  const denied = results.find((r) => !r.allowed);
-  if (denied) return denied;
+  // If any limiter denies, return the one with the longest wait time
+  const deniedResults = results.filter((r) => !r.allowed);
+  if (deniedResults.length > 0) {
+    return deniedResults.reduce((maxWait, r) =>
+      r.retryAfterSeconds > maxWait.retryAfterSeconds ? r : maxWait
+    );
+  }
 
   // All allowed - return the one with fewest remaining
   return results.reduce((min, r) => (r.remaining < min.remaining ? r : min));

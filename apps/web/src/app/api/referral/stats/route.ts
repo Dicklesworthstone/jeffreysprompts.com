@@ -70,7 +70,10 @@ export async function GET(request: NextRequest) {
     data: {
       stats: {
         ...stats,
-        rewardsRemaining: REFERRAL_CONSTANTS.MAX_REWARD_MONTHS_PER_YEAR - stats.totalRewardsEarned,
+        rewardsRemaining: Math.max(
+          0,
+          REFERRAL_CONSTANTS.MAX_REWARD_MONTHS_PER_YEAR - stats.totalRewardsEarned
+        ),
       },
       code: code
         ? {
@@ -82,7 +85,10 @@ export async function GET(request: NextRequest) {
         perReferral: `${REFERRAL_CONSTANTS.REFERRER_REWARD_MONTHS} month free Premium`,
         maxPerYear: `${REFERRAL_CONSTANTS.MAX_REWARD_MONTHS_PER_YEAR} months free`,
         earnedThisYear: `${stats.totalRewardsEarned} months`,
-        remainingThisYear: `${REFERRAL_CONSTANTS.MAX_REWARD_MONTHS_PER_YEAR - stats.totalRewardsEarned} months`,
+        remainingThisYear: `${Math.max(
+          0,
+          REFERRAL_CONSTANTS.MAX_REWARD_MONTHS_PER_YEAR - stats.totalRewardsEarned
+        )} months`,
       },
     },
   };
