@@ -7,6 +7,7 @@
  * Run with: bun run test
  */
 
+import Link from "next/link";
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { Badge } from "./badge";
@@ -95,7 +96,7 @@ describe("Badge", () => {
     it("renders as child element when asChild is true", () => {
       render(
         <Badge asChild>
-          <a href="/test">Link Badge</a>
+          <Link href="/test">Link Badge</Link>
         </Badge>
       );
       const link = screen.getByRole("link", { name: "Link Badge" });
@@ -106,7 +107,7 @@ describe("Badge", () => {
     it("applies badge classes to child when asChild is true", () => {
       render(
         <Badge asChild variant="secondary">
-          <a href="/test" data-testid="badge-link">Link Badge</a>
+          <Link href="/test" data-testid="badge-link">Link Badge</Link>
         </Badge>
       );
       const link = screen.getByTestId("badge-link");
@@ -159,7 +160,7 @@ describe("Badge", () => {
     it("can be focused when rendered as link", () => {
       render(
         <Badge asChild>
-          <a href="/test">Focusable Badge</a>
+          <Link href="/test">Focusable Badge</Link>
         </Badge>
       );
       const link = screen.getByRole("link");

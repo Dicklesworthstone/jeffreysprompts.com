@@ -13,6 +13,8 @@
     "dev": "bun run --cwd apps/web dev",
     "build": "bun run --cwd apps/web build",
     "lint": "bun run --cwd apps/web lint",
+    "typecheck": "bun run --cwd apps/web typecheck",
+    "format": "bun run --cwd apps/web format",
     "test": "bun run --cwd apps/web test",
     "test:cli": "bun test jfp.test.ts packages/core/__tests__ packages/cli/__tests__",
     "test:cli:coverage": "bun test --coverage --coverage-reporter=text --coverage-reporter=lcov --coverage-dir=coverage/cli jfp.test.ts packages/core/__tests__ packages/cli/__tests__",

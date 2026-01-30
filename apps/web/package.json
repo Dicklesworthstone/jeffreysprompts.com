@@ -10,9 +10,11 @@
     "lint": "eslint",
     "lint:ox": "oxlint",
     "lint:all": "eslint && oxlint",
+    "format": "eslint --fix",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit",
     "analyze": "ANALYZE=true next build",
     "size-limit": "size-limit",
     "size-limit:check": "size-limit --json"

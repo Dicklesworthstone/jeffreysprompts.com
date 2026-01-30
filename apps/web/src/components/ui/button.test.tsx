@@ -7,6 +7,7 @@
  * @see @/components/ui/button.tsx
  */
 
+import Link from "next/link";
 import { createRef } from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -188,7 +189,7 @@ describe("Button", () => {
     it("renders as slot when asChild is true", () => {
       render(
         <Button asChild>
-          <a href="/test">Link Button</a>
+          <Link href="/test">Link Button</Link>
         </Button>
       );
       expect(screen.getByRole("link", { name: "Link Button" })).toBeInTheDocument();
