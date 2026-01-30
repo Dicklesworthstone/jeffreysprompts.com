@@ -47,6 +47,10 @@ function getHelpData() {
         { name: "suggest <task>", description: "Suggest prompts for a task", options: ["--limit", "--semantic", "--json"] },
         { name: "recommend [id]", description: "Get personalized prompt recommendations", options: ["--limit", "--json"] },
       ],
+      analysis: [
+        { name: "impact <prompt-id>", description: "Show downstream dependencies for a prompt", options: ["--json"] },
+        { name: "graph export", description: "Export prompt dependency graph", options: ["--format", "--json"] },
+      ],
       viewing: [
         { name: "show <id>", description: "Show prompt details", options: ["--json", "--raw"] },
         { name: "categories", description: "List all categories with counts", options: ["--json"] },
@@ -95,6 +99,8 @@ function getHelpData() {
       { command: "jfp list --json | jq -r '.prompts[].id'", description: "Get all prompt IDs with jq" },
       { command: "jfp suggest 'write a readme' --json", description: "Get prompt suggestions in JSON" },
       { command: "jfp recommend --json", description: "Get personalized recommendations in JSON" },
+      { command: "jfp impact idea-wizard --json", description: "Show dependencies for a prompt" },
+      { command: "jfp graph export --json", description: "Export dependency graph as JSON" },
     ],
   };
 }
@@ -124,6 +130,12 @@ JeffreysPrompts CLI v${version}
   sections.push(formatCommand("suggest <task>", "Suggest prompts for a task"));
   sections.push(formatCommand("recommend [id]", "Get personalized recommendations"));
   sections.push(chalk.dim("    Pro-only flags: list --mine/--saved, search --mine/--saved/--all"));
+  sections.push("");
+
+  // Analysis
+  sections.push(chalk.yellow("  Analysis"));
+  sections.push(formatCommand("impact <prompt-id>", "Show downstream dependencies"));
+  sections.push(formatCommand("graph export", "Export dependency graph"));
   sections.push("");
 
   // Viewing
@@ -191,6 +203,8 @@ JeffreysPrompts CLI v${version}
   sections.push(formatExample("jfp copy idea-wizard --fill", "Copy with interactive variable fill"));
   sections.push(formatExample("jfp list --json | jq -r '.prompts[].id'", "Pipe JSON to jq"));
   sections.push(formatExample("jfp recommend --json", "Get personalized recommendations"));
+  sections.push(formatExample("jfp impact idea-wizard --json", "Inspect downstream dependencies"));
+  sections.push(formatExample("jfp graph export --json", "Export dependency graph"));
   sections.push(formatExample("jfp packs --installed", "List installed premium packs"));
   sections.push("");
 

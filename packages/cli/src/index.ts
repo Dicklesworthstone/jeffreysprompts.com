@@ -34,6 +34,8 @@ import { randomCommand } from "./commands/random";
 import { helpCommand } from "./commands/help";
 import { serveCommand } from "./commands/serve";
 import { updateCliCommand, internalUpdateCheckCommand } from "./commands/update-cli";
+import { impactCommand } from "./commands/impact";
+import { graphExportCommand } from "./commands/graph";
 import { loginCommand } from "./commands/login";
 import { logoutCommand, whoamiCommand } from "./commands/auth";
 import { notesCommand } from "./commands/notes";
@@ -154,6 +156,31 @@ cli
   .option("--limit <n>", "Max recommendations (default: 5)")
   .option("--json", "Output JSON")
   .action(recommendCommand);
+
+cli
+  .command("impact <prompt-id>", "Show downstream dependencies for a prompt")
+  .option("--json", "Output JSON")
+  .action(impactCommand);
+
+cli
+  .command("graph [action]", "Dependency graph utilities")
+  .option("--format <format>", "Format: json (default)")
+  .option("--json", "Output JSON")
+  .action((action: string | undefined, options: { format?: string; json?: boolean }) => {
+    const outputError = (code: string, message: string) => {
+      if (options.json) {
+        console.log(JSON.stringify({ error: true, code, message }));
+      } else {
+        console.error(message);
+      }
+      process.exit(1);
+    };
+
+    if (action === undefined || action === "export") {
+      return graphExportCommand(options);
+    }
+    outputError("unknown_action", `Unknown graph action: ${action}. Available: export`);
+  });
 
 cli
   .command("recommend [id]", "Personalized recommendations (Premium)")

@@ -7,7 +7,7 @@
   "types": "./src/index.ts",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "bun test __tests__/commands/list.test.ts __tests__/commands/search.test.ts __tests__/commands/suggest.test.ts __tests__/commands/recommend.test.ts __tests__/commands/render.test.ts && bun test __tests__/commands/skills.test.ts && bun test __tests__/commands/copy.test.ts && bun test __tests__/lib/registry-loader.test.ts && bun test __tests__/commands/registry.test.ts",
+    "test": "bun test __tests__/commands/list.test.ts __tests__/commands/search.test.ts __tests__/commands/suggest.test.ts __tests__/commands/recommend.test.ts __tests__/commands/impact.test.ts __tests__/commands/graph.test.ts __tests__/commands/render.test.ts && bun test __tests__/commands/skills.test.ts && bun test __tests__/commands/copy.test.ts && bun test __tests__/lib/registry-loader.test.ts && bun test __tests__/commands/registry.test.ts",
     "test:unit": "bun test __tests__/commands/list.test.ts __tests__/commands/search.test.ts __tests__/commands/suggest.test.ts __tests__/commands/render.test.ts"
   },
   "dependencies": {
