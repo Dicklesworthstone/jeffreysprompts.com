@@ -228,11 +228,11 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
   if ((searchMine || searchSaved || searchAllExplicit) && loggedIn && !isPremium) {
     if (shouldOutputJson(options)) {
       writeJsonError("premium_required", "Personal prompt search requires a premium subscription", {
-        hint: "Visit jeffreysprompts.com/premium to upgrade",
+        hint: "Visit https://pro.jeffreysprompts.com/pricing to upgrade",
       });
     } else {
       console.log(chalk.yellow("Personal prompt search requires a premium subscription"));
-      console.log(chalk.dim("Visit jeffreysprompts.com/premium to upgrade"));
+      console.log(chalk.dim("Visit https://pro.jeffreysprompts.com/pricing to upgrade"));
     }
     process.exit(1);
   }

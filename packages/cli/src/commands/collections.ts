@@ -181,11 +181,11 @@ async function requirePremium(
   if (creds?.tier !== "premium") {
     if (shouldOutputJson(options)) {
       writeJsonError("premium_required", "Collections require a premium subscription", {
-        hint: "Visit jeffreysprompts.com/premium to upgrade",
+        hint: "Visit https://pro.jeffreysprompts.com/pricing to upgrade",
       });
     } else {
       console.log(chalk.yellow("Collections require a premium subscription"));
-      console.log(chalk.dim("Visit jeffreysprompts.com/premium to upgrade"));
+      console.log(chalk.dim("Visit https://pro.jeffreysprompts.com/pricing to upgrade"));
     }
     process.exit(1);
   }

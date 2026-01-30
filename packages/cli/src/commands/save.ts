@@ -84,7 +84,7 @@ export async function saveCommand(
       });
     } else {
       console.error(chalk.yellow("Saving prompts requires a premium subscription"));
-      console.log(chalk.dim("Visit https://pro.jeffreysprompts.com to upgrade"));
+      console.log(chalk.dim("Visit https://pro.jeffreysprompts.com/pricing to upgrade"));
     }
     process.exit(1);
   }
@@ -116,7 +116,7 @@ export async function saveCommand(
         writeJsonError("requires_premium", "Saving prompts requires a premium subscription");
       } else {
         console.error(chalk.yellow("Saving prompts requires a premium subscription"));
-        console.log(chalk.dim("Visit https://pro.jeffreysprompts.com to upgrade"));
+        console.log(chalk.dim("Visit https://pro.jeffreysprompts.com/pricing to upgrade"));
       }
       process.exit(1);
     }

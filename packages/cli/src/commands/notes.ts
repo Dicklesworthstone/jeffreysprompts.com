@@ -213,7 +213,7 @@ function handleApiError(response: { ok: boolean; status: number; error?: string 
       writeJsonError("premium_required", "Notes require a Premium subscription");
     } else {
       console.log(chalk.yellow("Notes require a Premium subscription"));
-      console.log(chalk.dim("Upgrade at https://pro.jeffreysprompts.com"));
+      console.log(chalk.dim("Upgrade at https://pro.jeffreysprompts.com/pricing"));
     }
     process.exit(1);
   }

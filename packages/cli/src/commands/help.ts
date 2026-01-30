@@ -39,11 +39,11 @@ function getHelpData() {
     description: "JeffreysPrompts CLI - A curated collection of AI prompts",
     documentation: "https://jeffreysprompts.com/docs",
     premium_notice:
-      "Premium commands require an active Pro subscription ($10/month): https://pro.jeffreysprompts.com/pricing",
+      "Pro unlocks personal prompts and private vault features (list/search --mine/--saved/--all, save, sync, notes, collections). The CLI is free to build and use with public prompts: https://pro.jeffreysprompts.com/pricing",
     commands: {
       listing_searching: [
-        { name: "list", description: "List all prompts", options: ["--category", "--tag", "--mine", "--saved", "--json"] },
-        { name: "search <query>", description: "Search prompts by query", options: ["--limit", "--mine", "--saved", "--all", "--local", "--json"] },
+        { name: "list", description: "List all prompts (Pro: --mine/--saved)", options: ["--category", "--tag", "--mine", "--saved", "--json"] },
+        { name: "search <query>", description: "Search prompts (Pro: --mine/--saved/--all)", options: ["--limit", "--mine", "--saved", "--all", "--local", "--json"] },
         { name: "suggest <task>", description: "Suggest prompts for a task", options: ["--limit", "--semantic", "--json"] },
       ],
       viewing: [
@@ -72,6 +72,7 @@ function getHelpData() {
         { name: "sync", description: "Sync premium library for offline access", options: ["--force", "--status", "--json"] },
         { name: "notes <prompt-id>", description: "Manage personal notes on prompts", options: ["--add", "--delete", "--json"] },
         { name: "collections", description: "Manage prompt collections", options: ["--add", "--export", "--format", "--stdout", "--json"] },
+        { name: "packs", description: "List/install premium packs", options: ["--installed", "--tool", "--json"] },
       ],
       utilities: [
         { name: "open <id>", description: "Open prompt in browser", options: [] },
@@ -118,6 +119,7 @@ JeffreysPrompts CLI v${version}
   sections.push(formatCommand("list", "List all prompts"));
   sections.push(formatCommand("search <query>", "Search prompts by query"));
   sections.push(formatCommand("suggest <task>", "Suggest prompts for a task"));
+  sections.push(chalk.dim("    Pro-only flags: list --mine/--saved, search --mine/--saved/--all"));
   sections.push("");
 
   // Viewing
@@ -150,9 +152,10 @@ JeffreysPrompts CLI v${version}
   sections.push(chalk.yellow("  Premium"));
   sections.push(
     chalk.dim(
-      "    Premium commands require an active Pro subscription ($10/month): https://pro.jeffreysprompts.com/pricing"
+      "    Pro unlocks private vault features (list/search personal prompts, save, sync, notes, collections)."
     )
   );
+  sections.push(chalk.dim("    Upgrade at https://pro.jeffreysprompts.com/pricing"));
   sections.push(formatCommand("login", "Sign in to JeffreysPrompts Premium"));
   sections.push(formatCommand("logout", "Sign out from JeffreysPrompts Premium"));
   sections.push(formatCommand("whoami", "Show current logged-in user"));
@@ -160,6 +163,7 @@ JeffreysPrompts CLI v${version}
   sections.push(formatCommand("sync", "Sync premium library for offline access"));
   sections.push(formatCommand("notes <id>", "Manage personal notes on prompts"));
   sections.push(formatCommand("collections", "Manage prompt collections"));
+  sections.push(formatCommand("packs", "List/install premium packs"));
   sections.push("");
 
   // Utilities
@@ -181,6 +185,7 @@ JeffreysPrompts CLI v${version}
   sections.push(formatExample("jfp render my-prompt --VAR=value", "Render with variables"));
   sections.push(formatExample("jfp copy idea-wizard --fill", "Copy with interactive variable fill"));
   sections.push(formatExample("jfp list --json | jq -r '.prompts[].id'", "Pipe JSON to jq"));
+  sections.push(formatExample("jfp packs --installed", "List installed premium packs"));
   sections.push("");
 
   // Global options

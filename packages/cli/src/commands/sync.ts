@@ -145,7 +145,7 @@ export async function syncCommand(options: SyncOptions = {}): Promise<void> {
       });
     } else {
       console.error(chalk.yellow("Library sync requires a premium subscription"));
-      console.log(chalk.dim("Visit https://pro.jeffreysprompts.com to upgrade"));
+      console.log(chalk.dim("Visit https://pro.jeffreysprompts.com/pricing to upgrade"));
     }
     process.exit(1);
   }
@@ -186,7 +186,7 @@ export async function syncCommand(options: SyncOptions = {}): Promise<void> {
           writeJsonError("requires_premium", "Library sync requires a premium subscription");
         } else {
           console.error(chalk.yellow("Library sync requires a premium subscription"));
-          console.log(chalk.dim("Visit https://pro.jeffreysprompts.com to upgrade"));
+          console.log(chalk.dim("Visit https://pro.jeffreysprompts.com/pricing to upgrade"));
         }
         process.exit(1);
       }

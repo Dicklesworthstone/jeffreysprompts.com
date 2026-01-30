@@ -159,7 +159,7 @@ async function fetchPromptList(
         writeJsonError("premium_required", "Listing personal prompts requires a Premium subscription");
       } else {
         console.log(chalk.yellow("Listing personal prompts requires a Premium subscription."));
-        console.log(chalk.dim("Upgrade at https://pro.jeffreysprompts.com"));
+        console.log(chalk.dim("Upgrade at https://pro.jeffreysprompts.com/pricing"));
       }
       process.exit(1);
     }
