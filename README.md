@@ -174,9 +174,12 @@ Claude Code skills are managed in **Jeffrey's Skills.md** (`jsm`). Use JFP for p
 
 ### CLI: Free vs Premium (Paid)
 
-The `jfp` CLI is **open source** and free for the public prompt registry.  
+The `jfp` CLI is **open source** and **builds without any Pro account**. Pro is only required to authenticate and access private/premium cloud data.
+
 Premium features require an active Pro subscription (**$10/month**) at:
 https://pro.jeffreysprompts.com/pricing
+
+If you are not subscribed, Pro commands still exist but will return a clear upgrade hint. The CLI remains fully usable for the public registry without login.
 
 **Free (no subscription required):**
 - `jfp list`, `jfp search`, `jfp show`, `jfp copy`, `jfp export`, `jfp render`, `jfp suggest`
@@ -188,6 +191,11 @@ https://pro.jeffreysprompts.com/pricing
 - `jfp login`, `jfp logout`, `jfp whoami`
 - `jfp save`, `jfp notes`, `jfp collections`, `jfp sync`
 - `jfp list --mine`, `jfp search --mine`, `jfp list --saved`, `jfp search --saved`, `jfp search --all`
+
+**Build (free):**
+- `bun install`
+- `bun run jfp.ts list`
+- `bun build --compile ./jfp.ts --outfile jfp`
 
 ---
 

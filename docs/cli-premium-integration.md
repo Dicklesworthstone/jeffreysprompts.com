@@ -14,6 +14,29 @@ https://pro.jeffreysprompts.com/pricing
 
 The `jfp` CLI itself is open source and free for the public prompt registry.
 
+## Gating Summary (Free vs Pro)
+
+The CLI should always compile and run in public/free mode. Pro is only required for authenticated access to private/premium cloud data.
+
+**Free (no subscription required):**
+- `jfp list`, `jfp search`, `jfp show`, `jfp copy`, `jfp export`, `jfp render`, `jfp suggest`
+- `jfp bundles`, `jfp bundle`, `jfp categories`, `jfp tags`
+- `jfp status`, `jfp refresh`, `jfp open`, `jfp doctor`, `jfp about`, `jfp completion`, `jfp update-cli`
+- `jfp i` (interactive browser)
+
+**Premium (paid Pro required):**
+- `jfp login`, `jfp logout`, `jfp whoami`
+- `jfp save`, `jfp notes`, `jfp collections`, `jfp sync`
+- `jfp list --mine`, `jfp search --mine`, `jfp list --saved`, `jfp search --saved`, `jfp search --all`
+- `jfp packs` (list/install premium packs)
+
+**Build (free):**
+- `bun install`
+- `bun run jfp.ts list`
+- `bun build --compile ./jfp.ts --outfile jfp`
+
+If a user is not subscribed, Pro commands should return a clear upgrade hint and link to pricing.
+
 ## Authentication Flow
 
 ### Local Browser-Based Login (Default)
@@ -83,6 +106,15 @@ All endpoints are prefixed with `/api/cli/` on the premium backend (`https://pro
 | `/sync` | GET | Sync user's saved prompts (supports incremental via `?since=`) |
 | `/saved-prompts` | GET | List user's saved prompts |
 | `/saved-prompts` | POST | Save a prompt to user's library |
+
+### Premium Packs
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/premium-packs` | GET | List premium packs (optional `?installed=true`) |
+| `/premium-packs/:id` | GET | Get premium pack details and prompts |
+| `/premium-packs/:id/install` | POST | Install a premium pack |
+| `/premium-packs/:id/install` | DELETE | Uninstall a premium pack |
 
 ### Collections
 
