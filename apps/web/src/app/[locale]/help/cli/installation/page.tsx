@@ -17,6 +17,11 @@ export default function InstallationPage() {
         <p className="lead">
           The <code>jfp</code> CLI gives you terminal access to the entire JeffreysPrompts library.
         </p>
+        <p>
+          The CLI is free to install and use with public prompts. Pro accounts unlock private vault
+          access (<code>list --mine</code>, <code>search --saved</code>), plus save/sync, notes,
+          collections, and premium packs.
+        </p>
 
         <h2>Quick install</h2>
         <p>

@@ -55,7 +55,11 @@ jfp i`}</pre>
           <li>Press Esc to cancel</li>
         </ul>
 
-        <h2>Search scopes (premium)</h2>
+        <h2>Search scopes (Pro)</h2>
+        <p>
+          Pro search scopes require logging in with a Pro subscription. The CLI itself is free to
+          build and use with public prompts.
+        </p>
         <pre>{`# Search your personal prompts
 jfp search "review" --mine
 
@@ -110,7 +114,7 @@ jfp show "$(jfp search "wizard" --json | jq -r '.results[0].id')"
 jfp show "$(jfp search "review" --json | jq -r '.results[0].id')" --raw | pbcopy
 
 # Export all search results
-jfp search "debugging" --json | jq -r '.results[].id' | xargs jfp export --format skill`}</pre>
+jfp search "debugging" --json | jq -r '.results[].id' | xargs jfp export --format md`}</pre>
 
         <h2>Registry cache</h2>
         <p>
@@ -134,8 +138,8 @@ jfp list --category debugging`}</pre>
         <pre>{`# Find all prompts for a project type
 jfp search "testing" --json > my-testing-prompts.json
 
-# Export as Skills for Claude Code
-jfp search "robot mode" --json | jq -r '.results[].id' | xargs jfp export --format skill`}</pre>
+# Export as Markdown
+jfp search "robot mode" --json | jq -r '.results[].id' | xargs jfp export --format md`}</pre>
 
         <h2>Related</h2>
         <ul>

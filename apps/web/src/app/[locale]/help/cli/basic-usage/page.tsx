@@ -43,6 +43,31 @@ FLAGS:
   --help, -h     Show help
   --version, -v  Show version`}</pre>
 
+        <h2>Free vs Pro</h2>
+        <p>
+          The CLI is free to build and use with the public prompt library. Pro unlocks your private
+          vault and premium content.
+        </p>
+        <ul>
+          <li>
+            <strong>Free:</strong> list/search/show/copy/render/export public prompts, bundles,
+            and JSON output
+          </li>
+          <li>
+            <strong>Pro:</strong> personal prompts (<code>list --mine</code>, <code>list --saved</code>,
+            <code>search --mine</code>, <code>search --saved</code>, <code>search --all</code>),
+            plus <code>save</code>, <code>sync</code>, <code>notes</code>, <code>collections</code>,
+            and <code>packs</code> (premium pack installs)
+          </li>
+        </ul>
+        <p>
+          If you log in on a free plan, Pro-only flags will prompt you to upgrade.
+        </p>
+        <p>
+          Learn more about Pro at{" "}
+          <a href="https://pro.jeffreysprompts.com/pricing">pro.jeffreysprompts.com/pricing</a>.
+        </p>
+
         <h2>Listing prompts</h2>
         <pre>{`# List all prompts
 jfp list
