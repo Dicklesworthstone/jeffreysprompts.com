@@ -85,6 +85,22 @@ function safeCompareTokens(provided: string, expected: string): boolean {
   return timingSafeEqual(providedBuf, expectedBuf);
 }
 
+function isLocalHost(host: string | null): boolean {
+  if (!host) return false;
+  const hostname = host.split(":")[0];
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
+}
+
+function isLocalOrigin(origin: string | null): boolean {
+  if (!origin) return false;
+  try {
+    const { hostname } = new URL(origin);
+    return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
+  } catch {
+    return false;
+  }
+}
+
 export function getAdminRoleFromHeaders(headers: HeaderAccessor): AdminRole {
   const raw = headers.get("x-jfp-admin-role");
   if (!raw) return "support";
@@ -129,7 +145,9 @@ export function checkAdminPermission(
       // Additional safety: reject if request appears to come from external origin
       const origin = request.headers.get("origin");
       const host = request.headers.get("host");
-      if (origin && host && !origin.includes("localhost") && !origin.includes("127.0.0.1")) {
+      const originOk = isLocalOrigin(origin);
+      const hostOk = isLocalHost(host);
+      if ((origin || host) && !originOk && !hostOk) {
         console.warn(
           "[Admin Auth] Dev bypass blocked: external origin detected",
           { origin, host, permission }

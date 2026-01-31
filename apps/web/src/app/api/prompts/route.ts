@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildRegistryPayload, buildPromptList } from "@jeffreysprompts/core/export";
-import { prompts, categories, tags } from "@jeffreysprompts/core/prompts";
+import { prompts, categories, tags, bundles, workflows } from "@jeffreysprompts/core/prompts";
 import { createHash } from "crypto";
 
 // Version for ETag generation
@@ -8,7 +8,7 @@ const REGISTRY_VERSION = process.env.JFP_REGISTRY_VERSION ?? "1.0.0";
 
 // Compute a stable hash of the prompts registry at startup
 const REGISTRY_HASH = createHash("sha256")
-  .update(JSON.stringify(prompts))
+  .update(JSON.stringify({ prompts, bundles, workflows }))
   .digest("hex")
   .substring(0, 8);
 

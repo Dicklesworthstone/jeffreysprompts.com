@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { timingSafeEqual } from "crypto";
 import { runStatusChecks } from "@/lib/health/checks";
 
 function getVersion(): string {
@@ -21,7 +22,15 @@ function isAuthorized(request: NextRequest): boolean {
   const headerToken = request.headers.get("x-jfp-admin-token");
   const provided = bearer || headerToken;
 
-  return provided === token;
+  if (!provided) return false;
+
+  const providedBuf = Buffer.from(provided, "utf8");
+  const expectedBuf = Buffer.from(token, "utf8");
+  if (providedBuf.length !== expectedBuf.length) {
+    timingSafeEqual(expectedBuf, expectedBuf);
+    return false;
+  }
+  return timingSafeEqual(providedBuf, expectedBuf);
 }
 
 function getMemoryUsage(): Record<string, number> | null {
