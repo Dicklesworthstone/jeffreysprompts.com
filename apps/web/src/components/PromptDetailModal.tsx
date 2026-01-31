@@ -61,6 +61,7 @@ import {
 } from "@jeffreysprompts/core/template";
 import { generateInstallOneLiner } from "@jeffreysprompts/core/export/skills";
 import type { Prompt, PromptVariable } from "@jeffreysprompts/core/prompts/types";
+import { RatingButton, RatingDisplay } from "@/components/ratings";
 
 interface PromptDetailModalProps {
   prompt: Prompt | null;
@@ -265,6 +266,15 @@ export function PromptDetailModal({
             </span>
           ))}
         </div>
+
+        {/* Rating Display */}
+        <div className="pt-2">
+          <RatingDisplay
+            contentType="prompt"
+            contentId={prompt.id}
+            variant="detailed"
+          />
+        </div>
       </div>
 
       {/* Variable inputs */}
@@ -468,6 +478,15 @@ export function PromptDetailModal({
               showLabel
             />
           )}
+        </div>
+
+        {/* Rating - allows users to rate this prompt */}
+        <div className="flex items-center justify-center pt-3 border-t border-border/30 mt-3">
+          <RatingButton
+            contentType="prompt"
+            contentId={prompt.id}
+            showCount
+          />
         </div>
       </div>
     </div>
