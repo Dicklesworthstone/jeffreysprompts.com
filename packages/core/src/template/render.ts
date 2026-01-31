@@ -20,7 +20,7 @@ function applyVariableDefaults(
 
 /**
  * Render a prompt with variable substitution
- * Variables are in {{VARIABLE_NAME}} format (case insensitive)
+ * Variables are in {{VARIABLE_NAME}} format (case sensitive, UPPER_SNAKE_CASE)
  */
 export function renderPrompt(
   prompt: Prompt,
