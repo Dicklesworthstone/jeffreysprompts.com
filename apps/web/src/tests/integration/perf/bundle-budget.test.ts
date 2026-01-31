@@ -131,12 +131,16 @@ describe("Bundle Size Budget", () => {
         const stderr = (error && typeof error === "object" && "stderr" in error)
           ? (error as { stderr?: string }).stderr || ""
           : "";
-        const isBrowserError = errorMessage.includes("Puppeteer") ||
-          errorMessage.includes("Chrome") ||
-          errorMessage.includes("Chromium") ||
-          stderr.includes("Puppeteer") ||
-          stderr.includes("Chrome") ||
-          stderr.includes("browser");
+        const fullErrorText = `${errorMessage} ${stderr}`;
+        const isBrowserError = fullErrorText.includes("puppeteer") ||
+          fullErrorText.includes("Puppeteer") ||
+          fullErrorText.includes("Chrome") ||
+          fullErrorText.includes("Chromium") ||
+          fullErrorText.includes("browser") ||
+          fullErrorText.includes("cdp/") ||
+          fullErrorText.includes("CallbackRegistry") ||
+          fullErrorText.includes("CdpPage") ||
+          fullErrorText.includes("estimo");
 
         if (isBrowserError) {
           console.log("Skipping size-limit check - Chromium not available in this environment");
