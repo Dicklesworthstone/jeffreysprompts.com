@@ -255,8 +255,8 @@ describe("Error Boundary Integration", () => {
         </ErrorBoundary>
       );
 
-      // Check that fallback UI is shown
-      expect(screen.getByText("Something went wrong")).toBeInTheDocument();
+      // Check that fallback UI is shown - use heading role for specificity
+      expect(screen.getByRole("heading", { name: "Something went wrong" })).toBeInTheDocument();
     });
 
     it("should render custom fallback when provided", async () => {

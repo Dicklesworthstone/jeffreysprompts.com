@@ -130,11 +130,21 @@ describe("Bundle Size Budget", () => {
         if (error && typeof error === "object" && "stdout" in error) {
           const output = (error as { stdout?: string }).stdout;
           if (output) {
-            const sizeResults = JSON.parse(output);
-            for (const entry of sizeResults) {
-              if (!entry.passed) {
-                console.error(`BUDGET EXCEEDED: ${entry.name} is ${(entry.size / 1024).toFixed(2)} KB (limit: ${entry.sizeLimit})`);
+            try {
+              const parsed = JSON.parse(output);
+              // Handle both array results and object with error
+              const sizeResults = Array.isArray(parsed) ? parsed : null;
+              if (sizeResults) {
+                for (const entry of sizeResults) {
+                  if (!entry.passed) {
+                    console.error(`BUDGET EXCEEDED: ${entry.name} is ${(entry.size / 1024).toFixed(2)} KB (limit: ${entry.sizeLimit})`);
+                  }
+                }
+              } else {
+                console.error("size-limit returned non-array output:", parsed);
               }
+            } catch {
+              console.error("Failed to parse size-limit error output:", output);
             }
           }
         }
