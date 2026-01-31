@@ -54,11 +54,22 @@ describe("recommendations", () => {
     );
     const gamma = results.find((rec) => rec.prompt.id === "gamma-docs");
     expect(gamma).toBeTruthy();
-    expect(gamma?.reasons.some((reason) => reason.includes("Matches your interests"))).toBe(true);
+    expect(
+      gamma?.reasons.some((reason) => reason.includes("saved prompts"))
+    ).toBe(true);
   });
 
   it("provides related recommendations for a single prompt", () => {
     const results = getRelatedRecommendations(prompts[0], prompts, { limit: 2 });
     expect(results.some((rec) => rec.prompt.id === "gamma-docs")).toBe(true);
+  });
+
+  it("respects excluded categories when recommending", () => {
+    const results = getForYouRecommendations(
+      { preferences: { excludeCategories: ["documentation"] } },
+      prompts,
+      { limit: 3 }
+    );
+    expect(results.every((rec) => rec.prompt.category !== "documentation")).toBe(true);
   });
 });

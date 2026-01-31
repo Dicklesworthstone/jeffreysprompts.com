@@ -145,9 +145,14 @@ export async function recommendCommand(
     results = getRelatedRecommendations(seed, prompts, { limit: clampedLimit });
   } else {
     const savedPrompts = toPromptFromOffline();
-    if (savedPrompts.length > 0) {
+    const savedSignals = savedPrompts.map((prompt) => ({
+      prompt,
+      kind: "save" as const,
+      occurredAt: prompt.created,
+    }));
+    if (savedSignals.length > 0) {
       mode = "for_you";
-      results = getForYouRecommendations({ saved: savedPrompts }, prompts, {
+      results = getForYouRecommendations({ saved: savedSignals }, prompts, {
         limit: clampedLimit,
       });
     } else {

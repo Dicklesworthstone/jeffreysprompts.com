@@ -39,7 +39,12 @@ export {
   getRecommendationsFromHistory,
   getForYouRecommendations,
 } from "./recommendations";
-export type { RecommendationResult } from "./recommendations";
+export type {
+  RecommendationResult,
+  RecommendationSignal,
+  RecommendationSignalKind,
+  RecommendationPreferences,
+} from "./recommendations";
 
 // Metadata assistant helpers
 export {

@@ -5,7 +5,11 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
 import { PromptCard } from "@/components/PromptCard";
-import { getForYouRecommendations, type RecommendationResult } from "@jeffreysprompts/core/search";
+import {
+  getForYouRecommendations,
+  type RecommendationResult,
+  type RecommendationSignal,
+} from "@jeffreysprompts/core/search";
 import { getOrCreateLocalUserId, listHistory } from "@/lib/history/client";
 import { useBasket } from "@/hooks/use-basket";
 import type { Prompt } from "@jeffreysprompts/core/prompts/types";
@@ -49,6 +53,7 @@ export function ForYouPromptsSection({
 
       const viewedPrompts: Prompt[] = [];
       const viewedIds: string[] = [];
+      const viewedSignals: RecommendationSignal[] = [];
 
       for (const entry of entries) {
         if (!entry.resourceId) continue;
@@ -56,6 +61,11 @@ export function ForYouPromptsSection({
         if (prompt) {
           viewedPrompts.push(prompt);
           viewedIds.push(prompt.id);
+          viewedSignals.push({
+            prompt,
+            kind: "view",
+            occurredAt: entry.viewedAt,
+          });
         }
       }
 
@@ -63,12 +73,17 @@ export function ForYouPromptsSection({
 
       const savedPrompts: Prompt[] = [];
       const savedPromptIds: string[] = [];
+      const savedSignals: RecommendationSignal[] = [];
 
       for (const id of basketItems) {
         const prompt = promptMap.get(id);
         if (prompt) {
           savedPrompts.push(prompt);
           savedPromptIds.push(prompt.id);
+          savedSignals.push({
+            prompt,
+            kind: "save",
+          });
         }
       }
 
@@ -78,7 +93,7 @@ export function ForYouPromptsSection({
         setRecommendations([]);
       } else {
         const results = getForYouRecommendations(
-          { viewed: viewedPrompts, saved: savedPrompts },
+          { viewed: viewedSignals, saved: savedSignals },
           prompts,
           { limit: RECOMMENDATION_LIMIT }
         );
