@@ -19,6 +19,7 @@ import {
   Linkedin,
   QrCode,
 } from "lucide-react";
+import { copyToClipboard } from "@/lib/clipboard";
 
 interface ReferralShareModalProps {
   open: boolean;
@@ -39,13 +40,13 @@ export function ReferralShareModal({
   const [showQR, setShowQR] = React.useState(false);
 
   const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(referralUrl);
+    const result = await copyToClipboard(referralUrl);
+    if (result.success) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
-      console.error("Failed to copy:", error);
+      return;
     }
+    console.error("Failed to copy:", result.error);
   };
 
   const handleShare = (platform: "twitter" | "linkedin" | "email" | "sms") => {

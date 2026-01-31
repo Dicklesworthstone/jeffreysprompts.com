@@ -6,7 +6,7 @@ import { exitWithDeprecatedSkillCommand, shouldOutputJson, atomicWriteFileSync }
 import { loadRegistry } from "../lib/registry-loader";
 
 interface ExportOptions {
-  format?: "skill" | "md";
+  format?: string;
   outputDir?: string;
   all?: boolean;
   stdout?: boolean;
@@ -14,14 +14,27 @@ interface ExportOptions {
 }
 
 export async function exportCommand(ids: string[], options: ExportOptions) {
-  const format = options.format || "md";
+  const format = (options.format || "md").toLowerCase();
   const outputDir = options.outputDir || process.cwd();
+  const jsonOutput = options.json === true || (!process.stdout.isTTY && !options.stdout);
+
+  const writeJsonError = (code: string, message: string, extra: Record<string, unknown> = {}) => {
+    console.log(JSON.stringify({ error: true, code, message, ...extra }, null, 2));
+  };
 
   if (format === "skill") {
     exitWithDeprecatedSkillCommand(
       options,
       "Skill export moved to jsm. Run: jsm --help"
     );
+  }
+  if (format !== "md") {
+    if (jsonOutput) {
+      writeJsonError("invalid_format", `Unsupported format: ${format}`, { supported: ["md"] });
+    } else {
+      console.error(chalk.red(`Unsupported format: ${format}. Supported: md`));
+    }
+    process.exit(1);
   }
   
   // Load registry dynamically (SWR pattern)
@@ -31,17 +44,25 @@ export async function exportCommand(ids: string[], options: ExportOptions) {
   
   if (!options.all) {
     if (ids.length === 0) {
-       console.error(chalk.red("Error: No prompts specified. Use <id> or --all"));
-       process.exit(1);
+      if (jsonOutput) {
+        writeJsonError("missing_ids", "No prompts specified. Use <id> or --all");
+      } else {
+        console.error(chalk.red("Error: No prompts specified. Use <id> or --all"));
+      }
+      process.exit(1);
     }
     
     // Filter prompts by ID list
     const foundPrompts = [];
     for (const id of ids) {
       const p = registry.prompts.find(prompt => prompt.id === id);
-      if(!p) {
-           console.error(chalk.red(`Prompt not found: ${id}`));
-           process.exit(1);
+      if (!p) {
+        if (jsonOutput) {
+          writeJsonError("not_found", `Prompt not found: ${id}`, { id });
+        } else {
+          console.error(chalk.red(`Prompt not found: ${id}`));
+        }
+        process.exit(1);
       }
       foundPrompts.push(p);
     }
@@ -54,8 +75,8 @@ export async function exportCommand(ids: string[], options: ExportOptions) {
       mkdirSync(outputDir, { recursive: true });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      if (shouldOutputJson(options)) {
-        console.log(JSON.stringify({ error: true, code: "fs_error", message }));
+      if (jsonOutput) {
+        writeJsonError("fs_error", message);
       } else {
         console.error(chalk.red(`Failed to create output directory: ${message}`));
       }
@@ -63,16 +84,22 @@ export async function exportCommand(ids: string[], options: ExportOptions) {
     }
   }
 
-  const results: {id: string, file: string}[] = [];
+  const results: Array<{ id: string; file?: string; content?: string }> = [];
 
   const failed: { id: string; error: string }[] = [];
 
-  for (const prompt of promptsToExport) {
+  for (const [index, prompt] of promptsToExport.entries()) {
     const content = generatePromptMarkdown(prompt);
 
     if (options.stdout) {
-      console.log(content);
-      if (promptsToExport.length > 1) console.log("\n---\n");
+      if (jsonOutput) {
+        results.push({ id: prompt.id, content });
+      } else {
+        console.log(content);
+        if (index < promptsToExport.length - 1) {
+          console.log("\n---\n");
+        }
+      }
     } else {
       const filename = join(outputDir, `${prompt.id}.md`);
       try {
@@ -81,34 +108,39 @@ export async function exportCommand(ids: string[], options: ExportOptions) {
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         failed.push({ id: prompt.id, error: message });
-        if (!shouldOutputJson(options)) {
+        if (!jsonOutput) {
           console.error(chalk.red(`Failed to write ${filename}: ${message}`));
         }
       }
     }
   }
 
-  if (!options.stdout) {
-    if (shouldOutputJson(options)) {
-      console.log(JSON.stringify({
-        success: failed.length === 0,
-        exported: results,
-        failed: failed.length > 0 ? failed : undefined,
-      }, null, 2));
-      if (failed.length > 0) {
-        process.exit(1);
-      }
-    } else {
-      if (results.length > 0) {
-        console.log(chalk.green(`Exported ${results.length} file(s):`));
-        for (const res of results) {
-          console.log(`  ✓ ${res.file}`);
-        }
-      }
-      if (failed.length > 0) {
-        console.log(chalk.red(`Failed to export ${failed.length} file(s).`));
-        process.exit(1);
-      }
+  if (jsonOutput) {
+    console.log(JSON.stringify({
+      success: failed.length === 0,
+      format,
+      stdout: options.stdout ?? false,
+      exported: results,
+      failed: failed.length > 0 ? failed : undefined,
+    }, null, 2));
+    if (!options.stdout && failed.length > 0) {
+      process.exit(1);
     }
+    return;
+  }
+
+  if (options.stdout) {
+    return;
+  }
+
+  if (results.length > 0) {
+    console.log(chalk.green(`Exported ${results.length} file(s):`));
+    for (const res of results) {
+      console.log(`  ✓ ${res.file}`);
+    }
+  }
+  if (failed.length > 0) {
+    console.log(chalk.red(`Failed to export ${failed.length} file(s).`));
+    process.exit(1);
   }
 }

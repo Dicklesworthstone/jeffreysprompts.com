@@ -38,6 +38,7 @@ import { useToast } from "@/components/ui/toast";
 import { HistoryTracker } from "@/components/history/HistoryTracker";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
+import { copyToClipboard } from "@/lib/clipboard";
 import type { Prompt } from "@jeffreysprompts/core/prompts";
 
 // API response types
@@ -170,16 +171,16 @@ export default function SharePage() {
   const handleCopy = useCallback(async () => {
     if (!shareData?.content) return;
 
-    try {
-      await navigator.clipboard.writeText(shareData.content.content);
+    const result = await copyToClipboard(shareData.content.content);
+    if (result.success) {
       setCopied(true);
       if ("vibrate" in navigator) navigator.vibrate(50);
       success("Copied to clipboard", shareData.content.title, { duration: 3000 });
       trackEvent("share_copy", { linkCode });
       setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toastError("Failed to copy", "Please try again");
+      return;
     }
+    toastError("Failed to copy", "Please try again");
   }, [shareData, linkCode, success, toastError]);
 
   const handlePasswordSubmit = useCallback(

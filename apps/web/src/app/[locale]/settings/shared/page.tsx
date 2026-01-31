@@ -21,22 +21,7 @@ import ShareManagement, { type ManagedShareLink } from "@/components/sharing/Sha
 import { getPrompt } from "@jeffreysprompts/core/prompts";
 import { getBundle } from "@jeffreysprompts/core/prompts/bundles";
 import { getWorkflow } from "@jeffreysprompts/core/prompts/workflows";
-
-const LOCAL_USER_ID_KEY = "jfpUserId";
-
-function getOrCreateLocalUserId(): string {
-  if (typeof window === "undefined") return "anonymous";
-
-  let userId = window.localStorage.getItem(LOCAL_USER_ID_KEY);
-  if (!userId) {
-    userId =
-      typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-        ? crypto.randomUUID()
-        : `user-${Math.random().toString(36).slice(2, 9)}`;
-    window.localStorage.setItem(LOCAL_USER_ID_KEY, userId);
-  }
-  return userId;
-}
+import { getOrCreateLocalUserId } from "@/lib/history/client";
 
 function resolveContentTitle(contentType: string, contentId: string): string {
   switch (contentType) {
@@ -77,6 +62,10 @@ export default function SharedLinksPage() {
 
   const fetchShareLinks = useCallback(async () => {
     const userId = getOrCreateLocalUserId();
+    if (!userId) {
+      setShareLinks([]);
+      return;
+    }
 
     try {
       const response = await fetch(
@@ -141,8 +130,15 @@ export default function SharedLinksPage() {
   const handleRevoke = useCallback(
     async (linkCode: string) => {
       try {
+        const userId = getOrCreateLocalUserId();
+        const headers: HeadersInit = {};
+        if (userId) {
+          headers["x-user-id"] = userId;
+        }
+
         const response = await fetch(`/api/share/${linkCode}`, {
           method: "DELETE",
+          headers,
         });
 
         if (!response.ok) {

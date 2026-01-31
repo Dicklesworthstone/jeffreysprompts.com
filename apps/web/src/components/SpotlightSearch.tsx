@@ -12,6 +12,7 @@ import { useToast } from "@/components/ui/toast"
 import { useLocalStorage } from "@/hooks/useLocalStorage"
 import { useIsSmallScreen } from "@/hooks/useIsMobile"
 import { trackHistoryView } from "@/lib/history/client"
+import { copyToClipboard } from "@/lib/clipboard"
 
 // ============================================================================
 // Constants
@@ -359,7 +360,10 @@ export function SpotlightSearch({
 
       if (copyOnSelect) {
         try {
-          await navigator.clipboard.writeText(prompt.content)
+          const result = await copyToClipboard(prompt.content)
+          if (!result.success) {
+            throw result.error ?? new Error("Clipboard copy failed")
+          }
           setCopied(promptId)
           success("Copied prompt", prompt.title, { duration: 2500 })
           // Keep dialog open briefly to show feedback

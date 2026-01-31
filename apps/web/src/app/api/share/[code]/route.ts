@@ -7,13 +7,29 @@ import {
   recordShareLinkView,
   revokeShareLink,
   updateShareLinkSettings,
+  type ShareLink,
 } from "@/lib/share-links/share-link-store";
 
 const MAX_PASSWORD_LENGTH = 64;
+const MAX_EXPIRES_IN_DAYS = 365;
 
 function getClientIp(request: NextRequest): string | null {
   const forwardedFor = request.headers.get("x-forwarded-for");
   return forwardedFor?.split(",")[0]?.trim() || request.headers.get("x-real-ip");
+}
+
+function getUserId(request: NextRequest): string | null {
+  // SECURITY WARNING: trusting x-user-id from headers is unsafe unless behind a trusted proxy
+  // that strips/overwrites this header. Ensure your deployment environment handles this.
+  const headerId = request.headers.get("x-user-id")?.trim();
+  if (headerId) return headerId;
+  const queryId = request.nextUrl.searchParams.get("userId")?.trim();
+  return queryId || null;
+}
+
+function isOwner(link: ShareLink, userId: string | null): boolean {
+  if (!link.userId) return true;
+  return link.userId === userId;
 }
 
 function resolveContent(contentType: string, contentId: string): unknown | null {
@@ -38,7 +54,7 @@ function isExpired(expiresAt?: string | null): boolean {
 
 function parseExpiresAt(
   value: unknown
-): string | null | "invalid" | "past" | undefined {
+): string | null | "invalid" | "past" | "too_long" | undefined {
   if (value === undefined) return undefined;
   if (value === null || value === "") return null;
   if (typeof value !== "string") return "invalid";
@@ -47,6 +63,9 @@ function parseExpiresAt(
   const parsed = new Date(trimmed);
   if (Number.isNaN(parsed.getTime())) return "invalid";
   if (parsed.getTime() < Date.now()) return "past";
+  if (parsed.getTime() - Date.now() > MAX_EXPIRES_IN_DAYS * 24 * 60 * 60 * 1000) {
+    return "too_long";
+  }
   return parsed.toISOString();
 }
 
@@ -120,6 +139,11 @@ export async function PUT(
     return NextResponse.json({ error: "Share link not found." }, { status: 404 });
   }
 
+  const userId = getUserId(request);
+  if (!isOwner(existing, userId)) {
+    return NextResponse.json({ error: "Unauthorized." }, { status: 403 });
+  }
+
   let payload: { password?: string | null; expiresAt?: string | null };
   try {
     payload = await request.json();
@@ -141,6 +165,12 @@ export async function PUT(
   }
   if (parsedExpiresAt === "past") {
     return NextResponse.json({ error: "Expiration must be in the future." }, { status: 400 });
+  }
+  if (parsedExpiresAt === "too_long") {
+    return NextResponse.json(
+      { error: `Expiration must be ${MAX_EXPIRES_IN_DAYS} days or fewer.` },
+      { status: 400 }
+    );
   }
 
   const updated = updateShareLinkSettings({
@@ -167,13 +197,23 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ code: string }> }
 ) {
   const { code: rawCode } = await params;
   const code = rawCode?.trim();
   if (!code) {
     return NextResponse.json({ error: "Missing share code." }, { status: 400 });
+  }
+
+  const existing = getShareLinkByCode(code);
+  if (!existing || !existing.isActive) {
+    return NextResponse.json({ error: "Share link not found." }, { status: 404 });
+  }
+
+  const userId = getUserId(request);
+  if (!isOwner(existing, userId)) {
+    return NextResponse.json({ error: "Unauthorized." }, { status: 403 });
   }
 
   const revoked = revokeShareLink(code);

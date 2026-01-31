@@ -35,9 +35,9 @@ interface DedupeOptions {
 }
 
 function parseNumber(value: string | undefined, fallback: number): number {
-  if (!value) return fallback;
+  if (value === undefined || value === "") return fallback;
   const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
+  return Number.isFinite(parsed) ? parsed : NaN;
 }
 
 async function requirePremium(options: { json?: boolean }, action: string): Promise<void> {
@@ -174,7 +174,6 @@ export async function tagsSuggestCommand(
 
   const maxTags = parseNumber(options.limit, 6);
   const maxSimilar = parseNumber(options.similar, 5);
-  const similarityThreshold = parseNumber(options.threshold, 0.35);
   const threshold = parseNumber(options.threshold, 0.35);
 
   if (!Number.isFinite(maxTags) || maxTags <= 0) {

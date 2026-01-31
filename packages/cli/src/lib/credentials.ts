@@ -16,8 +16,7 @@ import { existsSync } from "fs";
 import { z } from "zod";
 import { atomicWriteFile } from "./utils";
 
-// Premium API URL for token refresh
-const PREMIUM_URL = process.env.JFP_PREMIUM_URL ?? "https://pro.jeffreysprompts.com";
+// Premium API base URL (resolved per call to allow env overrides in tests)
 
 /**
  * Zod schema for credentials validation
@@ -155,9 +154,13 @@ function debugLog(message: string, env = process.env): void {
  */
 async function refreshAccessToken(refreshToken: string, env = process.env): Promise<Credentials | null> {
   debugLog("Access token expired, attempting refresh...", env);
+  const apiBase =
+    env.JFP_PREMIUM_API_URL ??
+    (env.JFP_PREMIUM_URL ? `${env.JFP_PREMIUM_URL.replace(/\/$/, "")}/api` : "https://pro.jeffreysprompts.com/api");
+  const refreshUrl = `${apiBase.replace(/\/$/, "")}/cli/token/refresh`;
 
   try {
-    const response = await fetch(`${PREMIUM_URL}/api/cli/token/refresh`, {
+    const response = await fetch(refreshUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

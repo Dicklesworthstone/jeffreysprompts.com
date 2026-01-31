@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
+import { copyToClipboard } from "@/lib/clipboard";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { prompts, getPrompt } from "@jeffreysprompts/core/prompts";
 import type { Prompt } from "@jeffreysprompts/core/prompts";
@@ -153,12 +154,12 @@ export function WorkflowBuilder({ className, onExport }: WorkflowBuilderProps) {
 
     // Generate markdown for clipboard
     const markdown = generateWorkflowMarkdown(workflow);
-    try {
-      await navigator.clipboard.writeText(markdown);
+    const result = await copyToClipboard(markdown);
+    if (result.success) {
       success("Copied workflow", `${draft.steps.length} steps copied to clipboard`);
-    } catch {
-      error("Failed to copy", "Please try copying manually");
+      return;
     }
+    error("Failed to copy", "Please try copying manually");
   }, [draft, onExport, success, error]);
 
   // Clear and start fresh
@@ -437,4 +438,3 @@ function StepCard({ step, index, isLast, onRemove, onUpdateNote }: StepCardProps
     </Reorder.Item>
   );
 }
-

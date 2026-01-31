@@ -13,6 +13,7 @@ import {
   Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { copyToClipboard } from "@/lib/clipboard";
 import {
   type TranscriptMessage,
   type TranscriptSection,
@@ -176,7 +177,8 @@ function MessageCard({ message }: { message: TranscriptMessage }) {
   }, []);
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(message.content);
+    const result = await copyToClipboard(message.content);
+    if (!result.success) return;
     setCopied(true);
     if (copyTimeoutRef.current) {
       clearTimeout(copyTimeoutRef.current);

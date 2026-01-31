@@ -29,6 +29,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
+import { copyToClipboard } from "@/lib/clipboard";
 import { trackEvent } from "@/lib/analytics";
 import type { ShareLink, ShareableContentType } from "./ShareDialog";
 
@@ -42,7 +43,7 @@ interface ShareManagementProps {
   /** Active share links to display */
   shareLinks: ManagedShareLink[];
   /** Callback when a link is revoked */
-  onRevoke?: (linkCode: string) => void;
+  onRevoke?: (linkCode: string) => void | Promise<void>;
   /** Callback when a link is updated */
   onUpdate?: (linkCode: string, updates: Partial<ShareLink>) => void;
   /** Show loading state */
@@ -163,7 +164,7 @@ function ShareLinkRow({
         <Button
           variant="ghost"
           size="icon-sm"
-          onClick={() => window.open(link.url, "_blank")}
+          onClick={() => window.open(link.url, "_blank", "noopener,noreferrer")}
           title="Open link"
         >
           <ExternalLink className="h-4 w-4" />
@@ -193,27 +194,30 @@ export function ShareManagement({
 
   const handleCopy = useCallback(
     async (url: string, code: string) => {
-      try {
-        await navigator.clipboard.writeText(url);
+      const result = await copyToClipboard(url);
+      if (result.success) {
         setCopiedCode(code);
         if ("vibrate" in navigator) navigator.vibrate(50);
         success("Link copied", "Share link copied to clipboard", { duration: 3000 });
         trackEvent("share_link_copy", { source: "management" });
         setTimeout(() => setCopiedCode(null), 2000);
-      } catch {
-        toastError("Failed to copy", "Please try again");
+        return;
       }
+      toastError("Failed to copy", "Please try again");
     },
     [success, toastError]
   );
 
   const handleRevoke = useCallback(
     async (linkCode: string) => {
+      if (!onRevoke) {
+        toastError("Revoke unavailable", "No revoke handler configured");
+        return;
+      }
+
       setIsRevoking(linkCode);
       try {
-        // Mock API call - will be replaced with real API
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        onRevoke?.(linkCode);
+        await onRevoke(linkCode);
         success("Link revoked", "The share link is no longer active", { duration: 3000 });
         trackEvent("share_link_revoke", { source: "management" });
       } catch {

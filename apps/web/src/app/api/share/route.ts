@@ -32,13 +32,17 @@ function resolveContent(type: ShareContentType, id: string): unknown | null {
 
 function parseExpiresAt(
   payload: { expiresIn?: unknown; expiresAt?: unknown }
-): string | null | "invalid" | "too_long" {
+): string | null | "invalid" | "too_long" | "past" {
   if (payload.expiresAt !== undefined && payload.expiresAt !== null) {
     if (typeof payload.expiresAt !== "string") return "invalid";
     const candidate = payload.expiresAt.trim();
     if (!candidate) return null;
     const parsed = new Date(candidate);
     if (Number.isNaN(parsed.getTime())) return "invalid";
+    if (parsed.getTime() < Date.now()) return "past";
+    if (parsed.getTime() - Date.now() > MAX_EXPIRES_IN_DAYS * 24 * 60 * 60 * 1000) {
+      return "too_long";
+    }
     return parsed.toISOString();
   }
 
@@ -111,6 +115,9 @@ export async function POST(request: NextRequest) {
   const expiresAt = parseExpiresAt({ expiresIn: payload.expiresIn, expiresAt: payload.expiresAt });
   if (expiresAt === "invalid") {
     return NextResponse.json({ error: "Invalid expiration value." }, { status: 400 });
+  }
+  if (expiresAt === "past") {
+    return NextResponse.json({ error: "Expiration must be in the future." }, { status: 400 });
   }
   if (expiresAt === "too_long") {
     return NextResponse.json(

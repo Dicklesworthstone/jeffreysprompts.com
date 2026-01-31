@@ -7,6 +7,7 @@ import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
+import { copyToClipboard } from "@/lib/clipboard";
 import { cn } from "@/lib/utils";
 import type { Bundle, BundleIcon } from "@jeffreysprompts/core/prompts/bundles";
 
@@ -74,7 +75,10 @@ export function BundleCard({ bundle, index = 0 }: BundleCardProps) {
       e.stopPropagation();
       try {
         const command = buildInstallCommand(bundle.promptIds);
-        await navigator.clipboard.writeText(command);
+        const result = await copyToClipboard(command);
+        if (!result.success) {
+          throw result.error ?? new Error("Clipboard copy failed");
+        }
         setCopied(true);
         const preview = command.length > 70 ? `${command.slice(0, 70)}...` : command;
         success("Install command copied", preview, { duration: 3000 });

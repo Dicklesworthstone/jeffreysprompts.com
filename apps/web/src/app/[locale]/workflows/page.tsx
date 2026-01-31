@@ -7,6 +7,8 @@ import { WorkflowBuilder } from "@/components/workflow-builder";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
+import { copyToClipboard } from "@/lib/clipboard";
 import { cn } from "@/lib/utils";
 import { trackHistoryView } from "@/lib/history/client";
 import { workflows, type Workflow } from "@jeffreysprompts/core/prompts";
@@ -104,16 +106,22 @@ interface WorkflowCardProps {
 
 function WorkflowCard({ workflow }: WorkflowCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const { success, error } = useToast();
 
   useEffect(() => {
     if (!expanded) return;
     trackHistoryView({ resourceType: "workflow", resourceId: workflow.id, source: "workflow_expand" });
   }, [expanded, workflow.id]);
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     const markdown = generateWorkflowMarkdown(workflow);
-    navigator.clipboard.writeText(markdown);
-    trackHistoryView({ resourceType: "workflow", resourceId: workflow.id, source: "workflow_copy" });
+    const result = await copyToClipboard(markdown);
+    if (result.success) {
+      success("Copied workflow", `${workflow.steps.length} steps copied`);
+      trackHistoryView({ resourceType: "workflow", resourceId: workflow.id, source: "workflow_copy" });
+      return;
+    }
+    error("Failed to copy", "Please try again");
   };
 
   return (

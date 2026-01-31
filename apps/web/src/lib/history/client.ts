@@ -89,8 +89,13 @@ export async function trackHistoryView(input: {
     }
   }
 
+  const entryId =
+    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `entry-${Math.random().toString(36).slice(2, 11)}`;
+
   const newItem: ViewHistoryEntry = {
-    id: crypto.randomUUID(),
+    id: entryId,
     userId,
     resourceType: input.resourceType,
     resourceId: input.resourceId ?? null,

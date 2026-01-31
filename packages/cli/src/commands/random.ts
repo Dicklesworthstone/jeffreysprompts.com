@@ -6,6 +6,7 @@ import { type Prompt } from "@jeffreysprompts/core/prompts";
 import chalk from "chalk";
 import { shouldOutputJson } from "../lib/utils";
 import { loadRegistry } from "../lib/registry-loader";
+import { copyToClipboard } from "../lib/clipboard";
 
 interface RandomOptions {
   category?: string;
@@ -70,40 +71,20 @@ export async function randomCommand(options: RandomOptions): Promise<void> {
   const prompt = candidates[randomIndex];
 
   // Copy to clipboard if requested
+  let copied = false;
   if (options.copy) {
-    try {
-      const { spawn } = await import("child_process");
-      const { platform } = await import("os");
-
-      const clipboardCmd =
-        platform() === "darwin"
-          ? "pbcopy"
-          : platform() === "win32"
-            ? "clip"
-            : "xclip";
-      const args = platform() === "win32" ? [] : platform() === "linux" ? ["-selection", "clipboard"] : [];
-
-      const proc = spawn(clipboardCmd, args, { stdio: ["pipe", "ignore", "ignore"] });
-      proc.stdin?.write(prompt.content);
-      proc.stdin?.end();
-
-      await new Promise<void>((resolve) => {
-        proc.on("close", () => resolve());
-        proc.on("error", () => resolve());
-      });
-
-      if (!shouldOutputJson(options)) {
+    copied = await copyToClipboard(prompt.content);
+    if (!shouldOutputJson(options)) {
+      if (copied) {
         console.log(chalk.green("✓ Copied to clipboard"));
-      }
-    } catch {
-      if (!shouldOutputJson(options)) {
+      } else {
         console.log(chalk.yellow("⚠ Could not copy to clipboard"));
       }
     }
   }
 
   if (shouldOutputJson(options)) {
-    writeJson({ prompt, copied: options.copy ?? false });
+    writeJson({ prompt, copied });
     return;
   }
 

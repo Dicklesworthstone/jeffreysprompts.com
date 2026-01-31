@@ -48,7 +48,9 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
+import { copyToClipboard } from "@/lib/clipboard";
 import { trackEvent } from "@/lib/analytics";
+import { getOrCreateLocalUserId } from "@/lib/history/client";
 
 // Types
 export type ShareableContentType = "prompt" | "pack" | "skill" | "collection";
@@ -120,29 +122,35 @@ export function ShareDialog({
   const handleCopyLink = useCallback(async () => {
     if (!shareUrl) return;
 
-    try {
-      await navigator.clipboard.writeText(shareUrl);
+    const result = await copyToClipboard(shareUrl);
+    if (result.success) {
       setCopied(true);
       if ("vibrate" in navigator) navigator.vibrate(50);
       success("Link copied", "Share link copied to clipboard", { duration: 3000 });
       trackEvent("share_link_copy", { contentType, contentId });
       setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toastError("Failed to copy", "Please try again");
+      return;
     }
+    toastError("Failed to copy", "Please try again");
   }, [shareUrl, contentType, contentId, success, toastError]);
 
   const handleCreateShare = useCallback(async () => {
     setIsCreating(true);
     try {
+      const userId = getOrCreateLocalUserId();
+      const headers: HeadersInit = { "Content-Type": "application/json" };
+      if (userId) {
+        headers["x-user-id"] = userId;
+      }
+
       const response = await fetch("/api/share", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           contentType,
           contentId,
           password: passwordEnabled ? password : null,
-          expiresIn: expiration !== "never" ? parseInt(expiration) : null,
+          expiresIn: expiration !== "never" ? parseInt(expiration, 10) : null,
         }),
       });
 
@@ -186,8 +194,15 @@ export function ShareDialog({
 
     setIsRevoking(true);
     try {
+      const userId = getOrCreateLocalUserId();
+      const headers: HeadersInit = {};
+      if (userId) {
+        headers["x-user-id"] = userId;
+      }
+
       const response = await fetch(`/api/share/${existingShare.linkCode}`, {
         method: "DELETE",
+        headers,
       });
 
       if (!response.ok) {

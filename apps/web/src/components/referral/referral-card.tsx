@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { copyToClipboard } from "@/lib/clipboard";
 import { Copy, Check, Gift, Share2, Users } from "lucide-react";
 import { ReferralShareModal } from "./referral-share-modal";
 
@@ -56,7 +57,10 @@ export function ReferralCard({ userId, className }: ReferralCardProps) {
   const handleCopy = async () => {
     if (!referralData) return;
     try {
-      await navigator.clipboard.writeText(referralData.url);
+      const result = await copyToClipboard(referralData.url);
+      if (!result.success) {
+        throw result.error ?? new Error("Clipboard copy failed");
+      }
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {

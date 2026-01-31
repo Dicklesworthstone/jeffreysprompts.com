@@ -195,7 +195,10 @@ export async function serveCommand(options: ServeOptions): Promise<void> {
 
     if (name === "search_prompts") {
       const query = String(args?.query ?? "");
-      const category = args?.category != null ? String(args.category) : undefined;
+      const category =
+        args?.category !== undefined && args?.category !== null
+          ? String(args.category)
+          : undefined;
       const tags = Array.isArray(args?.tags)
         ? args.tags.map((t) => String(t))
         : undefined;
@@ -206,20 +209,20 @@ export async function serveCommand(options: ServeOptions): Promise<void> {
       // Get base results (support category/tag filters without a query)
       const trimmedQuery = query.trim();
       let results = trimmedQuery
-        ? searchPrompts(trimmedQuery, { 
-            limit: 50,
+        ? searchPrompts(trimmedQuery, {
+            limit: Math.max(limit * 3, 50),
             index: searchIndex,
-            promptsMap: promptsMap
+            promptsMap: promptsMap,
+            category,
+            tags,
           })
         : prompts.map((prompt) => ({ prompt, score: 0, matchedFields: [] }));
 
-      // Filter by category if specified
-      if (category) {
+      // If no query, we must filter manually (searchPrompts isn't used)
+      if (!trimmedQuery && category) {
         results = results.filter((r) => r.prompt.category === category);
       }
-
-      // Filter by tags if specified
-      if (tags && tags.length > 0) {
+      if (!trimmedQuery && tags && tags.length > 0) {
         results = results.filter((r) =>
           tags.some((tag) => r.prompt.tags.includes(tag))
         );
@@ -253,14 +256,17 @@ export async function serveCommand(options: ServeOptions): Promise<void> {
     }
 
     if (name === "render_prompt") {
-      const id = args?.id != null ? String(args.id) : "";
+      const id = args?.id !== undefined && args?.id !== null ? String(args.id) : "";
       // Coerce all variable values to strings to ensure consistent rendering
       const rawVariables = (args?.variables as Record<string, unknown>) || {};
       const variables: Record<string, string> = {};
       for (const [key, value] of Object.entries(rawVariables)) {
-        variables[key] = value != null ? String(value) : "";
+        variables[key] = value !== undefined && value !== null ? String(value) : "";
       }
-      const context = args?.context != null ? String(args.context) : undefined;
+      const context =
+        args?.context !== undefined && args?.context !== null
+          ? String(args.context)
+          : undefined;
 
       if (!id) {
         return {
