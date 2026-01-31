@@ -56,6 +56,15 @@ export async function randomCommand(options: RandomOptions): Promise<void> {
     }
   }
 
+  if (candidates.length === 0) {
+    if (shouldOutputJson(options)) {
+      writeJsonError("no_prompts", "No prompts available to choose from.");
+    } else {
+      console.error(chalk.red("No prompts available to choose from."));
+    }
+    process.exit(1);
+  }
+
   // Pick a random prompt
   const randomIndex = Math.floor(Math.random() * candidates.length);
   const prompt = candidates[randomIndex];
