@@ -16,8 +16,6 @@ Frame all updates as if they were always present (i.e., don't say "we added X" o
 
 Make sure to add any new commands, options, or features that have been added.
 
-Use ultrathink.
-
 ## When to Use
 
 - After completing a feature or significant code change

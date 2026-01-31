@@ -24,9 +24,7 @@ First generate a list of 30 ideas (brief one-liner for each).
 
 Then go through each one systematically and critically evaluate it, rejecting the ones that are not excellent choices for good reasons and keeping the ones that pass your scrutiny.
 
-Then, for each idea that passed your test, explain in detail exactly what the idea is (in the form of a concrete, specific, actionable plan with detailed code snippets where relevant), why it would be a good improvement, what are the possible downsides, and how confident you are that it actually improves the project (0-100%). Make sure to actually implement the top ideas now.
-
-Use ultrathink.`,
+Then, for each idea that passed your test, explain in detail exactly what the idea is (in the form of a concrete, specific, actionable plan with detailed code snippets where relevant), why it would be a good improvement, what are the possible downsides, and how confident you are that it actually improves the project (0-100%). Make sure to actually implement the top ideas now.`,
     whenToUse: [
       "When starting a new feature or project",
       "When reviewing a codebase for improvements",
@@ -35,7 +33,6 @@ Use ultrathink.`,
     ],
     tips: [
       "Run this at the start of a session for fresh perspective",
-      "Combine with ultrathink for deeper analysis",
       "Focus on the top 3-5 ideas if time-constrained",
       "Let the agent implement ideas immediately after evaluation",
     ],
@@ -57,9 +54,7 @@ Use ultrathink.`,
 
 Frame all updates as if they were always present (i.e., don't say "we added X" or "X is now Y" — just describe the current state).
 
-Make sure to add any new commands, options, or features that have been added.
-
-Use ultrathink.`,
+Make sure to add any new commands, options, or features that have been added.`,
     whenToUse: [
       "After completing a feature or significant code change",
       "When documentation is out of sync with code",
@@ -98,7 +93,7 @@ The CLI should be optimized for use by AI coding agents:
 
 Think about what information an AI agent would need and how to present it most efficiently.
 
-Use ultrathink to design the interface before implementing.`,
+Design the interface before implementing.`,
     whenToUse: [
       "When building a new CLI tool",
       "When adding agent-friendly features to existing CLI",
@@ -123,7 +118,7 @@ Use ultrathink to design the interface before implementing.`,
     difficulty: "intermediate",
     estimatedTokens: 200,
     created: "2025-08-31",
-    content: `I want you to do a spectacular job building absolutely world-class UI/UX components, with an intense focus on making the most visually appealing, user-friendly, intuitive, slick, polished, "Stripe level" of quality UI/UX possible for this that leverages the good libraries that are already part of the project. Use ultrathink.`,
+    content: `I want you to do a spectacular job building absolutely world-class UI/UX components, with an intense focus on making the most visually appealing, user-friendly, intuitive, slick, polished, "Stripe level" of quality UI/UX possible for this that leverages the good libraries that are already part of the project.`,
     whenToUse: [
       "When building new UI components",
       "When polishing existing interfaces",
@@ -148,7 +143,7 @@ Use ultrathink to design the interface before implementing.`,
     difficulty: "beginner",
     estimatedTokens: 150,
     created: "2025-12-14",
-    content: `Now, based on your knowledge of the project, commit all changed files now in a series of logically connected groupings with super detailed commit messages for each and then push. Take your time to do it right. Don't edit the code at all. Don't commit obviously ephemeral files. Use ultrathink.`,
+    content: `Now, based on your knowledge of the project, commit all changed files now in a series of logically connected groupings with super detailed commit messages for each and then push. Take your time to do it right. Don't edit the code at all. Don't commit obviously ephemeral files.`,
     whenToUse: [
       "After completing a coding session with multiple changes",
       "When you have many modified files to commit",
@@ -177,7 +172,7 @@ Use ultrathink to design the interface before implementing.`,
 
 Also, you want to avoid certain telltale writing tropes, like sentences of the form "It's not [just] XYZ, it's ABC" or "Here's why" or "Here's why it matters:". Basically, anything that sounds like the kind of thing an LLM would write disproportionately more commonly that a human writer and which sounds inauthentic/cringe.
 
-And you can't do this sort of thing using regex or a script, you MUST manually read each line of the text and revise it manually in a systematic, methodical, diligent way. Use ultrathink.`,
+And you can't do this sort of thing using regex or a script, you MUST manually read each line of the text and revise it manually in a systematic, methodical, diligent way.`,
     whenToUse: [
       "After generating documentation with AI",
       "When editing README files",
@@ -208,7 +203,7 @@ Before making any of these changes, I really need you to take the time to explor
 
 I'm also open to merging/consolidating/splitting individual code files; if we have multiple small related code files that you think should be combined into a single code file, explain why. If you think any particular code files are WAY too big and really should be refactored into several smaller code files, then explain that too and your proposed strategy for how to restructure them.
 
-Always keep in mind, and track in this plan document, changes you will need to make to any calling code to properly reflect the new folder structure and file structure so that we don't break anything. I don't want to discover after you do all this that nothing works anymore and we have to do a massive slog to get anything running again properly. Use ultrathink.`,
+Always keep in mind, and track in this plan document, changes you will need to make to any calling code to properly reflect the new folder structure and file structure so that we don't break anything. I don't want to discover after you do all this that nothing works anymore and we have to do a massive slog to get anything running again properly.`,
     whenToUse: [
       "When your codebase has grown organically and become messy",
       "When onboarding new developers is difficult due to confusing structure",
@@ -259,7 +254,7 @@ Always keep in mind, and track in this plan document, changes you will need to m
     difficulty: "intermediate",
     estimatedTokens: 100,
     created: "2025-09-17",
-    content: `Based on everything you've seen, what are the weakest/worst parts of the system? What is most needing of fresh ideas and innovative/creative/clever improvements? Use ultrathink.`,
+    content: `Based on everything you've seen, what are the weakest/worst parts of the system? What is most needing of fresh ideas and innovative/creative/clever improvements?`,
     whenToUse: [
       "After the agent has explored the codebase thoroughly",
       "When you want to identify areas for improvement",
@@ -284,7 +279,7 @@ Always keep in mind, and track in this plan document, changes you will need to m
     difficulty: "advanced",
     estimatedTokens: 400,
     created: "2025-09-17",
-    content: `I want you to come up with your top 10 most brilliant ideas for adding extremely powerful and cool functionality that will make this system far more compelling, useful, intuitive, versatile, powerful, robust, reliable, etc. Use ultrathink. But be pragmatic and don't think of features that will be extremely hard to implement or which aren't necessarily worth the additional complexity burden they would introduce. But I don't want you to just think of 10 ideas: I want you to seriously think hard and come up with one HUNDRED ideas and then only tell me your 10 VERY BEST and most brilliant, clever, and radically innovative and powerful ideas.`,
+    content: `I want you to come up with your top 10 most brilliant ideas for adding extremely powerful and cool functionality that will make this system far more compelling, useful, intuitive, versatile, powerful, robust, reliable, etc. Be pragmatic and don't think of features that will be extremely hard to implement or which aren't necessarily worth the additional complexity burden they would introduce. But I don't want you to just think of 10 ideas: I want you to seriously think hard and come up with one HUNDRED ideas and then only tell me your 10 VERY BEST and most brilliant, clever, and radically innovative and powerful ideas.`,
     whenToUse: [
       "When you need truly exceptional ideas, not just good ones",
       "For major feature planning sessions",
@@ -334,7 +329,7 @@ Always keep in mind, and track in this plan document, changes you will need to m
     difficulty: "intermediate",
     estimatedTokens: 350,
     created: "2025-09-17",
-    content: `Before we proceed, I want you to do a "premortem" on this plan. Imagine we're 6 months in the future and this approach has completely failed. What went wrong? What assumptions did we make that turned out to be false? What edge cases did we miss? What integration issues did we overlook? What would users hate about it? Now, with that pessimistic scenario fresh in your mind, revise the plan to address the most likely failure modes. Use ultrathink.`,
+    content: `Before we proceed, I want you to do a "premortem" on this plan. Imagine we're 6 months in the future and this approach has completely failed. What went wrong? What assumptions did we make that turned out to be false? What edge cases did we miss? What integration issues did we overlook? What would users hate about it? Now, with that pessimistic scenario fresh in your mind, revise the plan to address the most likely failure modes.`,
     whenToUse: [
       "Before committing to a major implementation",
       "When planning risky or complex features",
@@ -359,7 +354,7 @@ Always keep in mind, and track in this plan document, changes you will need to m
     difficulty: "beginner",
     estimatedTokens: 200,
     created: "2025-09-17",
-    content: `First read ALL of the AGENTS.md file and README.md file super carefully and understand ALL of both! Then use your code investigation agent mode to fully understand the code, and technical architecture and purpose of the project. Use ultrathink.`,
+    content: `First read ALL of the AGENTS.md file and README.md file super carefully and understand ALL of both! Then use your code investigation agent mode to fully understand the code, and technical architecture and purpose of the project.`,
     whenToUse: [
       "At the start of any new coding session",
       "When working on an unfamiliar project",
@@ -385,7 +380,7 @@ Always keep in mind, and track in this plan document, changes you will need to m
     difficulty: "intermediate",
     estimatedTokens: 150,
     created: "2025-09-17",
-    content: `I need you to look for stubs, placeholders, mocks, of ANY KIND. These ALL must be replaced with FULLY FLESHED OUT, working, correct, performant, idiomatic code as per the beads. Use ultrathink to do this meticulously and carefully!`,
+    content: `I need you to look for stubs, placeholders, mocks, of ANY KIND. These ALL must be replaced with FULLY FLESHED OUT, working, correct, performant, idiomatic code as per the beads. Do this meticulously and carefully!`,
     whenToUse: [
       "Before shipping to production",
       "When auditing code quality",
@@ -411,7 +406,7 @@ Always keep in mind, and track in this plan document, changes you will need to m
     difficulty: "intermediate",
     estimatedTokens: 250,
     created: "2025-09-17",
-    content: `Ok can you now turn your attention to reviewing the code written by your fellow agents and checking for any issues, bugs, errors, problems, inefficiencies, security problems, reliability issues, etc. and carefully diagnose their underlying root causes using first-principle analysis and then fix or revise them if necessary? Don't restrict yourself to the latest commits, cast a wider net and go super deep! Use ultrathink.`,
+    content: `Ok can you now turn your attention to reviewing the code written by your fellow agents and checking for any issues, bugs, errors, problems, inefficiencies, security problems, reliability issues, etc. and carefully diagnose their underlying root causes using first-principle analysis and then fix or revise them if necessary? Don't restrict yourself to the latest commits, cast a wider net and go super deep!`,
     whenToUse: [
       "After multiple agents have been working on a project",
       "Before merging parallel work streams",
@@ -436,7 +431,7 @@ Always keep in mind, and track in this plan document, changes you will need to m
     difficulty: "advanced",
     estimatedTokens: 350,
     created: "2025-09-17",
-    content: `We really need to have totally complete, totally comprehensive, granular, perfect end to end testing coverage without ANY mocks or fake data, fake api calls, etc., that prove that our entire pipeline from start to finish works perfectly in a provable, ultra rigorous way. That means the raw data coming in from the various API services for EVERYTHING (not just one or two fields) for a bunch of test cases. Basically, the WHOLE thing, from "soup to nuts". Use ultrathink.`,
+    content: `We really need to have totally complete, totally comprehensive, granular, perfect end to end testing coverage without ANY mocks or fake data, fake api calls, etc., that prove that our entire pipeline from start to finish works perfectly in a provable, ultra rigorous way. That means the raw data coming in from the various API services for EVERYTHING (not just one or two fields) for a bunch of test cases. Basically, the WHOLE thing, from "soup to nuts".`,
     whenToUse: [
       "Before production releases",
       "When building critical data pipelines",
@@ -461,7 +456,7 @@ Always keep in mind, and track in this plan document, changes you will need to m
     difficulty: "advanced",
     estimatedTokens: 500,
     created: "2025-09-17",
-    content: `First read ALL of the AGENTS.md file and README.md file super carefully and understand ALL of both! Then use your code investigation agent mode to fully understand the code, and technical architecture and purpose of the project. Then register with MCP Agent Mail and introduce yourself to the other agents. Be sure to check your agent mail and to promptly respond if needed to any messages; then proceed meticulously with your next assigned beads, working on the tasks systematically and meticulously and tracking your progress via beads and agent mail messages. Don't get stuck in "communication purgatory" where nothing is getting done; be proactive about starting tasks that need to be done, but inform your fellow agents via messages when you do so and mark beads appropriately. When you're not sure what to do next, use the bv tool mentioned in AGENTS.md to prioritize the best beads to work on next; pick the next one that you can usefully work on and get started. Make sure to acknowledge all communication requests from other agents and that you are aware of all active agents and their names. Use ultrathink.`,
+    content: `First read ALL of the AGENTS.md file and README.md file super carefully and understand ALL of both! Then use your code investigation agent mode to fully understand the code, and technical architecture and purpose of the project. Then register with MCP Agent Mail and introduce yourself to the other agents. Be sure to check your agent mail and to promptly respond if needed to any messages; then proceed meticulously with your next assigned beads, working on the tasks systematically and meticulously and tracking your progress via beads and agent mail messages. Don't get stuck in "communication purgatory" where nothing is getting done; be proactive about starting tasks that need to be done, but inform your fellow agents via messages when you do so and mark beads appropriately. When you're not sure what to do next, use the bv tool mentioned in AGENTS.md to prioritize the best beads to work on next; pick the next one that you can usefully work on and get started. Make sure to acknowledge all communication requests from other agents and that you are aware of all active agents and their names.`,
     whenToUse: [
       "When launching multiple agents on a project",
       "For coordinated multi-agent workflows",
@@ -511,9 +506,7 @@ C) Equivalence oracle: Define explicit golden outputs + invariants.
 D) Isomorphism proof per change: Every proposed diff must include a short proof sketch explaining why outputs cannot change.
 E) Opportunity matrix: Rank candidates by (Impact x Confidence) / Effort before implementing.
 F) Minimal diffs: One performance lever per change. No unrelated refactors.
-G) Regression guardrails: Add benchmark thresholds or monitoring hooks.
-
-Use ultrathink.`,
+G) Regression guardrails: Add benchmark thresholds or monitoring hooks.`,
     whenToUse: [
       "When performance is critical",
       "Before scaling to production load",
@@ -538,7 +531,7 @@ Use ultrathink.`,
     difficulty: "intermediate",
     estimatedTokens: 450,
     created: "2025-09-17",
-    content: `One thing that's critical for the robot mode flags in the CLI (the mode intended for use by AI coding agents like yourself) is that we want to make it easy for the agents to use the tool; so first off, we want to make the CLI interface and system as intuitive and easy as possible and explain it super clearly in the CLI help and in a blurb in AGENTS.md. But beyond that, we want to be maximally flexible when the intent of a command is clear but there's some minor syntax issue; basically we'd like to honor all commands where the intent is legible (although in those cases we might want to precede the response with some note instructing the agent how to more correctly issue that command in the future). If we can't really figure out reliably what the agent is trying to do, then we should always return a super detailed and helpful/useful error message that lets the agent understand what it did wrong so it can do it the right way next time; we should give them a couple relevant correct examples in the error message about how to do what we might reasonably guess they are trying (and failing) to do with their wrong command. Use ultrathink.`,
+    content: `One thing that's critical for the robot mode flags in the CLI (the mode intended for use by AI coding agents like yourself) is that we want to make it easy for the agents to use the tool; so first off, we want to make the CLI interface and system as intuitive and easy as possible and explain it super clearly in the CLI help and in a blurb in AGENTS.md. But beyond that, we want to be maximally flexible when the intent of a command is clear but there's some minor syntax issue; basically we'd like to honor all commands where the intent is legible (although in those cases we might want to precede the response with some note instructing the agent how to more correctly issue that command in the future). If we can't really figure out reliably what the agent is trying to do, then we should always return a super detailed and helpful/useful error message that lets the agent understand what it did wrong so it can do it the right way next time; we should give them a couple relevant correct examples in the error message about how to do what we might reasonably guess they are trying (and failing) to do with their wrong command.`,
     whenToUse: [
       "When building CLIs that agents will use",
       "To improve agent-tool interaction success rates",
@@ -563,7 +556,7 @@ Use ultrathink.`,
     difficulty: "beginner",
     estimatedTokens: 150,
     created: "2025-09-17",
-    content: `Now tell me what you actually THINK of the project-- is it even a good idea? Is it useful? Is it well designed and architected? Pragmatic? What could we do to make it more useful and compelling and intuitive/user-friendly to both humans AND to AI coding agents? Use ultrathink.`,
+    content: `Now tell me what you actually THINK of the project-- is it even a good idea? Is it useful? Is it well designed and architected? Pragmatic? What could we do to make it more useful and compelling and intuitive/user-friendly to both humans AND to AI coding agents?`,
     whenToUse: [
       "After the agent has explored the codebase",
       "When seeking honest feedback on direction",
@@ -588,7 +581,7 @@ Use ultrathink.`,
     difficulty: "intermediate",
     estimatedTokens: 250,
     created: "2025-09-17",
-    content: `Deploy to vercel and verify that the deployment worked properly without any errors (iterate and fix if there were errors). Then visit the live site with playwright as both desktop and mobile browser and take screenshots and check for js errors and look at the screenshots for potential problems and iterate and fix them all super carefully! Use ultrathink.`,
+    content: `Deploy to vercel and verify that the deployment worked properly without any errors (iterate and fix if there were errors). Then visit the live site with playwright as both desktop and mobile browser and take screenshots and check for js errors and look at the screenshots for potential problems and iterate and fix them all super carefully!`,
     whenToUse: [
       "After deploying to production",
       "For automated deployment verification",
