@@ -251,6 +251,11 @@ jfp recommend idea-wizard     # Related prompts (Pro)
 jfp impact <id>               # Show downstream dependencies
 jfp graph export              # Export prompt dependency graph
 
+jfp packs --installed         # List installed premium packs (Pro)
+jfp packs install <id>        # Install/subscribe to premium packs (Pro)
+jfp packs update <id>         # Update a premium pack (Pro)
+jfp packs changelog <id>      # View a pack changelog (Pro)
+
 jfp copy <id>                 # Copy to clipboard
 
 jfp export <id>               # Export as markdown

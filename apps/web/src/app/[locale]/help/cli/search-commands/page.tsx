@@ -140,6 +140,17 @@ jfp refresh
 # View cache status
 jfp status`}</pre>
 
+        <h2>Impact analysis</h2>
+        <p>
+          When you need to understand downstream usage, the CLI can show prompt dependencies and
+          export the full graph.
+        </p>
+        <pre>{`# Show downstream dependencies
+jfp impact idea-wizard
+
+# Export dependency graph as JSON
+jfp graph export --json`}</pre>
+
         <h2>Examples</h2>
         <h3>Find prompts for a specific task</h3>
         <pre>{`# Find code review prompts

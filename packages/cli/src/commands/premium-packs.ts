@@ -198,20 +198,26 @@ async function listPremiumPacks(options: PacksOptions): Promise<void> {
   console.log(chalk.dim(`\nFound ${packs.length} premium packs.`));
 }
 
-async function showPremiumPack(id: string, options: PacksOptions): Promise<void> {
+async function fetchPremiumPackDetail(id: string, options: PacksOptions): Promise<PremiumPackDetail> {
   await requirePremiumAccess(options);
 
   const response = await apiClient.get<PackDetailResponse>(`/cli/premium-packs/${id}`);
   if (!response.ok) {
     handleApiError(response, options, "Failed to load premium pack");
-    return;
+    process.exit(1);
   }
 
   const pack = response.data?.pack;
   if (!pack) {
     handleApiError({ status: 404 }, options, "Pack not found");
-    return;
+    process.exit(1);
   }
+
+  return pack;
+}
+
+async function showPremiumPack(id: string, options: PacksOptions): Promise<void> {
+  const pack = await fetchPremiumPackDetail(id, options);
 
   if (shouldOutputJson(options)) {
     writeJson({ pack });
@@ -255,7 +261,43 @@ async function showPremiumPack(id: string, options: PacksOptions): Promise<void>
   );
 }
 
-async function installPremiumPack(id: string, options: PacksOptions): Promise<void> {
+async function showPackChangelog(id: string, options: PacksOptions): Promise<void> {
+  const pack = await fetchPremiumPackDetail(id, options);
+  const changelog = pack.changelog?.trim();
+
+  if (shouldOutputJson(options)) {
+    writeJson({
+      packId: pack.id,
+      title: pack.title,
+      version: pack.version ?? "1.0.0",
+      changelog: changelog ?? "",
+      hasChangelog: Boolean(changelog),
+    });
+    return;
+  }
+
+  if (!changelog) {
+    console.log(chalk.yellow("No changelog available for this pack yet."));
+    return;
+  }
+
+  const content = `${chalk.bold.cyan(pack.title)} ${chalk.dim(`v${pack.version ?? "1.0.0"}`)}\n\n${changelog}`;
+  console.log(
+    boxen(content, {
+      padding: 1,
+      borderStyle: "round",
+      borderColor: "cyan",
+    })
+  );
+}
+
+type InstallMode = "install" | "subscribe" | "update";
+
+async function installPremiumPack(
+  id: string,
+  options: PacksOptions,
+  mode: InstallMode = "install"
+): Promise<void> {
   await requirePremiumAccess(options);
 
   const payload = options.tool ? { tool: options.tool } : undefined;
@@ -272,16 +314,22 @@ async function installPremiumPack(id: string, options: PacksOptions): Promise<vo
   const data = response.data;
 
   if (shouldOutputJson(options)) {
-    writeJson(data ?? { installed: true, packId: id });
+    writeJson({ ...(data ?? { installed: true, packId: id }), action: mode });
     return;
   }
 
   if (data?.alreadyInstalled) {
-    console.log(chalk.yellow("Pack already installed."));
+    console.log(chalk.yellow(mode === "update" ? "Pack already up to date." : "Pack already installed."));
     return;
   }
 
-  console.log(chalk.green("✓") + " Pack installed.");
+  const message =
+    mode === "update"
+      ? "Pack updated."
+      : mode === "subscribe"
+        ? "Pack subscribed."
+        : "Pack installed.";
+  console.log(chalk.green("✓") + ` ${message}`);
 }
 
 async function uninstallPremiumPack(id: string, options: PacksOptions): Promise<void> {
@@ -331,7 +379,7 @@ export async function premiumPacksCommand(
       }
       process.exit(1);
     }
-    return installPremiumPack(id, options);
+    return installPremiumPack(id, options, "install");
   }
 
   if (normalized === "uninstall" || normalized === "remove") {
@@ -344,6 +392,54 @@ export async function premiumPacksCommand(
       process.exit(1);
     }
     return uninstallPremiumPack(id, options);
+  }
+
+  if (normalized === "subscribe") {
+    if (!id) {
+      if (shouldOutputJson(options)) {
+        writeJsonError("missing_argument", "Usage: jfp packs subscribe <pack-id>");
+      } else {
+        console.error("Usage: jfp packs subscribe <pack-id>");
+      }
+      process.exit(1);
+    }
+    return installPremiumPack(id, options, "subscribe");
+  }
+
+  if (normalized === "unsubscribe") {
+    if (!id) {
+      if (shouldOutputJson(options)) {
+        writeJsonError("missing_argument", "Usage: jfp packs unsubscribe <pack-id>");
+      } else {
+        console.error("Usage: jfp packs unsubscribe <pack-id>");
+      }
+      process.exit(1);
+    }
+    return uninstallPremiumPack(id, options);
+  }
+
+  if (normalized === "update") {
+    if (!id) {
+      if (shouldOutputJson(options)) {
+        writeJsonError("missing_argument", "Usage: jfp packs update <pack-id>");
+      } else {
+        console.error("Usage: jfp packs update <pack-id>");
+      }
+      process.exit(1);
+    }
+    return installPremiumPack(id, options, "update");
+  }
+
+  if (normalized === "changelog") {
+    if (!id) {
+      if (shouldOutputJson(options)) {
+        writeJsonError("missing_argument", "Usage: jfp packs changelog <pack-id>");
+      } else {
+        console.error("Usage: jfp packs changelog <pack-id>");
+      }
+      process.exit(1);
+    }
+    return showPackChangelog(id, options);
   }
 
   if (normalized === "show" || normalized === "info") {

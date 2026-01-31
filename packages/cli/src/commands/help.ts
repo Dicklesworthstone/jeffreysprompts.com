@@ -76,7 +76,7 @@ function getHelpData() {
         { name: "sync", description: "Sync premium library for offline access", options: ["--force", "--status", "--json"] },
         { name: "notes <prompt-id>", description: "Manage personal notes on prompts", options: ["--add", "--delete", "--json"] },
         { name: "collections", description: "Manage prompt collections", options: ["--add", "--export", "--format", "--stdout", "--json"] },
-        { name: "packs", description: "List/install premium packs", options: ["--installed", "--tool", "--json"] },
+        { name: "packs", description: "Manage premium packs (list/install/update/changelog)", options: ["--installed", "--tool", "--json"] },
         { name: "recommend [id]", description: "Personalized recommendations (Premium)", options: ["--limit", "--json"] },
       ],
       utilities: [
@@ -177,7 +177,7 @@ JeffreysPrompts CLI v${version}
   sections.push(formatCommand("sync", "Sync premium library for offline access"));
   sections.push(formatCommand("notes <id>", "Manage personal notes on prompts"));
   sections.push(formatCommand("collections", "Manage prompt collections"));
-  sections.push(formatCommand("packs", "List/install premium packs"));
+  sections.push(formatCommand("packs", "Manage premium packs"));
   sections.push(formatCommand("recommend [id]", "Personalized recommendations"));
   sections.push("");
 
@@ -204,6 +204,8 @@ JeffreysPrompts CLI v${version}
   sections.push(formatExample("jfp impact idea-wizard --json", "Inspect downstream dependencies"));
   sections.push(formatExample("jfp graph export --json", "Export dependency graph"));
   sections.push(formatExample("jfp packs --installed", "List installed premium packs"));
+  sections.push(formatExample("jfp packs update starter-kit", "Update a premium pack"));
+  sections.push(formatExample("jfp packs changelog starter-kit", "View a pack changelog"));
   sections.push("");
 
   // Global options
