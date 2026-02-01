@@ -28,6 +28,10 @@ export function getOrCreateLocalUserId(): string | null {
     window.localStorage.setItem(LEGACY_RATING_USER_ID_KEY, userId);
   }
 
+  if (userId && !window.localStorage.getItem(LEGACY_RATING_USER_ID_KEY)) {
+    window.localStorage.setItem(LEGACY_RATING_USER_ID_KEY, userId);
+  }
+
   return userId;
 }
 
