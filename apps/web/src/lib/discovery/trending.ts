@@ -63,8 +63,12 @@ function normalize(value: number, max: number, min = 0): number {
  */
 function calculateFreshnessScore(updatedAt: string | Date, now: Date = new Date()): number {
   const updateTime = typeof updatedAt === "string" ? new Date(updatedAt) : updatedAt;
-  const ageMs = now.getTime() - updateTime.getTime();
-  const ageWeeks = ageMs / (1000 * 60 * 60 * 24 * 7);
+  const updateMs = updateTime.getTime();
+  if (!Number.isFinite(updateMs)) {
+    return TIME_DECAY.minFreshness;
+  }
+  const ageMs = now.getTime() - updateMs;
+  const ageWeeks = Math.max(0, ageMs / (1000 * 60 * 60 * 24 * 7));
 
   // Exponential decay: score = e^(-ageWeeks * ln(2) / halfLife)
   const decayRate = Math.log(2) / TIME_DECAY.halfLifeWeeks;

@@ -84,10 +84,26 @@ export async function DELETE(
       );
     }
 
+    const feature = getFeature(id);
+    if (!feature) {
+      return NextResponse.json(
+        { error: "not_found", message: "Feature not found" },
+        { status: 404 }
+      );
+    }
+
     const result = unvoteFeature(id, userId);
 
+    if (!result.success) {
+      const status = result.error === "Feature not found" ? 404 : 400;
+      return NextResponse.json(
+        { error: "unvote_failed", message: result.error ?? "Unable to remove vote" },
+        { status }
+      );
+    }
+
     return NextResponse.json({
-      success: result.success,
+      success: true,
       voteCount: result.voteCount,
     });
   } catch {

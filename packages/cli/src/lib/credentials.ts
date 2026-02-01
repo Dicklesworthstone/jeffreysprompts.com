@@ -91,11 +91,15 @@ export function isExpired(creds: Credentials): boolean {
   if (!creds.expires_at) return false;
 
   const expiresAt = new Date(creds.expires_at);
+  const expiresMs = expiresAt.getTime();
+  if (!Number.isFinite(expiresMs)) {
+    return true;
+  }
   const now = new Date();
 
   // Consider expired 5 minutes before actual expiry (buffer for clock skew)
   const bufferMs = 5 * 60 * 1000;
-  return now.getTime() > expiresAt.getTime() - bufferMs;
+  return now.getTime() > expiresMs - bufferMs;
 }
 
 /**

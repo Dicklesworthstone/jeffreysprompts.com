@@ -100,6 +100,24 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: "Missing incident ID." }, { status: 400 });
   }
 
+  const hasStatus = status !== undefined;
+  const hasMessage = message !== undefined;
+  const trimmedMessage = typeof message === "string" ? message.trim() : "";
+
+  if (hasStatus !== hasMessage) {
+    return NextResponse.json(
+      { error: "Status updates require both status and message." },
+      { status: 400 }
+    );
+  }
+
+  if (hasStatus && !trimmedMessage) {
+    return NextResponse.json(
+      { error: "Status update message cannot be empty." },
+      { status: 400 }
+    );
+  }
+
   const existing = getIncident(incidentId);
   if (!existing) {
     return NextResponse.json({ error: "Incident not found." }, { status: 404 });
@@ -114,7 +132,7 @@ export async function PUT(request: NextRequest) {
   }
 
   // Add status update if provided
-  if (status && message) {
+  if (status && trimmedMessage) {
     if (!VALID_STATUSES.includes(status)) {
       return NextResponse.json({ error: "Invalid status." }, { status: 400 });
     }
@@ -122,7 +140,7 @@ export async function PUT(request: NextRequest) {
     const updated = addIncidentUpdate({
       incidentId,
       status,
-      message: message.trim(),
+      message: trimmedMessage,
     });
 
     if (!updated) {

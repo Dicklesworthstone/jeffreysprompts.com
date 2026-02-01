@@ -127,10 +127,11 @@ describe("loadCredentials", () => {
       writeFileSync(credPath, JSON.stringify(validCredentials));
 
       const result = await credentials.loadCredentials(mockEnv);
-      expect(result).not.toBeNull();
-      expect(result!.access_token).toBe(validCredentials.access_token);
-      expect(result!.email).toBe(validCredentials.email);
-      expect(result!.tier).toBe(validCredentials.tier);
+      expect(result).toMatchObject({
+        access_token: validCredentials.access_token,
+        email: validCredentials.email,
+        tier: validCredentials.tier,
+      });
     } finally {
       cleanup();
     }
@@ -279,9 +280,11 @@ describe("CredentialsSchema validation (runtime)", () => {
       writeFileSync(credPath, JSON.stringify(validCredsNoRefresh));
 
       const result = await credentials.loadCredentials(mockEnv);
-      expect(result).not.toBeNull();
-      expect(result!.tier).toBe("free");
-      expect(result!.refresh_token).toBeUndefined();
+      if (!result) {
+        throw new Error("Expected credentials to load");
+      }
+      expect(result.tier).toBe("free");
+      expect(result.refresh_token).toBeUndefined();
     } finally {
       cleanup();
     }
@@ -332,8 +335,7 @@ describe("saveCredentials", () => {
       await credentials.saveCredentials(validCredentials, mockEnv);
       const result = await credentials.loadCredentials(mockEnv);
 
-      expect(result).not.toBeNull();
-      expect(result!.access_token).toBe(validCredentials.access_token);
+      expect(result).toMatchObject({ access_token: validCredentials.access_token });
     } finally {
       cleanup();
     }
@@ -352,8 +354,10 @@ describe("saveCredentials", () => {
       await credentials.saveCredentials(newCreds, mockEnv);
 
       const result = await credentials.loadCredentials(mockEnv);
-      expect(result!.email).toBe("new@example.com");
-      expect(result!.access_token).toBe("new-token");
+      expect(result).toMatchObject({
+        email: "new@example.com",
+        access_token: "new-token",
+      });
     } finally {
       cleanup();
     }
@@ -450,6 +454,12 @@ describe("isExpired", () => {
 
     // No expiry = never expires
     expect(credentials.isExpired(creds)).toBe(false);
+  });
+
+  it("treats invalid expires_at as expired", () => {
+    const creds = { ...validCredentials, expires_at: "not-a-date" };
+
+    expect(credentials.isExpired(creds)).toBe(true);
   });
 });
 
@@ -602,10 +612,11 @@ describe("getCurrentUser", () => {
       await credentials.saveCredentials(validCredentials, mockEnv);
 
       const user = await credentials.getCurrentUser(mockEnv);
-      expect(user).not.toBeNull();
-      expect(user!.email).toBe(validCredentials.email);
-      expect(user!.tier).toBe(validCredentials.tier);
-      expect(user!.userId).toBe(validCredentials.user_id);
+      expect(user).toEqual({
+        email: validCredentials.email,
+        tier: validCredentials.tier,
+        userId: validCredentials.user_id,
+      });
     } finally {
       cleanup();
     }

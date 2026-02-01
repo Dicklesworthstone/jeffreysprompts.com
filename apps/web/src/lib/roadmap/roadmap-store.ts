@@ -96,7 +96,9 @@ interface RoadmapStore {
 // =============================================================================
 
 declare global {
-  var __jfp_roadmap_store__: RoadmapStore | undefined;
+  interface GlobalThis {
+    __jfp_roadmap_store__?: RoadmapStore;
+  }
 }
 
 function getStore(): RoadmapStore {
@@ -486,18 +488,18 @@ export function voteForFeature(
 export function unvoteFeature(
   featureId: string,
   userId: string
-): { success: boolean; voteCount?: number } {
+): { success: boolean; voteCount?: number; error?: string } {
   const store = getStore();
   const feature = store.features.get(featureId);
 
   if (!feature) {
-    return { success: false };
+    return { success: false, error: "Feature not found" };
   }
 
   const voteKey = `${featureId}:${userId}`;
 
   if (!store.votes.has(voteKey)) {
-    return { success: false };
+    return { success: false, error: "No vote to remove" };
   }
 
   store.votes.delete(voteKey);
