@@ -114,6 +114,39 @@ describe("loginCommand - already logged in", () => {
     expect(parsed.code).toBe("already_logged_in");
     expect(parsed.email).toBe("existing@example.com");
   });
+
+  it("proceeds with login when credentials are expired", async () => {
+    const credsPath = join(FAKE_HOME, ".config", "jfp", "credentials.json");
+    mkdirSync(join(FAKE_HOME, ".config", "jfp"), { recursive: true });
+    writeFileSync(
+      credsPath,
+      JSON.stringify({
+        ...mockCredentials,
+        expires_at: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+      })
+    );
+
+    globalThis.fetch = mock(() => Promise.reject(new Error("Network unreachable")));
+
+    let exitCode: number | undefined;
+    process.exit = ((code?: number) => {
+      exitCode = code;
+      throw new Error("EXIT_" + code);
+    }) as never;
+
+    try {
+      await loginCommand({ remote: true, json: true });
+    } catch {
+      // Expected: process.exit
+    }
+
+    const output = consoleOutput.join("\n");
+    const parsed = JSON.parse(output);
+
+    expect(parsed.error).toBe(true);
+    expect(parsed.code).toBe("network_error");
+    expect(exitCode).toBe(1);
+  });
 });
 
 describe("Device Code Flow", () => {
@@ -211,4 +244,3 @@ describe("Device Code Flow", () => {
     expect(output).toContain("TEST-1234");
   });
 });
-

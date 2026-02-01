@@ -11,7 +11,7 @@ import { URL } from "url";
 import open from "open";
 import chalk from "chalk";
 import boxen from "boxen";
-import { saveCredentials, loadCredentials, type Credentials } from "../lib/credentials";
+import { saveCredentials, loadCredentials, isExpired, type Credentials } from "../lib/credentials";
 import { shouldOutputJson } from "../lib/utils";
 
 // Premium site URL for authentication
@@ -31,7 +31,7 @@ export async function loginCommand(options: LoginOptions = {}): Promise<void> {
   const jsonOutput = shouldOutputJson(options);
   // Check if already logged in
   const existing = await loadCredentials();
-  if (existing) {
+  if (existing && !isExpired(existing)) {
     if (jsonOutput) {
       writeJsonError("already_logged_in", `Already logged in as ${existing.email}`, {
         email: existing.email,
