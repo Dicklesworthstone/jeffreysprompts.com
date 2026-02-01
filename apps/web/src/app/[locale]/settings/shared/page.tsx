@@ -127,34 +127,27 @@ export default function SharedLinksPage() {
     success("Share links refreshed");
   }, [fetchShareLinks, success]);
 
-  const handleRevoke = useCallback(
-    async (linkCode: string) => {
-      try {
-        const userId = getOrCreateLocalUserId();
-        const headers: HeadersInit = {};
-        if (userId) {
-          headers["x-user-id"] = userId;
-        }
+  const handleRevoke = useCallback(async (linkCode: string) => {
+    const userId = getOrCreateLocalUserId();
+    const headers: HeadersInit = {};
+    if (userId) {
+      headers["x-user-id"] = userId;
+    }
 
-        const response = await fetch(`/api/share/${linkCode}`, {
-          method: "DELETE",
-          headers,
-        });
+    const response = await fetch(`/api/share/${linkCode}`, {
+      method: "DELETE",
+      headers,
+    });
 
-        if (!response.ok) {
-          throw new Error("Failed to revoke link");
-        }
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const message =
+        typeof errorData.error === "string" ? errorData.error : "Failed to revoke link";
+      throw new Error(message);
+    }
 
-        setShareLinks((prev) =>
-          prev.filter((link) => link.linkCode !== linkCode)
-        );
-        success("Link revoked", "The share link is no longer accessible");
-      } catch {
-        error("Failed to revoke link", "Please try again");
-      }
-    },
-    [success, error]
-  );
+    setShareLinks((prev) => prev.filter((link) => link.linkCode !== linkCode));
+  }, []);
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
