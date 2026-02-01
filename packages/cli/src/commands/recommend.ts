@@ -196,6 +196,9 @@ export async function recommendCommand(
       results = getForYouRecommendations({ saved: savedSignals, preferences }, prompts, {
         limit: clampedLimit,
       });
+      if (hasPreferenceInput && results.length === 0 && !warning) {
+        warning = "No recommendations matched your preference filters.";
+      }
     } else {
       mode = "featured";
       results = fallbackFeatured(prompts, clampedLimit);
