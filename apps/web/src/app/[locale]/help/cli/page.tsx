@@ -41,6 +41,25 @@ export default function CLIPage() {
         </ul>
       </div>
 
+      <div className="mt-6 p-5 bg-slate-50 dark:bg-slate-900 rounded-xl">
+        <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">
+          Dependency graphs
+        </h3>
+        <p className="text-sm text-slate-700 dark:text-slate-300 mb-3">
+          Export the prompt dependency graph and optionally expand it with metadata or collections.
+        </p>
+        <pre className="text-sm bg-white/80 dark:bg-slate-950/60 rounded-lg p-3 overflow-x-auto">
+{`# Base graph
+jfp graph export --json
+
+# Include category + tag nodes
+jfp graph export --include-meta --json
+
+# Include collections (requires login)
+jfp graph export --include-collections --json`}
+        </pre>
+      </div>
+
       <div className="mt-6 p-5 bg-amber-50 dark:bg-amber-950/30 rounded-xl">
         <h3 className="font-semibold text-amber-900 dark:text-amber-200 mb-2">
           Free vs Pro
