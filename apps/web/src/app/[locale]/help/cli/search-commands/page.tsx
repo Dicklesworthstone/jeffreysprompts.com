@@ -143,13 +143,20 @@ jfp status`}</pre>
         <h2>Impact analysis</h2>
         <p>
           When you need to understand downstream usage, the CLI can show prompt dependencies and
-          export the full graph.
+          export the full graph. Use metadata flags to expand the graph with categories, tags,
+          or your collections.
         </p>
         <pre>{`# Show downstream dependencies
 jfp impact idea-wizard
 
 # Export dependency graph as JSON
-jfp graph export --json`}</pre>
+jfp graph export --json
+
+# Include category/tag nodes
+jfp graph export --include-meta --json
+
+# Include collection nodes (requires login)
+jfp graph export --include-collections --json`}</pre>
 
         <h2>Examples</h2>
         <h3>Find prompts for a specific task</h3>

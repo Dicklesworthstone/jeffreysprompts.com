@@ -96,12 +96,19 @@ jfp recommend idea-wizard`}</pre>
         <h2>Impact analysis</h2>
         <p>
           Use <code>impact</code> to see what depends on a prompt, or export the full dependency graph.
+          You can also include category/tag metadata or your collections as graph nodes.
         </p>
         <pre>{`# Show downstream dependencies
 jfp impact idea-wizard
 
 # Export dependency graph as JSON
-jfp graph export --json`}</pre>
+jfp graph export --json
+
+# Include categories and tags
+jfp graph export --include-meta --json
+
+# Include collections (requires login)
+jfp graph export --include-collections --json`}</pre>
 
         <h2>Getting a specific prompt</h2>
         <p>
