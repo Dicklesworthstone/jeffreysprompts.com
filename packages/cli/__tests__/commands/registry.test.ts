@@ -110,6 +110,8 @@ describe("statusCommand", () => {
     expect(payload.settings).toHaveProperty("remoteUrl");
     expect(payload.settings).toHaveProperty("autoRefresh");
     expect(payload.settings).toHaveProperty("cacheTtl");
+    expect(payload).toHaveProperty("budgetAlerts");
+    expect(payload.budgetAlerts.count).toBe(0);
   });
 
   it("outputs JSON with cache info when cache exists", async () => {
@@ -132,6 +134,7 @@ describe("statusCommand", () => {
     expect(payload).toHaveProperty("meta");
     expect(payload).toHaveProperty("settings");
     expect(payload).toHaveProperty("localPrompts");
+    expect(payload).toHaveProperty("budgetAlerts");
   });
 
   it("shows correct cache path", async () => {
@@ -139,6 +142,7 @@ describe("statusCommand", () => {
     const payload = JSON.parse(output.join(""));
     expect(payload.cache.path).toContain(testDir);
     expect(payload.cache.path).toContain(".config/jfp/registry.json");
+    expect(payload).toHaveProperty("budgetAlerts");
   });
 });
 
