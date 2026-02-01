@@ -10,6 +10,7 @@ import {
   Shield,
   LifeBuoy,
   Scale,
+  Tags,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getAdminRoleFromHeaders } from "@/lib/admin/permissions";
@@ -24,6 +25,7 @@ const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/moderation", label: "Moderation", icon: Flag },
+  { href: "/admin/metadata", label: "Metadata", icon: Tags },
   { href: "/admin/dmca", label: "DMCA", icon: Scale },
   { href: "/admin/tickets", label: "Support", icon: LifeBuoy },
   { href: "/admin/settings", label: "Settings", icon: Settings },
