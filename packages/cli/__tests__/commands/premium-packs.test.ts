@@ -24,6 +24,15 @@ function resetCapture() {
   exitCode = undefined;
 }
 
+function parseOutput(): Record<string, unknown> {
+  const raw = output.join("");
+  try {
+    return JSON.parse(raw) as Record<string, unknown>;
+  } catch (err) {
+    throw new Error(`Failed to parse JSON output: ${err instanceof Error ? err.message : String(err)}\n${raw}`);
+  }
+}
+
 async function expectExit(promise: Promise<void>) {
   try {
     await promise;
@@ -57,8 +66,8 @@ function setupTestEnv(options: CredentialSetup = {}) {
   }
 
   process.env.HOME = fakeHome;
-  process.env.XDG_CONFIG_HOME = undefined;
-  process.env.JFP_TOKEN = undefined;
+  delete process.env.XDG_CONFIG_HOME;
+  process.env.JFP_TOKEN = "";
 }
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -113,9 +122,9 @@ describe("premiumPacksCommand", () => {
     });
 
     await premiumPacksCommand(undefined, undefined, { json: true });
-    const payload = JSON.parse(output.join(""));
+    const payload = parseOutput();
     expect(payload.count).toBe(1);
-    expect(payload.packs[0].id).toBe("starter-pack");
+    expect((payload.packs as Array<{ id: string }>)[0].id).toBe("starter-pack");
     expect(payload.installedOnly).toBe(false);
   });
 
@@ -139,9 +148,9 @@ describe("premiumPacksCommand", () => {
     });
 
     await premiumPacksCommand("show", "starter-pack", { json: true });
-    const payload = JSON.parse(output.join(""));
-    expect(payload.pack.id).toBe("starter-pack");
-    expect(payload.pack.isInstalled).toBe(true);
+    const payload = parseOutput();
+    expect((payload.pack as { id: string }).id).toBe("starter-pack");
+    expect((payload.pack as { isInstalled: boolean }).isInstalled).toBe(true);
   });
 
   it("installs a pack with subscribe action in JSON mode", async () => {
@@ -154,7 +163,7 @@ describe("premiumPacksCommand", () => {
     });
 
     await premiumPacksCommand("subscribe", "starter-pack", { json: true });
-    const payload = JSON.parse(output.join(""));
+    const payload = parseOutput();
     expect(payload.packId).toBe("starter-pack");
     expect(payload.action).toBe("subscribe");
   });
@@ -165,7 +174,7 @@ describe("premiumPacksCommand", () => {
     globalThis.fetch = mock(() => Promise.resolve(jsonResponse({})));
 
     await expectExit(premiumPacksCommand(undefined, undefined, { json: true }));
-    const payload = JSON.parse(output.join(""));
+    const payload = parseOutput();
     expect(payload.code).toBe("not_authenticated");
     expect(exitCode).toBe(1);
   });
@@ -176,7 +185,7 @@ describe("premiumPacksCommand", () => {
     globalThis.fetch = mock(() => Promise.resolve(jsonResponse({})));
 
     await expectExit(premiumPacksCommand(undefined, undefined, { json: true }));
-    const payload = JSON.parse(output.join(""));
+    const payload = parseOutput();
     expect(payload.code).toBe("premium_required");
     expect(exitCode).toBe(1);
   });
