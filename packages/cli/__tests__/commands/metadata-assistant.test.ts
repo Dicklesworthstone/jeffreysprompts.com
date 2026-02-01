@@ -3,6 +3,7 @@ import { tagsSuggestCommand, dedupeScanCommand } from "../../src/commands/utilit
 import { saveCredentials } from "../../src/lib/credentials";
 import { tmpdir } from "os";
 import { join } from "path";
+import { randomUUID } from "crypto";
 
 let output: string[] = [];
 let errors: string[] = [];
@@ -148,5 +149,70 @@ describe("metadata assistant commands", () => {
     const payload = parseJson<Record<string, unknown>>(output.join(""));
     expect(payload.code).toBe("prompt_not_found");
     expect(exitCode).toBe(1);
+  });
+
+  it("returns error JSON and exits when not authenticated", () => {
+    const prevHome = process.env.HOME;
+    const prevXdg = process.env.XDG_CONFIG_HOME;
+    const prevToken = process.env.JFP_TOKEN;
+    const tempHome = join(tmpdir(), `jfp-no-creds-${randomUUID()}`);
+
+    try {
+      process.env.HOME = tempHome;
+      process.env.XDG_CONFIG_HOME = join(tempHome, ".config");
+      if (process.env.JFP_TOKEN) {
+        delete process.env.JFP_TOKEN;
+      }
+
+      expect(() => tagsSuggestCommand("idea-wizard", { json: true })).toThrow();
+      const payload = parseJson<Record<string, unknown>>(output.join(""));
+      expect(payload.code).toBe("not_authenticated");
+      expect(exitCode).toBe(1);
+    } finally {
+      process.env.HOME = prevHome;
+      if (prevXdg === undefined) {
+        delete process.env.XDG_CONFIG_HOME;
+      } else {
+        process.env.XDG_CONFIG_HOME = prevXdg;
+      }
+      if (prevToken === undefined) {
+        delete process.env.JFP_TOKEN;
+      } else {
+        process.env.JFP_TOKEN = prevToken;
+      }
+    }
+  });
+
+  it("returns error JSON and exits for free-tier credentials", async () => {
+    await saveCredentials(
+      {
+        access_token: "test-token",
+        refresh_token: "test-refresh",
+        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        email: "free@example.com",
+        tier: "free",
+        user_id: "user-free",
+      },
+      process.env
+    );
+
+    try {
+      expect(() => dedupeScanCommand({ json: true })).toThrow();
+      const payload = parseJson<Record<string, unknown>>(output.join(""));
+      expect(payload.code).toBe("premium_required");
+      expect(exitCode).toBe(1);
+    } finally {
+      await saveCredentials(
+        {
+          access_token: "test-token",
+          refresh_token: "test-refresh",
+          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          email: "test@example.com",
+          tier: "premium",
+          user_id: "user-123",
+        },
+        process.env
+      );
+    }
   });
 });
