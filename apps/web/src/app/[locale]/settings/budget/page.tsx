@@ -205,6 +205,8 @@ export default function BudgetSettingsPage() {
   const [alertLog, setAlertLog] = useState<BudgetAlertEntry[]>([]);
   const [alertImportInput, setAlertImportInput] = useState("");
 
+  // Sync persisted settings after mount to avoid SSR hydration mismatch.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const settings = loadSettings();
     setMonthlyCapInput(formatCurrency(settings.monthlyCapUsd));
@@ -215,6 +217,7 @@ export default function BudgetSettingsPage() {
     setAlertLog(loadAlertLog());
     setLoaded(true);
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const monthlyCapValue = useMemo(
     () => parseCurrency(monthlyCapInput),
