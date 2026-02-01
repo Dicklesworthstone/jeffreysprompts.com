@@ -151,6 +151,30 @@ describe("premiumPacksCommand", () => {
     expect(captured?.searchParams.get("installed")).toBe("true");
   });
 
+  it("prints empty state for installed list (non-JSON)", async () => {
+    const originalIsTTY = process.stdout.isTTY;
+    Object.defineProperty(process.stdout, "isTTY", { value: true, configurable: true });
+    globalThis.fetch = mock((input: RequestInfo | URL) => {
+      const url = new URL(input.toString());
+      if (url.pathname.endsWith("/cli/premium-packs")) {
+        return Promise.resolve(
+          jsonResponse({
+            packs: [],
+            installedOnly: true,
+          })
+        );
+      }
+      return Promise.resolve(jsonResponse({ error: "not found" }, 404));
+    });
+
+    try {
+      await premiumPacksCommand(undefined, undefined, { installed: true });
+      expect(output.join("")).toContain("No installed premium packs yet.");
+    } finally {
+      Object.defineProperty(process.stdout, "isTTY", { value: originalIsTTY, configurable: true });
+    }
+  });
+
   it("shows a premium pack in JSON mode", async () => {
     globalThis.fetch = mock((input: RequestInfo | URL) => {
       const url = new URL(input.toString());
@@ -189,6 +213,21 @@ describe("premiumPacksCommand", () => {
     const payload = parseOutput();
     expect(payload.packId).toBe("starter-pack");
     expect(payload.action).toBe("subscribe");
+  });
+
+  it("installs a pack with update action in JSON mode", async () => {
+    globalThis.fetch = mock((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(input.toString());
+      if (url.pathname.endsWith("/cli/premium-packs/starter-pack/install") && init?.method === "POST") {
+        return Promise.resolve(jsonResponse({ installed: true, packId: "starter-pack" }));
+      }
+      return Promise.resolve(jsonResponse({ error: "not found" }, 404));
+    });
+
+    await premiumPacksCommand("update", "starter-pack", { json: true });
+    const payload = parseOutput();
+    expect(payload.packId).toBe("starter-pack");
+    expect(payload.action).toBe("update");
   });
 
   it("uninstalls a pack in JSON mode", async () => {
@@ -232,6 +271,51 @@ describe("premiumPacksCommand", () => {
     expect(payload.packId).toBe("starter-pack");
     expect(payload.version).toBe("1.2.3");
     expect(payload.hasChangelog).toBe(true);
+  });
+
+  it("returns not_authenticated when API responds 401", async () => {
+    globalThis.fetch = mock((input: RequestInfo | URL) => {
+      const url = new URL(input.toString());
+      if (url.pathname.endsWith("/cli/premium-packs")) {
+        return Promise.resolve(jsonResponse({ error: "Unauthorized" }, 401));
+      }
+      return Promise.resolve(jsonResponse({ error: "not found" }, 404));
+    });
+
+    await expectExit(premiumPacksCommand(undefined, undefined, { json: true }));
+    const payload = parseOutput();
+    expect(payload.code).toBe("not_authenticated");
+    expect(exitCode).toBe(1);
+  });
+
+  it("returns premium_required when API responds 403 premium error", async () => {
+    globalThis.fetch = mock((input: RequestInfo | URL) => {
+      const url = new URL(input.toString());
+      if (url.pathname.endsWith("/cli/premium-packs")) {
+        return Promise.resolve(jsonResponse({ error: "Premium required" }, 403));
+      }
+      return Promise.resolve(jsonResponse({ error: "not found" }, 404));
+    });
+
+    await expectExit(premiumPacksCommand(undefined, undefined, { json: true }));
+    const payload = parseOutput();
+    expect(payload.code).toBe("premium_required");
+    expect(exitCode).toBe(1);
+  });
+
+  it("returns not_found when API responds 404 for a pack", async () => {
+    globalThis.fetch = mock((input: RequestInfo | URL) => {
+      const url = new URL(input.toString());
+      if (url.pathname.endsWith("/cli/premium-packs/missing-pack")) {
+        return Promise.resolve(jsonResponse({ error: "Pack not found" }, 404));
+      }
+      return Promise.resolve(jsonResponse({ error: "not found" }, 404));
+    });
+
+    await expectExit(premiumPacksCommand("show", "missing-pack", { json: true }));
+    const payload = parseOutput();
+    expect(payload.code).toBe("not_found");
+    expect(exitCode).toBe(1);
   });
 
   it("returns not_authenticated when credentials are missing", async () => {
