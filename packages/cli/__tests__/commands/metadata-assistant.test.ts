@@ -94,12 +94,50 @@ describe("metadata assistant commands", () => {
     expect(Array.isArray(suggestions.categories)).toBe(true);
     expect(Array.isArray(suggestions.descriptions)).toBe(true);
     expect(Array.isArray(payload.similar)).toBe(true);
+    if (Array.isArray(suggestions.tags) && suggestions.tags.length > 0) {
+      const tag = suggestions.tags[0] as Record<string, unknown>;
+      expect(typeof tag.tag).toBe("string");
+      expect(typeof tag.score).toBe("number");
+      expect(Array.isArray(tag.reasons)).toBe(true);
+    }
+    if (Array.isArray(suggestions.categories) && suggestions.categories.length > 0) {
+      const category = suggestions.categories[0] as Record<string, unknown>;
+      expect(typeof category.category).toBe("string");
+      expect(typeof category.score).toBe("number");
+      expect(Array.isArray(category.reasons)).toBe(true);
+    }
+    if (Array.isArray(suggestions.descriptions) && suggestions.descriptions.length > 0) {
+      const description = suggestions.descriptions[0] as Record<string, unknown>;
+      expect(typeof description.description).toBe("string");
+      expect(typeof description.reason).toBe("string");
+    }
+    if (Array.isArray(payload.similar) && payload.similar.length > 0) {
+      const similar = payload.similar[0] as Record<string, unknown>;
+      expect(similar.id).toBeDefined();
+      expect(typeof similar.title).toBe("string");
+      expect(typeof similar.score).toBe("number");
+      expect(Array.isArray(similar.sharedTags)).toBe(true);
+      expect(Array.isArray(similar.sharedTokens)).toBe(true);
+    }
   });
 
   it("outputs duplicate scan JSON array", async () => {
     await dedupeScanCommand({ json: true, minScore: "0.95", limit: "5" });
     const payload = parseJson<unknown>(output.join(""));
     expect(Array.isArray(payload)).toBe(true);
+    if (Array.isArray(payload) && payload.length > 0) {
+      const candidate = payload[0] as Record<string, unknown>;
+      const promptA = candidate.promptA as Record<string, unknown>;
+      const promptB = candidate.promptB as Record<string, unknown>;
+      expect(typeof promptA.id).toBe("string");
+      expect(typeof promptA.title).toBe("string");
+      expect(typeof promptB.id).toBe("string");
+      expect(typeof promptB.title).toBe("string");
+      expect(typeof candidate.score).toBe("number");
+      expect(Array.isArray(candidate.reasons)).toBe(true);
+      expect(Array.isArray(candidate.sharedTags)).toBe(true);
+      expect(Array.isArray(candidate.sharedTokens)).toBe(true);
+    }
   });
 
   it("returns error JSON and exits for invalid min score", () => {
