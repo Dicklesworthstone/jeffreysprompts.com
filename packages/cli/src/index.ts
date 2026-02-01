@@ -154,6 +154,10 @@ cli
 cli
   .command("recommend [id]", "Personalized recommendations (Premium)")
   .option("--limit <n>", "Max recommendations (default: 5)")
+  .option("--prefer-tags <tags>", "Boost recommendations for tags (comma-separated)")
+  .option("--prefer-categories <categories>", "Boost recommendations for categories (comma-separated)")
+  .option("--exclude-tags <tags>", "Exclude tags from recommendations (comma-separated)")
+  .option("--exclude-categories <categories>", "Exclude categories from recommendations (comma-separated)")
   .option("--json", "Output JSON")
   .action(recommendCommand);
 

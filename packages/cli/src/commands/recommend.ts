@@ -3,6 +3,7 @@ import type { Prompt } from "@jeffreysprompts/core/prompts";
 import {
   getForYouRecommendations,
   getRelatedRecommendations,
+  type RecommendationPreferences,
   type RecommendationResult,
 } from "@jeffreysprompts/core/search";
 import { shouldOutputJson } from "../lib/utils";
@@ -13,11 +14,16 @@ import { isLoggedIn, loadCredentials } from "../lib/credentials";
 interface RecommendOptions {
   json?: boolean;
   limit?: number | string;
+  preferTags?: string;
+  preferCategories?: string;
+  excludeTags?: string;
+  excludeCategories?: string;
 }
 
 interface RecommendOutput {
   mode: "related" | "for_you" | "featured";
   seedId?: string;
+  preferences?: RecommendationPreferences;
   recommendations: Array<{
     id: string;
     title: string;
@@ -42,6 +48,31 @@ function parseLimit(value: RecommendOptions["limit"]): number {
   if (value === undefined) return 5;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : NaN;
+}
+
+function parseList(value: string | undefined): string[] | undefined {
+  if (!value) return undefined;
+  const items = value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+  return items.length > 0 ? items : undefined;
+}
+
+function buildPreferences(options: RecommendOptions): RecommendationPreferences | undefined {
+  const tags = parseList(options.preferTags);
+  const categories = parseList(options.preferCategories);
+  const excludeTags = parseList(options.excludeTags);
+  const excludeCategories = parseList(options.excludeCategories);
+
+  if (!tags && !categories && !excludeTags && !excludeCategories) return undefined;
+
+  return {
+    tags,
+    categories,
+    excludeTags,
+    excludeCategories,
+  };
 }
 
 function toPromptFromOffline(): Prompt[] {
@@ -130,6 +161,13 @@ export async function recommendCommand(
   let mode: RecommendOutput["mode"] = "featured";
   let results: RecommendationResult[] = [];
   let warning: string | undefined;
+  const preferences = buildPreferences(options);
+  const hasPreferenceInput = Boolean(
+    preferences?.tags?.length ||
+      preferences?.categories?.length ||
+      preferences?.excludeTags?.length ||
+      preferences?.excludeCategories?.length
+  );
 
   if (seedId) {
     const seed = prompts.find((prompt) => prompt.id === seedId);
@@ -143,6 +181,9 @@ export async function recommendCommand(
     }
     mode = "related";
     results = getRelatedRecommendations(seed, prompts, { limit: clampedLimit });
+    if (hasPreferenceInput) {
+      warning = "Preference filters are ignored when a seed prompt is provided.";
+    }
   } else {
     const savedPrompts = toPromptFromOffline();
     const savedSignals = savedPrompts.map((prompt) => ({
@@ -150,9 +191,9 @@ export async function recommendCommand(
       kind: "save" as const,
       occurredAt: prompt.created,
     }));
-    if (savedSignals.length > 0) {
+    if (savedSignals.length > 0 || hasPreferenceInput) {
       mode = "for_you";
-      results = getForYouRecommendations({ saved: savedSignals }, prompts, {
+      results = getForYouRecommendations({ saved: savedSignals, preferences }, prompts, {
         limit: clampedLimit,
       });
     } else {
@@ -168,6 +209,7 @@ export async function recommendCommand(
     writeJson({
       mode,
       seedId,
+      ...(preferences ? { preferences } : {}),
       recommendations: results.map((item) => ({
         id: item.prompt.id,
         title: item.prompt.title,

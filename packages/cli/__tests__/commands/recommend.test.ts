@@ -76,4 +76,23 @@ describe("recommendCommand", () => {
     expect(payload.code).toBe("invalid_limit");
     expect(exitCode).toBe(1);
   });
+
+  it("respects preference filters without saved prompts", async () => {
+    const allCategories = [
+      "ideation",
+      "documentation",
+      "automation",
+      "refactoring",
+      "testing",
+      "debugging",
+      "workflow",
+      "communication",
+    ].join(",");
+
+    await recommendCommand(undefined, { json: true, excludeCategories: allCategories }, mockEnv);
+    const payload = JSON.parse(output.join(""));
+    expect(payload.mode).toBe("for_you");
+    expect(payload.recommendations.length).toBe(0);
+    expect(payload.preferences.excludeCategories).toEqual(allCategories.split(","));
+  });
 });
