@@ -40,6 +40,29 @@ function parseNumber(value: string | undefined, fallback: number): number {
   return Number.isFinite(parsed) ? parsed : NaN;
 }
 
+function parseTagMappings(
+  value: string | undefined
+): Record<string, string> | undefined {
+  if (!value) return undefined;
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return undefined;
+    }
+    const mappings: Record<string, string> = {};
+    for (const [alias, canonical] of Object.entries(parsed as Record<string, unknown>)) {
+      if (typeof alias !== "string" || typeof canonical !== "string") continue;
+      const trimmedAlias = alias.trim();
+      const trimmedCanonical = canonical.trim();
+      if (!trimmedAlias || !trimmedCanonical) continue;
+      mappings[trimmedAlias] = trimmedCanonical;
+    }
+    return Object.keys(mappings).length > 0 ? mappings : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 async function requirePremium(options: { json?: boolean }, action: string): Promise<void> {
   const loggedIn = await isLoggedIn();
   if (!loggedIn) {
@@ -215,10 +238,12 @@ export async function tagsSuggestCommand(
     process.exit(1);
   }
 
+  const tagMappings = parseTagMappings(process.env.JFP_TAG_MAPPINGS);
   const suggestions = suggestPromptMetadata(prompt, registry.prompts, {
     maxTagSuggestions: maxTags,
     maxSimilar,
     similarityThreshold: threshold,
+    tagMappings,
   });
 
   if (shouldOutputJson(options)) {
@@ -311,9 +336,11 @@ export async function dedupeScanCommand(options: DedupeOptions): Promise<void> {
   }
 
   const registry = await loadRegistry();
+  const tagMappings = parseTagMappings(process.env.JFP_TAG_MAPPINGS);
   const duplicates = findDuplicateCandidates(registry.prompts, {
     minScore,
     maxPairs,
+    tagMappings,
   });
 
   if (shouldOutputJson(options)) {

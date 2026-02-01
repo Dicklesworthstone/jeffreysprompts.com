@@ -68,6 +68,20 @@ describe("metadata assistant", () => {
     expect(categories).toContain("ideation");
   });
 
+  it("applies tag mappings to suggested tags", () => {
+    const suggestions = suggestPromptMetadata(promptA, prompts, {
+      similarityThreshold: 0.1,
+      maxTagSuggestions: 4,
+      tagMappings: {
+        evaluation: "analysis",
+      },
+    });
+
+    const suggestedTags = suggestions.tags.map((item) => item.tag);
+    expect(suggestedTags).toContain("analysis");
+    expect(suggestedTags).not.toContain("evaluation");
+  });
+
   it("flags likely duplicates when titles match", () => {
     const duplicates = findDuplicateCandidates(prompts, { minScore: 0.9 });
     const hasIdeaPair = duplicates.some(

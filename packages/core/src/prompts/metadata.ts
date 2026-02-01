@@ -54,11 +54,13 @@ export interface MetadataOptions {
   maxCategorySuggestions?: number;
   maxDescriptionSuggestions?: number;
   similarityThreshold?: number;
+  tagMappings?: Record<string, string>;
 }
 
 export interface DuplicateOptions {
   minScore?: number;
   maxPairs?: number;
+  tagMappings?: Record<string, string>;
 }
 
 const DEFAULTS = {
@@ -73,6 +75,35 @@ const DUPLICATE_DEFAULTS = {
   minScore: 0.85,
   maxPairs: 50,
 } as const;
+
+function normalizeTagMappings(
+  tagMappings?: Record<string, string>
+): Record<string, string> | null {
+  if (!tagMappings) return null;
+  const normalized: Record<string, string> = {};
+  for (const [alias, canonical] of Object.entries(tagMappings)) {
+    if (!alias || !canonical) continue;
+    normalized[alias.toLowerCase()] = canonical.toLowerCase();
+  }
+  return Object.keys(normalized).length > 0 ? normalized : null;
+}
+
+function normalizeTag(
+  tag: string,
+  tagMappings: Record<string, string> | null
+): string {
+  if (!tagMappings) return tag;
+  const mapped = tagMappings[tag.toLowerCase()];
+  return mapped ?? tag;
+}
+
+function normalizeTags(
+  tags: string[],
+  tagMappings: Record<string, string> | null
+): string[] {
+  if (!tagMappings) return tags;
+  return unique(tags.map((tag) => normalizeTag(tag, tagMappings)));
+}
 
 function buildPromptText(prompt: Prompt): string {
   return [prompt.title, prompt.description, prompt.content, prompt.tags.join(" ")]
@@ -140,7 +171,8 @@ function deriveDescription(prompt: Prompt, topTags: string[]): string | null {
 function analyzeSimilarity(
   base: Prompt,
   candidate: Prompt,
-  cache: Map<string, number[]>
+  cache: Map<string, number[]>,
+  tagMappings: Record<string, string> | null
 ): SimilarPrompt {
   const embeddingA = getEmbedding(base, cache);
   const embeddingB = getEmbedding(candidate, cache);
@@ -150,8 +182,10 @@ function analyzeSimilarity(
   const titleTokensB = tokenize(candidate.title);
   const titleOverlap = jaccard(titleTokensA, titleTokensB);
 
-  const sharedTags = intersection(base.tags, candidate.tags);
-  const tagOverlap = jaccard(base.tags, candidate.tags);
+  const baseTags = normalizeTags(base.tags, tagMappings);
+  const candidateTags = normalizeTags(candidate.tags, tagMappings);
+  const sharedTags = intersection(baseTags, candidateTags);
+  const tagOverlap = jaccard(baseTags, candidateTags);
 
   const sharedTokens = intersection(
     tokenize(buildPromptText(base)),
@@ -183,11 +217,12 @@ export function findSimilarPrompts(
   options: MetadataOptions = {}
 ): SimilarPrompt[] {
   const settings = { ...DEFAULTS, ...options };
+  const tagMappings = normalizeTagMappings(settings.tagMappings);
   const cache = new Map<string, number[]>();
 
   const results = prompts
     .filter((candidate) => candidate.id !== prompt.id)
-    .map((candidate) => analyzeSimilarity(prompt, candidate, cache))
+    .map((candidate) => analyzeSimilarity(prompt, candidate, cache, tagMappings))
     .filter((result) => result.score >= settings.similarityThreshold)
     .sort((a, b) => b.score - a.score)
     .slice(0, settings.maxSimilar);
@@ -201,12 +236,14 @@ export function suggestPromptMetadata(
   options: MetadataOptions = {}
 ): MetadataSuggestions {
   const settings = { ...DEFAULTS, ...options };
+  const tagMappings = normalizeTagMappings(settings.tagMappings);
   const similar = findSimilarPrompts(prompt, prompts, settings);
 
   const tagScores = new Map<string, number>();
+  const baseTags = new Set(normalizeTags(prompt.tags, tagMappings));
   for (const item of similar) {
-    for (const tag of item.prompt.tags) {
-      if (prompt.tags.includes(tag)) continue;
+    for (const tag of normalizeTags(item.prompt.tags, tagMappings)) {
+      if (baseTags.has(tag)) continue;
       tagScores.set(tag, (tagScores.get(tag) ?? 0) + item.score);
     }
   }
@@ -275,6 +312,7 @@ export function findDuplicateCandidates(
   options: DuplicateOptions = {}
 ): DuplicateCandidate[] {
   const settings = { ...DUPLICATE_DEFAULTS, ...options };
+  const tagMappings = normalizeTagMappings(settings.tagMappings);
   const cache = new Map<string, number[]>();
   const results: DuplicateCandidate[] = [];
 
@@ -282,7 +320,7 @@ export function findDuplicateCandidates(
     for (let j = i + 1; j < prompts.length; j += 1) {
       const a = prompts[i];
       const b = prompts[j];
-      const similarity = analyzeSimilarity(a, b, cache);
+      const similarity = analyzeSimilarity(a, b, cache, tagMappings);
 
       if (similarity.score < settings.minScore && !similarity.titleMatch) {
         continue;
