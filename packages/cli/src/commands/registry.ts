@@ -3,7 +3,8 @@
 import { existsSync, statSync, readFileSync } from "fs";
 import chalk from "chalk";
 import boxen from "boxen";
-import { loadConfig } from "../lib/config";
+import { join } from "path";
+import { loadConfig, getConfigDir } from "../lib/config";
 import { getAccessToken, isExpired, loadCredentials } from "../lib/credentials";
 import { refreshRegistry, type RegistryMeta } from "../lib/registry-loader";
 import { shouldOutputJson } from "../lib/utils";
@@ -14,6 +15,20 @@ interface StatusOptions {
 
 interface RefreshOptions {
   json?: boolean;
+}
+
+interface BudgetAlertSummary {
+  count: number;
+  last?: {
+    type?: string;
+    capUsd?: number;
+    totalCostUsd?: number;
+    currency?: string;
+    promptId?: string;
+    promptTitle?: string;
+    model?: string;
+    createdAt?: string;
+  } | null;
 }
 
 function readMetaFile(metaPath: string): RegistryMeta | null {
@@ -29,7 +44,7 @@ function readMetaFile(metaPath: string): RegistryMeta | null {
 function formatAge(isoDate: string | undefined | null): string {
   if (!isoDate) return "unknown";
   const date = new Date(isoDate);
-  if (isNaN(date.getTime())) return "unknown";
+  if (Number.isNaN(date.getTime())) return "unknown";
   const ms = Date.now() - date.getTime();
   if (ms < 60000) return "just now";
   if (ms < 3600000) return `${Math.floor(ms / 60000)} min ago`;
@@ -41,6 +56,24 @@ function formatTtl(seconds: number): string {
   if (seconds < 60) return `${seconds}s`;
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
   return `${Math.floor(seconds / 3600)}h`;
+}
+
+function readBudgetAlertSummary(): BudgetAlertSummary {
+  const alertPath = join(getConfigDir(), "budget-alerts.jsonl");
+  if (!existsSync(alertPath)) {
+    return { count: 0, last: null };
+  }
+
+  try {
+    const raw = readFileSync(alertPath, "utf-8").trim();
+    if (!raw) return { count: 0, last: null };
+    const lines = raw.split("\n").filter(Boolean);
+    const lastLine = lines[lines.length - 1];
+    const last = lastLine ? (JSON.parse(lastLine) as BudgetAlertSummary["last"]) : null;
+    return { count: lines.length, last };
+  } catch {
+    return { count: 0, last: null };
+  }
 }
 
 interface AuthStatus {
@@ -56,7 +89,7 @@ interface AuthStatus {
 function formatExpiresIn(expiresAt?: string): string {
   if (!expiresAt) return "unknown";
   const date = new Date(expiresAt);
-  if (isNaN(date.getTime())) return "unknown";
+  if (Number.isNaN(date.getTime())) return "unknown";
   const diffMs = date.getTime() - Date.now();
   if (diffMs <= 0) return "expired";
   const totalMinutes = Math.round(diffMs / 60000);
@@ -110,6 +143,7 @@ export async function statusCommand(options: StatusOptions) {
   const config = loadConfig();
   const meta = readMetaFile(config.registry.metaPath);
   const authStatus = await getAuthStatus();
+  const budgetAlerts = readBudgetAlertSummary();
 
   // Check cache file existence and size
   let cacheSize = 0;
@@ -158,6 +192,7 @@ export async function statusCommand(options: StatusOptions) {
         perRunCapUsd: config.budgets.perRunCapUsd,
         alertsEnabled: config.budgets.alertsEnabled,
       },
+      budgetAlerts,
     }, null, 2));
     return;
   }
@@ -198,6 +233,10 @@ export async function statusCommand(options: StatusOptions) {
   content += `  Monthly cap: ${config.budgets.monthlyCapUsd ? `$${config.budgets.monthlyCapUsd}` : chalk.dim("not set")}\n`;
   content += `  Per-run cap: ${config.budgets.perRunCapUsd ? `$${config.budgets.perRunCapUsd}` : chalk.dim("not set")}\n`;
   content += `  Alerts: ${config.budgets.alertsEnabled ? chalk.green("enabled") : chalk.dim("disabled")}\n`;
+  content += `  Alert log: ${budgetAlerts.count} ${budgetAlerts.count === 1 ? "entry" : "entries"}\n`;
+  if (budgetAlerts.last?.createdAt) {
+    content += `  Last alert: ${formatAge(budgetAlerts.last.createdAt)} (${budgetAlerts.last.createdAt})\n`;
+  }
 
   content += "\n" + chalk.green("Auth:") + "\n";
   if (!authStatus.authenticated) {
