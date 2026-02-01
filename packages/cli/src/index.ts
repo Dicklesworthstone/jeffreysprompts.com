@@ -174,7 +174,7 @@ cli
 
 cli
   .command("graph [action]", "Dependency graph utilities")
-  .option("--format <format>", "Format: json (default)")
+  .option("--format <format>", "Format: json|dot|mermaid (default: json)")
   .option("--json", "Output JSON")
   .action((action: string | undefined, options: { format?: string; json?: boolean }) => {
     const outputError = (code: string, message: string) => {

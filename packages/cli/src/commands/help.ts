@@ -48,7 +48,11 @@ function getHelpData() {
       ],
       analysis: [
         { name: "impact <prompt-id>", description: "Show downstream dependencies for a prompt", options: ["--json"] },
-        { name: "graph export", description: "Export prompt dependency graph", options: ["--format", "--json"] },
+        {
+          name: "graph export",
+          description: "Export prompt dependency graph (json/dot/mermaid)",
+          options: ["--format <json|dot|mermaid>", "--json"],
+        },
       ],
       viewing: [
         { name: "show <id>", description: "Show prompt details", options: ["--json", "--raw"] },
@@ -104,6 +108,7 @@ function getHelpData() {
       { command: "jfp cost idea-wizard --model gpt-4o-mini --json", description: "Estimate cost for a prompt (Pro)" },
       { command: "jfp impact idea-wizard --json", description: "Show dependencies for a prompt" },
       { command: "jfp graph export --json", description: "Export dependency graph as JSON" },
+      { command: "jfp graph export --format dot > graph.dot", description: "Export dependency graph as DOT" },
       { command: "jfp tags suggest idea-wizard --limit 6 --json", description: "Suggest tags/categories (Pro)" },
       { command: "jfp dedupe scan --min-score 0.9 --json", description: "Scan for duplicates (Pro)" },
     ],
@@ -139,7 +144,7 @@ JeffreysPrompts CLI v${version}
   // Analysis
   sections.push(chalk.yellow("  Analysis"));
   sections.push(formatCommand("impact <prompt-id>", "Show downstream dependencies"));
-  sections.push(formatCommand("graph export", "Export dependency graph"));
+  sections.push(formatCommand("graph export", "Export dependency graph (json/dot/mermaid)"));
   sections.push("");
 
   // Viewing
@@ -215,6 +220,7 @@ JeffreysPrompts CLI v${version}
   sections.push(formatExample("jfp cost idea-wizard --model gpt-4o-mini --json", "Estimate cost for a prompt (Pro)"));
   sections.push(formatExample("jfp impact idea-wizard --json", "Inspect downstream dependencies"));
   sections.push(formatExample("jfp graph export --json", "Export dependency graph"));
+  sections.push(formatExample("jfp graph export --format dot > graph.dot", "Export dependency graph as DOT"));
   sections.push(formatExample("jfp packs --installed", "List installed premium packs"));
   sections.push(formatExample("jfp packs update starter-kit", "Update a premium pack"));
   sections.push(formatExample("jfp packs changelog starter-kit", "View a pack changelog"));
