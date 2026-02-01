@@ -60,7 +60,7 @@ FLAGS:
             <strong>Pro:</strong> personal prompts (<code>list --mine</code>, <code>list --saved</code>,
             <code>search --mine</code>, <code>search --saved</code>, <code>search --all</code>),
             plus <code>save</code>, <code>sync</code>, <code>notes</code>, <code>collections</code>,
-            and <code>packs</code> (premium pack installs)
+            <code>packs</code> (premium pack installs), and <code>cost</code> (token/cost estimates)
           </li>
         </ul>
         <p>
@@ -92,6 +92,19 @@ jfp recommend
 
 # Related recommendations for a specific prompt
 jfp recommend idea-wizard`}</pre>
+
+        <h2>Cost estimates (Pro)</h2>
+        <p>
+          Estimate token usage and USD cost per prompt. Cost estimates require a Pro subscription.
+        </p>
+        <pre>{`# Estimate cost for a prompt
+jfp cost idea-wizard
+
+# Override model and output tokens
+jfp cost idea-wizard --model gpt-4o-mini --output-tokens 500
+
+# List supported pricing models
+jfp cost --list-models`}</pre>
 
         <h2>Impact analysis</h2>
         <p>
