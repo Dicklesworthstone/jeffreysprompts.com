@@ -82,7 +82,7 @@ function getHelpData() {
         { name: "collections", description: "Manage prompt collections", options: ["--add", "--export", "--format", "--stdout", "--json"] },
         { name: "packs", description: "Manage premium packs (list/install/update/changelog)", options: ["--installed", "--tool", "--json"] },
         { name: "recommend [id]", description: "Personalized recommendations (Premium)", options: ["--limit", "--prefer-tags", "--prefer-categories", "--exclude-tags", "--exclude-categories", "--json"] },
-        { name: "cost [prompt-id]", description: "Estimate tokens and cost (Premium)", options: ["--model", "--input-tokens", "--output-tokens", "--price-in", "--price-out", "--list-models", "--json"] },
+        { name: "cost [prompt-id]", description: "Estimate tokens and cost (Premium)", options: ["--model", "--input-tokens", "--output-tokens", "--price-in", "--price-out", "--list-models", "--alerts", "--alerts-limit", "--json"] },
         { name: "tags suggest <prompt-id>", description: "Suggest tags/categories (Pro)", options: ["--limit", "--similar", "--threshold", "--json"] },
         { name: "dedupe scan", description: "Scan for duplicate prompts (Pro)", options: ["--min-score", "--limit", "--json"] },
       ],
@@ -108,6 +108,7 @@ function getHelpData() {
       { command: "jfp recommend --prefer-tags automation,workflow --json", description: "Prefer specific tags" },
       { command: "jfp cost idea-wizard --model gpt-4o-mini --json", description: "Estimate cost for a prompt (Pro)" },
       { command: "jfp cost --list-models", description: "List supported pricing models" },
+      { command: "jfp cost --alerts --alerts-limit 10", description: "Show recent budget alerts (local)" },
       { command: "jfp impact idea-wizard --json", description: "Show dependencies for a prompt" },
       { command: "jfp graph export --json", description: "Export dependency graph as JSON" },
       { command: "jfp graph export --format dot > graph.dot", description: "Export dependency graph as DOT" },
@@ -224,6 +225,7 @@ JeffreysPrompts CLI v${version}
   sections.push(formatExample("jfp recommend --prefer-tags automation,workflow --json", "Prefer specific tags"));
   sections.push(formatExample("jfp cost idea-wizard --model gpt-4o-mini --json", "Estimate cost for a prompt (Pro)"));
   sections.push(formatExample("jfp cost --list-models", "List supported pricing models"));
+  sections.push(formatExample("jfp cost --alerts --alerts-limit 10", "Show recent budget alerts (local)"));
   sections.push(formatExample("jfp impact idea-wizard --json", "Inspect downstream dependencies"));
   sections.push(formatExample("jfp graph export --json", "Export dependency graph"));
   sections.push(formatExample("jfp graph export --format dot > graph.dot", "Export dependency graph as DOT"));

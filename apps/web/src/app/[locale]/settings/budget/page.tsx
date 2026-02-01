@@ -7,10 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/toast";
 
 const STORAGE_KEY = "jfp_budget_settings_v1";
+const ALERTS_STORAGE_KEY = "jfp_budget_alerts_log_v1";
+const ALERT_PREVIEW_LIMIT = 10;
+const ALERT_LOG_MAX = 200;
+const CLI_ALERT_LOG_PATH = "~/.config/jfp/budget-alerts.jsonl";
 
 type BudgetSettings = {
   monthlyCapUsd: number | null;
@@ -18,6 +23,19 @@ type BudgetSettings = {
   alertsEnabled: boolean;
   hardStopEnabled: boolean;
   updatedAt: string | null;
+};
+
+type BudgetAlertEntry = {
+  type: "per_run" | "monthly";
+  capUsd: number;
+  totalCostUsd: number;
+  currency: string;
+  promptId: string;
+  promptTitle: string;
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  createdAt: string;
 };
 
 const DEFAULT_SETTINGS: BudgetSettings = {
@@ -63,6 +81,119 @@ function clearSettings(): void {
   window.localStorage.removeItem(STORAGE_KEY);
 }
 
+function isBudgetAlertEntry(value: unknown): value is BudgetAlertEntry {
+  if (!value || typeof value !== "object") return false;
+  const record = value as BudgetAlertEntry;
+  if (record.type !== "per_run" && record.type !== "monthly") return false;
+  if (typeof record.capUsd !== "number") return false;
+  if (typeof record.totalCostUsd !== "number") return false;
+  if (typeof record.currency !== "string") return false;
+  if (typeof record.promptId !== "string") return false;
+  if (typeof record.promptTitle !== "string") return false;
+  if (typeof record.model !== "string") return false;
+  if (typeof record.inputTokens !== "number") return false;
+  if (typeof record.outputTokens !== "number") return false;
+  if (typeof record.createdAt !== "string") return false;
+  return true;
+}
+
+function normalizeAlertLog(entries: BudgetAlertEntry[]): BudgetAlertEntry[] {
+  const normalized = entries.filter(isBudgetAlertEntry);
+  normalized.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  return normalized.slice(0, ALERT_LOG_MAX);
+}
+
+function loadAlertLog(): BudgetAlertEntry[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(ALERTS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return normalizeAlertLog(parsed);
+  } catch {
+    return [];
+  }
+}
+
+function saveAlertLog(alerts: BudgetAlertEntry[]): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(ALERTS_STORAGE_KEY, JSON.stringify(alerts));
+}
+
+function clearAlertLog(): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(ALERTS_STORAGE_KEY);
+}
+
+function parseAlertImport(raw: string): { alerts: BudgetAlertEntry[]; invalidCount: number } {
+  const trimmed = raw.trim();
+  if (!trimmed) return { alerts: [], invalidCount: 0 };
+
+  try {
+    if (trimmed.startsWith("[")) {
+      const parsed = JSON.parse(trimmed);
+      if (!Array.isArray(parsed)) {
+        return { alerts: [], invalidCount: 1 };
+      }
+      const alerts = normalizeAlertLog(parsed as BudgetAlertEntry[]);
+      const invalidCount = parsed.length - alerts.length;
+      return { alerts, invalidCount };
+    }
+  } catch {
+    return { alerts: [], invalidCount: 1 };
+  }
+
+  const lines = trimmed.split("\n").map((line) => line.trim()).filter(Boolean);
+  const alerts: BudgetAlertEntry[] = [];
+  let invalidCount = 0;
+  for (const line of lines) {
+    try {
+      const parsed = JSON.parse(line);
+      if (isBudgetAlertEntry(parsed)) {
+        alerts.push(parsed);
+      } else {
+        invalidCount += 1;
+      }
+    } catch {
+      invalidCount += 1;
+    }
+  }
+  return { alerts: normalizeAlertLog(alerts), invalidCount };
+}
+
+function mergeAlertLogs(
+  existing: BudgetAlertEntry[],
+  incoming: BudgetAlertEntry[]
+): BudgetAlertEntry[] {
+  const map = new Map<string, BudgetAlertEntry>();
+  const add = (entry: BudgetAlertEntry) => {
+    const key = [
+      entry.type,
+      entry.promptId,
+      entry.model,
+      entry.createdAt,
+      entry.totalCostUsd,
+      entry.capUsd,
+    ].join("|");
+    map.set(key, entry);
+  };
+  existing.forEach(add);
+  incoming.forEach(add);
+  return normalizeAlertLog(Array.from(map.values()));
+}
+
+function formatAlertCurrency(value: number, currency: string): string {
+  if (currency !== "USD") return `${value.toFixed(4)} ${currency}`;
+  return `$${value.toFixed(4)}`;
+}
+
+function formatAlertTimestamp(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString();
+}
+
 export default function BudgetSettingsPage() {
   const { success, error } = useToast();
   const [monthlyCapInput, setMonthlyCapInput] = useState("");
@@ -71,6 +202,8 @@ export default function BudgetSettingsPage() {
   const [hardStopEnabled, setHardStopEnabled] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [alertLog, setAlertLog] = useState<BudgetAlertEntry[]>([]);
+  const [alertImportInput, setAlertImportInput] = useState("");
 
   useEffect(() => {
     const settings = loadSettings();
@@ -79,6 +212,7 @@ export default function BudgetSettingsPage() {
     setAlertsEnabled(settings.alertsEnabled);
     setHardStopEnabled(settings.hardStopEnabled);
     setLastUpdated(settings.updatedAt);
+    setAlertLog(loadAlertLog());
     setLoaded(true);
   }, []);
 
@@ -109,6 +243,32 @@ export default function BudgetSettingsPage() {
 
   const canSave = loaded && !monthlyCapError && !perRunCapError;
 
+  const alertLogSorted = useMemo(
+    () => normalizeAlertLog(alertLog),
+    [alertLog]
+  );
+  const alertPreview = useMemo(
+    () => alertLogSorted.slice(0, ALERT_PREVIEW_LIMIT),
+    [alertLogSorted]
+  );
+
+  const cliCommands = useMemo(() => {
+    const monthlyValue =
+      typeof monthlyCapValue === "number" && Number.isFinite(monthlyCapValue)
+        ? monthlyCapValue
+        : null;
+    const perRunValue =
+      typeof perRunCapValue === "number" && Number.isFinite(perRunCapValue)
+        ? perRunCapValue
+        : null;
+
+    return [
+      `jfp config set budgets.monthlyCapUsd ${monthlyValue ?? "null"}`,
+      `jfp config set budgets.perRunCapUsd ${perRunValue ?? "null"}`,
+      `jfp config set budgets.alertsEnabled ${alertsEnabled}`,
+    ];
+  }, [monthlyCapValue, perRunCapValue, alertsEnabled]);
+
   const handleSave = () => {
     if (!canSave) {
       error("Fix the highlighted fields before saving.");
@@ -136,6 +296,28 @@ export default function BudgetSettingsPage() {
     setHardStopEnabled(DEFAULT_SETTINGS.hardStopEnabled);
     setLastUpdated(null);
     success("Budget settings cleared", "Local overrides removed.");
+  };
+
+  const handleImportAlerts = () => {
+    const { alerts, invalidCount } = parseAlertImport(alertImportInput);
+    if (alerts.length === 0) {
+      const detail = invalidCount > 0 ? `Skipped ${invalidCount} invalid entries.` : undefined;
+      error("No valid alerts found.", detail);
+      return;
+    }
+
+    const merged = mergeAlertLogs(alertLogSorted, alerts);
+    saveAlertLog(merged);
+    setAlertLog(merged);
+    setAlertImportInput("");
+    const detail = invalidCount > 0 ? `Skipped ${invalidCount} invalid entries.` : "Stored locally.";
+    success("Budget alerts imported", detail);
+  };
+
+  const handleClearAlerts = () => {
+    clearAlertLog();
+    setAlertLog([]);
+    success("Alert history cleared", "Local log removed.");
   };
 
   return (
@@ -238,6 +420,110 @@ export default function BudgetSettingsPage() {
               </div>
               <Switch checked={hardStopEnabled} onCheckedChange={setHardStopEnabled} />
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Info className="h-4 w-4 text-sky-500" />
+              Sync to CLI
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm text-muted-foreground">
+            <p>
+              Apply these settings to your local CLI configuration so budget alerts match this
+              page.
+            </p>
+            <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
+              <pre className="whitespace-pre-wrap text-xs text-foreground">
+                {cliCommands.join("\n")}
+              </pre>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Run the commands in a terminal where <span className="font-mono">jfp</span> is
+              installed.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
+              Alert history (local)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Paste the JSONL log from <span className="font-mono">{CLI_ALERT_LOG_PATH}</span> to
+              review your CLI budget alerts in the browser.
+            </p>
+            <Textarea
+              label="Import budget alert log (JSONL)"
+              rows={6}
+              value={alertImportInput}
+              onChange={(event) => setAlertImportInput(event.target.value)}
+              placeholder="Paste lines from budget-alerts.jsonl here"
+            />
+            <div className="flex flex-wrap items-center gap-3">
+              <Button onClick={handleImportAlerts} disabled={!alertImportInput.trim()}>
+                Import log
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleClearAlerts}
+                disabled={alertLogSorted.length === 0}
+              >
+                Clear history
+              </Button>
+            </div>
+
+            {alertLogSorted.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No alerts stored on this device yet.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {alertPreview.map((alert, index) => {
+                  const label = alert.type === "per_run" ? "Per-run cap" : "Monthly cap";
+                  return (
+                    <div
+                      key={`${alert.promptId}-${alert.createdAt}-${index}`}
+                      className="flex flex-wrap items-start justify-between gap-3 rounded-lg border border-border/60 bg-white/60 px-3 py-2 text-sm dark:bg-neutral-900/40"
+                    >
+                      <div className="space-y-1">
+                        <p className="font-medium text-foreground">
+                          {alert.promptTitle}{" "}
+                          <span className="text-xs text-muted-foreground">
+                            ({alert.promptId})
+                          </span>
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {label} · {alert.model} · {formatAlertTimestamp(alert.createdAt)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Tokens: {alert.inputTokens} in / {alert.outputTokens} out
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-foreground">
+                          {formatAlertCurrency(alert.totalCostUsd, alert.currency)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Cap {formatAlertCurrency(alert.capUsd, alert.currency)}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+                {alertLogSorted.length > alertPreview.length && (
+                  <p className="text-xs text-muted-foreground">
+                    Showing latest {alertPreview.length} of {alertLogSorted.length} alerts.
+                  </p>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 

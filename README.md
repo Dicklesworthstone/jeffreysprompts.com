@@ -252,6 +252,7 @@ jfp show idea-wizard --raw    # Just the prompt text
 jfp recommend                 # Personalized recommendations (Pro)
 jfp recommend idea-wizard     # Related prompts (Pro)
 jfp cost idea-wizard          # Estimate tokens + cost (Pro)
+jfp cost --alerts             # Show recent budget alerts (Pro)
 
 jfp impact <id>               # Show downstream dependencies
 jfp graph export              # Export prompt dependency graph

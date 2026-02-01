@@ -105,7 +105,10 @@ jfp cost idea-wizard
 jfp cost idea-wizard --model gpt-4o-mini --output-tokens 500
 
 # List supported pricing models
-jfp cost --list-models`}</pre>
+jfp cost --list-models
+
+# View recent budget alerts
+jfp cost --alerts --alerts-limit 10`}</pre>
 
         <h2>Metadata tools (Pro)</h2>
         <p>

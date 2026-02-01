@@ -169,6 +169,8 @@ cli
   .option("--price-in <usd>", "Override input price per 1k tokens")
   .option("--price-out <usd>", "Override output price per 1k tokens")
   .option("--list-models", "List supported models")
+  .option("--alerts", "Show budget alert log")
+  .option("--alerts-limit <n>", "Limit alert log entries (default: 20)")
   .option("--json", "Output JSON")
   .action(costCommand);
 

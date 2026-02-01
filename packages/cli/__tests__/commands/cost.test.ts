@@ -205,4 +205,47 @@ describe("costCommand", () => {
     expect(types).toContain("per_run");
     expect(types).toContain("monthly");
   });
+
+  it("outputs budget alert log when --alerts is set", async () => {
+    const configDir = join(process.env.JFP_HOME ?? "", ".config", "jfp");
+    mkdirSync(configDir, { recursive: true });
+
+    const alerts = [
+      {
+        type: "per_run",
+        capUsd: 0.5,
+        totalCostUsd: 0.75,
+        currency: "USD",
+        promptId: "idea-wizard",
+        promptTitle: "The Idea Wizard",
+        model: "gpt-4o-mini",
+        inputTokens: 500,
+        outputTokens: 0,
+        createdAt: new Date().toISOString(),
+      },
+      {
+        type: "monthly",
+        capUsd: 5,
+        totalCostUsd: 6,
+        currency: "USD",
+        promptId: "readme-reviser",
+        promptTitle: "The README Reviser",
+        model: "gpt-4o-mini",
+        inputTokens: 300,
+        outputTokens: 0,
+        createdAt: new Date().toISOString(),
+      },
+    ];
+
+    writeFileSync(
+      join(configDir, "budget-alerts.jsonl"),
+      alerts.map((alert) => JSON.stringify(alert)).join("\n")
+    );
+
+    await costCommand(undefined, { json: true, alerts: true, alertsLimit: "1" }, mockEnv);
+    const payload = JSON.parse(output.join(""));
+    expect(payload.alerts.length).toBe(1);
+    expect(payload.totalCount).toBe(2);
+    expect(payload.truncated).toBe(true);
+  });
 });

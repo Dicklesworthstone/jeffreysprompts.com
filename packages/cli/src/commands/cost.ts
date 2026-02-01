@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import { appendFileSync, mkdirSync } from "fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync } from "fs";
 import { join } from "path";
 import {
   DEFAULT_MODEL,
@@ -23,6 +23,8 @@ interface CostOptions {
   priceIn?: string;
   priceOut?: string;
   listModels?: boolean;
+  alerts?: boolean;
+  alertsLimit?: string;
 }
 
 type BudgetAlertType = "per_run" | "monthly";
@@ -38,6 +40,14 @@ interface BudgetAlert {
   inputTokens: number;
   outputTokens: number;
   createdAt: string;
+}
+
+interface BudgetAlertLogResult {
+  alerts: BudgetAlert[];
+  totalCount: number;
+  invalidCount: number;
+  truncated: boolean;
+  path: string;
 }
 
 function writeJson(payload: Record<string, unknown>): void {
@@ -121,6 +131,118 @@ function normalizeCap(value: number | null | undefined): number | null {
   if (typeof value !== "number" || !Number.isFinite(value)) return null;
   if (value <= 0) return null;
   return value;
+}
+
+function parseAlertLimit(value: string | undefined): number | null {
+  if (value === undefined) return null;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return NaN;
+  }
+  return Math.floor(parsed);
+}
+
+function isBudgetAlert(value: unknown): value is BudgetAlert {
+  if (!value || typeof value !== "object") return false;
+  const record = value as BudgetAlert;
+  if (record.type !== "per_run" && record.type !== "monthly") return false;
+  if (typeof record.capUsd !== "number") return false;
+  if (typeof record.totalCostUsd !== "number") return false;
+  if (typeof record.currency !== "string") return false;
+  if (typeof record.promptId !== "string") return false;
+  if (typeof record.promptTitle !== "string") return false;
+  if (typeof record.model !== "string") return false;
+  if (typeof record.inputTokens !== "number") return false;
+  if (typeof record.outputTokens !== "number") return false;
+  if (typeof record.createdAt !== "string") return false;
+  return true;
+}
+
+function readBudgetAlerts(limit: number | null): BudgetAlertLogResult {
+  const alertPath = join(getConfigDir(), "budget-alerts.jsonl");
+  if (!existsSync(alertPath)) {
+    return { alerts: [], totalCount: 0, invalidCount: 0, truncated: false, path: alertPath };
+  }
+
+  try {
+    const raw = readFileSync(alertPath, "utf-8").trim();
+    if (!raw) {
+      return { alerts: [], totalCount: 0, invalidCount: 0, truncated: false, path: alertPath };
+    }
+    const lines = raw.split("\n").filter(Boolean);
+    const totalCount = lines.length;
+    const normalizedLimit = limit && limit > 0 && totalCount > limit ? limit : null;
+    const startIndex = normalizedLimit ? Math.max(0, totalCount - normalizedLimit) : 0;
+    const slice = lines.slice(startIndex);
+    const alerts: BudgetAlert[] = [];
+    let invalidCount = 0;
+    for (const line of slice) {
+      try {
+        const parsed = JSON.parse(line) as unknown;
+        if (isBudgetAlert(parsed)) {
+          alerts.push(parsed);
+        } else {
+          invalidCount += 1;
+        }
+      } catch {
+        invalidCount += 1;
+      }
+    }
+    return {
+      alerts,
+      totalCount,
+      invalidCount,
+      truncated: normalizedLimit !== null,
+      path: alertPath,
+    };
+  } catch {
+    return { alerts: [], totalCount: 0, invalidCount: 0, truncated: false, path: alertPath };
+  }
+}
+
+function outputBudgetAlerts(result: BudgetAlertLogResult, options: CostOptions): void {
+  if (shouldOutputJson(options)) {
+    writeJson({
+      alerts: result.alerts,
+      count: result.alerts.length,
+      totalCount: result.totalCount,
+      truncated: result.truncated,
+      invalidCount: result.invalidCount,
+      path: result.path,
+    });
+    return;
+  }
+
+  console.log(chalk.bold.cyan("\nBudget alert log"));
+  console.log(chalk.dim(`Source: ${result.path}`));
+
+  if (result.totalCount === 0 || result.alerts.length === 0) {
+    console.log(chalk.dim("No budget alerts logged yet."));
+    console.log();
+    return;
+  }
+
+  if (result.truncated) {
+    console.log(chalk.dim(`Showing ${result.alerts.length} of ${result.totalCount} alerts`));
+  } else {
+    console.log(chalk.dim(`Total alerts: ${result.totalCount}`));
+  }
+
+  for (const alert of result.alerts) {
+    const label = alert.type === "per_run" ? "Per-run cap" : "Monthly cap";
+    const totalCost = formatCurrency(alert.totalCostUsd, alert.currency);
+    const capCost = formatCurrency(alert.capUsd, alert.currency);
+    const tokens = `tokens ${alert.inputTokens} in / ${alert.outputTokens} out`;
+    console.log(
+      `  ${chalk.dim(alert.createdAt)}  ${chalk.yellow(label)}  ${chalk.white(alert.promptTitle)} ` +
+        `(${chalk.dim(alert.promptId)})  ${chalk.green(totalCost)} > ${chalk.yellow(capCost)}  ` +
+        `${chalk.dim(alert.model)} · ${chalk.dim(tokens)}`
+    );
+  }
+  if (result.invalidCount > 0) {
+    console.log(chalk.dim(`Skipped ${result.invalidCount} invalid alert entries.`));
+  }
+  console.log();
 }
 
 function recordBudgetAlert(alert: BudgetAlert): void {
@@ -268,6 +390,32 @@ export async function costCommand(
 ): Promise<void> {
   if (options.listModels) {
     outputModelList(options);
+    return;
+  }
+
+  if (options.alertsLimit && !options.alerts) {
+    if (shouldOutputJson(options)) {
+      writeJsonError("alerts_limit_requires_alerts", "Use --alerts with --alerts-limit.");
+    } else {
+      console.error(chalk.red("Use --alerts with --alerts-limit."));
+    }
+    process.exit(1);
+  }
+
+  if (options.alerts) {
+    const limit = parseAlertLimit(options.alertsLimit);
+    if (limit !== null && !Number.isFinite(limit)) {
+      if (shouldOutputJson(options)) {
+        writeJsonError("invalid_alerts_limit", "Invalid --alerts-limit value. Provide a positive number.");
+      } else {
+        console.error(chalk.red("Invalid --alerts-limit value. Provide a positive number."));
+      }
+      process.exit(1);
+    }
+
+    const resolvedLimit = limit ?? 20;
+    const result = readBudgetAlerts(resolvedLimit);
+    outputBudgetAlerts(result, options);
     return;
   }
 
