@@ -152,9 +152,22 @@ function buildDotGraph(nodes: GraphNode[], edges: GraphEdge[]): string {
 function buildMermaidGraph(nodes: GraphNode[], edges: GraphEdge[]): string {
   const lines: string[] = [];
   const nodeMap = new Map<string, string>();
+  const usedIds = new Set<string>();
+
+  const makeUniqueId = (base: string) => {
+    let candidate = base;
+    let suffix = 1;
+    while (usedIds.has(candidate)) {
+      suffix += 1;
+      candidate = `${base}_${suffix}`;
+    }
+    usedIds.add(candidate);
+    return candidate;
+  };
 
   for (const node of nodes) {
-    nodeMap.set(buildNodeKey(node.type, node.id), toMermaidId(node));
+    const baseId = toMermaidId(node);
+    nodeMap.set(buildNodeKey(node.type, node.id), makeUniqueId(baseId));
   }
 
   lines.push("graph TD");
