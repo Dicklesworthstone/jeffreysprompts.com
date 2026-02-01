@@ -39,22 +39,29 @@ function buildNodes(prompts: Array<{ id: string; title: string }>, bundles: Bund
   ];
 }
 
-function buildEdges(bundles: Bundle[], workflows: Workflow[]): GraphEdge[] {
-  const edges: GraphEdge[] = [];
+function buildEdges(bundles: Bundle[], workflows: Workflow[], promptIds: Set<string>): GraphEdge[] {
+  const edges = new Map<string, GraphEdge>();
+
+  const addEdge = (from: string, to: string, type: GraphEdge["type"]) => {
+    if (!promptIds.has(from)) return;
+    const key = `${type}:${from}->${to}`;
+    if (edges.has(key)) return;
+    edges.set(key, { from, to, type });
+  };
 
   for (const bundle of bundles) {
     for (const promptId of bundle.promptIds) {
-      edges.push({ from: promptId, to: bundle.id, type: "prompt->bundle" });
+      addEdge(promptId, bundle.id, "prompt->bundle");
     }
   }
 
   for (const workflow of workflows) {
     for (const step of workflow.steps) {
-      edges.push({ from: step.promptId, to: workflow.id, type: "prompt->workflow" });
+      addEdge(step.promptId, workflow.id, "prompt->workflow");
     }
   }
 
-  return edges;
+  return [...edges.values()];
 }
 
 export async function graphExportCommand(options: GraphOptions): Promise<void> {
@@ -76,7 +83,8 @@ export async function graphExportCommand(options: GraphOptions): Promise<void> {
     registry.bundles,
     registry.workflows
   );
-  const edges = buildEdges(registry.bundles, registry.workflows);
+  const promptIds = new Set(registry.prompts.map((prompt) => prompt.id));
+  const edges = buildEdges(registry.bundles, registry.workflows, promptIds);
 
   if (shouldOutputJson(options)) {
     writeJson({
