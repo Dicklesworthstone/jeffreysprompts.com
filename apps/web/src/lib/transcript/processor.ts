@@ -37,7 +37,7 @@ interface ContentBlock {
   type: string;
   text?: string;
   tool_use_id?: string;
-  content?: string;
+  content?: string | ContentBlock[] | Record<string, unknown>;
   name?: string;
   input?: Record<string, unknown>;
   id?: string;
@@ -145,7 +145,7 @@ function parseEntry(entry: RawEntry, index: number): TranscriptMessage | null {
         // Match to existing tool call
         const matchingCall = toolCalls.find((tc) => tc.id === block.tool_use_id);
         if (matchingCall) {
-          matchingCall.output = block.content || "";
+          matchingCall.output = coerceToolResultContent(block.content);
         }
       }
     }
@@ -170,6 +170,29 @@ function parseEntry(entry: RawEntry, index: number): TranscriptMessage | null {
     thinking: thinking || undefined,
     model: entry.model,
   };
+}
+
+function coerceToolResultContent(value: ContentBlock["content"]): string {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) {
+    const text = value
+      .map((block) => {
+        if (typeof block === "string") return block;
+        if (block && typeof block === "object" && "text" in block) {
+          return typeof block.text === "string" ? block.text : "";
+        }
+        return "";
+      })
+      .filter((chunk): chunk is string => typeof chunk === "string" && chunk.length > 0)
+      .join("");
+    return text;
+  }
+  if (!value) return "";
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
 }
 
 /**
@@ -410,7 +433,7 @@ function detectModel(messages: TranscriptMessage[]): string {
  */
 function generateSessionId(startTime: string): string {
   const date = new Date(startTime);
-  if (isNaN(date.getTime())) {
+  if (Number.isNaN(date.getTime())) {
     return `session-${Date.now()}`;
   }
   // Use a random suffix to prevent collisions for same-day sessions

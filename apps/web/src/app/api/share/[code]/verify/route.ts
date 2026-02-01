@@ -29,7 +29,7 @@ function resolveContent(contentType: string, contentId: string): unknown | null 
 function isExpired(expiresAt?: string | null): boolean {
   if (!expiresAt) return false;
   const parsed = new Date(expiresAt);
-  if (Number.isNaN(parsed.getTime())) return false;
+  if (Number.isNaN(parsed.getTime())) return true;
   return parsed.getTime() < Date.now();
 }
 
