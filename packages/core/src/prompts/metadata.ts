@@ -241,10 +241,12 @@ export function suggestPromptMetadata(
 
   const tagScores = new Map<string, number>();
   const baseTags = new Set(normalizeTags(prompt.tags, tagMappings));
+  const tagCounts = new Map<string, number>();
   for (const item of similar) {
     for (const tag of normalizeTags(item.prompt.tags, tagMappings)) {
       if (baseTags.has(tag)) continue;
       tagScores.set(tag, (tagScores.get(tag) ?? 0) + item.score);
+      tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
     }
   }
 
@@ -254,7 +256,7 @@ export function suggestPromptMetadata(
     .map(([tag, score]) => ({
       tag,
       score,
-      reasons: [`Appears in ${similar.filter((item) => item.prompt.tags.includes(tag)).length} similar prompts`],
+      reasons: [`Appears in ${tagCounts.get(tag) ?? 0} similar prompts`],
     }));
 
   const categoryScores = new Map<PromptCategory, number>();

@@ -8,7 +8,7 @@
  */
 export function formatTime(timestamp: string): string {
   const date = new Date(timestamp);
-  if (isNaN(date.getTime())) {
+  if (Number.isNaN(date.getTime())) {
     return "";
   }
   return date.toLocaleTimeString([], {
@@ -25,7 +25,7 @@ export function formatDuration(start: string, end: string): string {
   const startMs = new Date(start).getTime();
   const endMs = new Date(end).getTime();
 
-  if (isNaN(startMs) || isNaN(endMs)) {
+  if (Number.isNaN(startMs) || Number.isNaN(endMs)) {
     return "0m";
   }
 
