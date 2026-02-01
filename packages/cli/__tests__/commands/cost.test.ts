@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { randomUUID } from "crypto";
 import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
@@ -13,21 +14,47 @@ const originalLog = console.log;
 const originalError = console.error;
 const originalExit = process.exit;
 
-function setupTestEnv() {
-  const testDir = join(tmpdir(), "jfp-cost-test-" + Date.now() + "-" + Math.random().toString(36).slice(2));
-  const fakeHome = join(testDir, "home");
-  const credDir = join(fakeHome, ".config", "jfp");
-  mkdirSync(credDir, { recursive: true });
+type CredentialSetup = {
+  tier?: "free" | "premium";
+  withCredentials?: boolean;
+};
 
-  const creds = {
-    access_token: "test-token-12345",
-    refresh_token: "refresh-token-67890",
-    expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-    email: "test@example.com",
-    tier: "premium",
-    user_id: "user-123",
-  };
-  writeFileSync(join(credDir, "credentials.json"), JSON.stringify(creds, null, 2));
+function resetCapture() {
+  output = [];
+  errors = [];
+  exitCode = undefined;
+}
+
+async function expectExit(promise: Promise<void>) {
+  try {
+    await promise;
+  } catch (e) {
+    if ((e as Error).message !== "process.exit") {
+      throw e;
+    }
+    return;
+  }
+  throw new Error("Expected process.exit");
+}
+
+function setupTestEnv(options: CredentialSetup = {}) {
+  const { tier = "premium", withCredentials = true } = options;
+  const testDir = join(tmpdir(), "jfp-cost-test-" + randomUUID());
+  const fakeHome = join(testDir, "home");
+  if (withCredentials) {
+    const credDir = join(fakeHome, ".config", "jfp");
+    mkdirSync(credDir, { recursive: true });
+
+    const creds = {
+      access_token: "test-token-12345",
+      refresh_token: "refresh-token-67890",
+      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      email: "test@example.com",
+      tier,
+      user_id: "user-123",
+    };
+    writeFileSync(join(credDir, "credentials.json"), JSON.stringify(creds, null, 2));
+  }
 
   mockEnv = {
     ...process.env,
@@ -38,9 +65,7 @@ function setupTestEnv() {
 }
 
 beforeEach(() => {
-  output = [];
-  errors = [];
-  exitCode = undefined;
+  resetCapture();
   setupTestEnv();
   console.log = (...args: unknown[]) => {
     output.push(args.join(" "));
@@ -81,8 +106,68 @@ describe("costCommand", () => {
     expect(payload.defaultModel).toBe("gpt-4o-mini");
   });
 
-  it("returns error payload when model pricing is missing", () => {
-    expect(() => costCommand("idea-wizard", { json: true, model: "unknown-model" }, mockEnv)).toThrow();
+  it("returns error payload when prompt id is missing", async () => {
+    await expectExit(costCommand(undefined, { json: true }, mockEnv));
+    const payload = JSON.parse(output.join(""));
+    expect(payload.code).toBe("missing_prompt_id");
+    expect(exitCode).toBe(1);
+  });
+
+  it("returns error payload when prompt is not found", async () => {
+    await expectExit(costCommand("not-a-real-prompt", { json: true }, mockEnv));
+    const payload = JSON.parse(output.join(""));
+    expect(payload.code).toBe("prompt_not_found");
+    expect(exitCode).toBe(1);
+  });
+
+  it("returns error payload for invalid input tokens", async () => {
+    await expectExit(costCommand("idea-wizard", { json: true, inputTokens: "-1" }, mockEnv));
+    const payload = JSON.parse(output.join(""));
+    expect(payload.code).toBe("invalid_input_tokens");
+    expect(exitCode).toBe(1);
+  });
+
+  it("returns error payload for invalid output tokens", async () => {
+    await expectExit(costCommand("idea-wizard", { json: true, outputTokens: "-5" }, mockEnv));
+    const payload = JSON.parse(output.join(""));
+    expect(payload.code).toBe("invalid_output_tokens");
+    expect(exitCode).toBe(1);
+  });
+
+  it("returns error payload for missing pricing pair", async () => {
+    await expectExit(costCommand("idea-wizard", { json: true, priceIn: "1" }, mockEnv));
+    const payload = JSON.parse(output.join(""));
+    expect(payload.code).toBe("missing_pricing");
+    expect(exitCode).toBe(1);
+  });
+
+  it("returns error payload for invalid pricing values", async () => {
+    await expectExit(costCommand("idea-wizard", { json: true, priceIn: "-1", priceOut: "1" }, mockEnv));
+    const payload = JSON.parse(output.join(""));
+    expect(payload.code).toBe("invalid_pricing");
+    expect(exitCode).toBe(1);
+  });
+
+  it("returns error payload when not authenticated", async () => {
+    resetCapture();
+    setupTestEnv({ withCredentials: false });
+    await expectExit(costCommand("idea-wizard", { json: true }, mockEnv));
+    const payload = JSON.parse(output.join(""));
+    expect(payload.code).toBe("not_authenticated");
+    expect(exitCode).toBe(1);
+  });
+
+  it("returns error payload when premium is required", async () => {
+    resetCapture();
+    setupTestEnv({ tier: "free" });
+    await expectExit(costCommand("idea-wizard", { json: true }, mockEnv));
+    const payload = JSON.parse(output.join(""));
+    expect(payload.code).toBe("premium_required");
+    expect(exitCode).toBe(1);
+  });
+
+  it("returns error payload when model pricing is missing", async () => {
+    await expectExit(costCommand("idea-wizard", { json: true, model: "unknown-model" }, mockEnv));
     const payload = JSON.parse(output.join(""));
     expect(payload.code).toBe("unknown_model");
     expect(exitCode).toBe(1);
