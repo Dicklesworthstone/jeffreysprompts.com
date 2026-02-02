@@ -20,7 +20,8 @@ function getClientIp(request: NextRequest): string | null {
 }
 
 function isOwner(link: ShareLink, userId: string | null): boolean {
-  if (!link.userId) return true;
+  if (!userId) return false;
+  if (!link.userId) return false;
   return link.userId === userId;
 }
 

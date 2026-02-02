@@ -100,7 +100,7 @@ export function hashEmbedding(text: string, dimensions: number = 128): number[] 
       const hash = simpleHash(gram);
       // Use multiple hash functions for LSH
       for (let h = 0; h < 3; h++) {
-        const idx = Math.abs((hash * (h + 1)) % dimensions);
+        const idx = (Math.imul(hash, h + 1) >>> 0) % dimensions;
         // Alternate between +1 and -1 based on hash bits
         embedding[idx] += ((hash >> h) & 1) ? 1 : -1;
       }
@@ -123,7 +123,7 @@ function simpleHash(str: string): number {
   let hash = 2166136261; // FNV offset basis
   for (let i = 0; i < str.length; i++) {
     hash ^= str.charCodeAt(i);
-    hash = (hash * 16777619) >>> 0; // FNV prime, keep as unsigned 32-bit
+    hash = Math.imul(hash, 16777619) >>> 0; // FNV prime, true 32-bit multiply
   }
   return hash;
 }

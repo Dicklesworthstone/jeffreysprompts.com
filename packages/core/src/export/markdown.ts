@@ -11,7 +11,7 @@ import { getPrompt } from "../prompts/registry";
  */
 function getCodeFence(content: string): string {
   let fence = "```";
-  while (content.includes(fence)) {
+  while (content.includes(fence) && fence.length < 100) {
     fence += "`";
   }
   return fence;

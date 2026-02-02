@@ -56,6 +56,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!itemIds.every((id): id is string => typeof id === "string" && id.trim().length > 0)) {
+      return NextResponse.json(
+        { error: "All itemIds must be non-empty strings" },
+        { status: 400 }
+      );
+    }
+
     if (!action) {
       return NextResponse.json(
         { error: "Missing required field: action" },

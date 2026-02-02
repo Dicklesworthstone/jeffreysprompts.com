@@ -148,12 +148,12 @@ export function checkAdminPermission(
 
     // In non-production, only allow bypass if explicitly enabled
     if (devBypassEnabled) {
-      // Additional safety: reject if request appears to come from external origin
+      // Additional safety: only allow bypass if request comes from localhost
       const origin = request.headers.get("origin");
       const host = request.headers.get("host");
       const originOk = isLocalOrigin(origin);
       const hostOk = isLocalHost(host);
-      if ((origin || host) && !originOk && !hostOk) {
+      if (!originOk && !hostOk) {
         console.warn(
           "[Admin Auth] Dev bypass blocked: external origin detected",
           { origin, host, permission }

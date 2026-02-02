@@ -20,7 +20,7 @@ interface TagMappingsResponse {
   success: boolean;
   data?: TagMapping[];
   record?: Record<string, string>;
-  meta?: { count: number; persistedPath?: string | null; lastPersistError?: string | null };
+  meta?: { count: number; persisted?: boolean; lastPersistError?: string | null };
   error?: string;
   message?: string;
 }
@@ -256,10 +256,10 @@ export default function AdminMetadataPage() {
   }, []);
 
   const mappingCount = useMemo(() => Object.keys(record).length, [record]);
-  const persistenceEnabled = Boolean(meta?.persistedPath);
+  const persistenceEnabled = Boolean(meta?.persisted);
   const persistenceLabel = persistenceEnabled ? "Enabled" : "In-memory only";
   const persistenceDetail = persistenceEnabled
-    ? meta?.persistedPath
+    ? "File-based persistence active."
     : "Set JFP_TAG_MAPPINGS_PATH to persist mappings.";
 
   return (

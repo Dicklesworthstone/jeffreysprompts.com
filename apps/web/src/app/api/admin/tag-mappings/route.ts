@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
       record: getTagMappingsRecord(),
       meta: {
         count: mappings.length,
-        persistedPath: meta.persistedPath,
+        persisted: Boolean(meta.persistedPath),
         lastPersistError: meta.lastPersistError,
       },
     },

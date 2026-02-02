@@ -14,7 +14,7 @@ import { escapeYamlValue, escapeYamlArrayItem } from "./yaml";
  */
 function getCodeFence(content: string): string {
   let fence = "```";
-  while (content.includes(fence)) {
+  while (content.includes(fence) && fence.length < 100) {
     fence += "`";
   }
   return fence;
@@ -142,9 +142,10 @@ export function getUniqueDelimiter(content: string, base: string = "JFP_SKILL"):
     counter++;
     delimiter = `${base}_${counter}`;
   }
-  // Fallback with timestamp if we exhausted attempts
+  // Fallback with crypto random if we exhausted attempts
   if (counter >= MAX_ATTEMPTS && content.includes(delimiter)) {
-    delimiter = `${base}_${Date.now()}`;
+    const suffix = createHash("sha256").update(`${Date.now()}-${Math.random()}`).digest("hex").slice(0, 16);
+    delimiter = `${base}_${suffix}`;
   }
   return delimiter;
 }
@@ -175,7 +176,9 @@ export function generateInstallScript(prompts: Prompt[], targetDir?: string): st
     // Use a unique delimiter for each prompt to avoid conflicts
     const delimiter = getUniqueDelimiter(skillContent);
 
-    lines.push(`# Install ${prompt.title}`);
+    // Sanitize title for shell comment: strip newlines and control chars
+    const safeTitle = prompt.title.replace(/[\r\n]+/g, " ").replace(/[^\x20-\x7E]/g, "");
+    lines.push(`# Install ${safeTitle}`);
     lines.push(`mkdir -p "${skillDir}"`);
     lines.push(`cat > "${skillDir}/SKILL.md" << '${delimiter}'`);
     lines.push(skillContent);
