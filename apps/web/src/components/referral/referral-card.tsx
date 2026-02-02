@@ -16,7 +16,6 @@ import { Copy, Check, Gift, Share2, Users } from "lucide-react";
 import { ReferralShareModal } from "./referral-share-modal";
 
 interface ReferralCardProps {
-  userId: string;
   className?: string;
 }
 
@@ -30,7 +29,7 @@ interface ReferralCodeData {
   };
 }
 
-export function ReferralCard({ userId, className }: ReferralCardProps) {
+export function ReferralCard({ className }: ReferralCardProps) {
   const [referralData, setReferralData] = React.useState<ReferralCodeData | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [copied, setCopied] = React.useState(false);
@@ -39,7 +38,7 @@ export function ReferralCard({ userId, className }: ReferralCardProps) {
   React.useEffect(() => {
     async function fetchCode() {
       try {
-        const response = await fetch(`/api/referral/code?userId=${encodeURIComponent(userId)}`);
+        const response = await fetch("/api/referral/code");
         const data = await response.json();
         if (data.success) {
           setReferralData(data.data);
@@ -52,7 +51,7 @@ export function ReferralCard({ userId, className }: ReferralCardProps) {
     }
 
     fetchCode();
-  }, [userId]);
+  }, []);
 
   const handleCopy = async () => {
     if (!referralData) return;

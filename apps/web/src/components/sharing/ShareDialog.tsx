@@ -50,7 +50,6 @@ import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { copyToClipboard } from "@/lib/clipboard";
 import { trackEvent } from "@/lib/analytics";
-import { getOrCreateLocalUserId } from "@/lib/history/client";
 
 // Types
 export type ShareableContentType = "prompt" | "pack" | "skill" | "collection";
@@ -137,15 +136,9 @@ export function ShareDialog({
   const handleCreateShare = useCallback(async () => {
     setIsCreating(true);
     try {
-      const userId = getOrCreateLocalUserId();
-      const headers: HeadersInit = { "Content-Type": "application/json" };
-      if (userId) {
-        headers["x-user-id"] = userId;
-      }
-
       const response = await fetch("/api/share", {
         method: "POST",
-        headers,
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contentType,
           contentId,
@@ -194,15 +187,8 @@ export function ShareDialog({
 
     setIsRevoking(true);
     try {
-      const userId = getOrCreateLocalUserId();
-      const headers: HeadersInit = {};
-      if (userId) {
-        headers["x-user-id"] = userId;
-      }
-
       const response = await fetch(`/api/share/${existingShare.linkCode}`, {
         method: "DELETE",
-        headers,
       });
 
       if (!response.ok) {

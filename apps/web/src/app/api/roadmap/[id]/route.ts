@@ -4,14 +4,14 @@ import {
   getFeatureComments,
   hasUserVoted,
 } from "@/lib/roadmap/roadmap-store";
+import { getUserIdFromRequest } from "@/lib/user-id";
 
 /**
  * GET /api/roadmap/[id]
  *
  * Get a single feature request with comments.
  *
- * Query params:
- * - userId: include voting status for this user
+ * Uses the signed anonymous user cookie to include voting status.
  */
 export async function GET(
   request: NextRequest,
@@ -31,8 +31,12 @@ export async function GET(
   const comments = getFeatureComments(id);
 
   // Check if user has voted
-  const userId = request.nextUrl.searchParams.get("userId");
+  const userId = getUserIdFromRequest(request);
   const hasVoted = userId ? hasUserVoted(id, userId) : false;
+
+  const cacheControl = userId
+    ? "private, max-age=30"
+    : "public, s-maxage=30, stale-while-revalidate=60";
 
   return NextResponse.json(
     {
@@ -42,7 +46,7 @@ export async function GET(
     },
     {
       headers: {
-        "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60",
+        "Cache-Control": cacheControl,
       },
     }
   );

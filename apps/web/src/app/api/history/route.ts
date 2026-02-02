@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { clearHistory, listHistory, recordView } from "@/lib/history/history-store";
 import { isHistoryResourceType } from "@/lib/history/types";
+import { getOrCreateUserId } from "@/lib/user-id";
 
 const MAX_ID_LENGTH = 200;
-const MAX_USER_ID_LENGTH = 200;
 const MAX_SOURCE_LENGTH = 100;
 const MAX_QUERY_LENGTH = 500;
 const MAX_LIMIT = 100;
@@ -13,26 +13,11 @@ function normalizeText(value: string) {
   return value.trim();
 }
 
-function getUserId(request: NextRequest): string | null {
-  const headerId = request.headers.get("x-user-id")?.trim();
-  if (headerId) return headerId;
-  const queryId = request.nextUrl.searchParams.get("userId")?.trim();
-  return queryId || null;
-}
-
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
-  const userId = getUserId(request) ?? "";
+  const { userId, cookie } = getOrCreateUserId(request);
   const resourceType = searchParams.get("resourceType") ?? "";
   const limitParam = searchParams.get("limit") ?? "";
-
-  if (!userId) {
-    return NextResponse.json({ error: "userId is required." }, { status: 400 });
-  }
-
-  if (userId.length > MAX_USER_ID_LENGTH) {
-    return NextResponse.json({ error: "Invalid user id." }, { status: 400 });
-  }
 
   const parsedLimit = limitParam ? Number(limitParam) : NaN;
   const limit = Number.isFinite(parsedLimit)
@@ -52,7 +37,7 @@ export async function GET(request: NextRequest) {
     limit,
   });
 
-  return NextResponse.json(
+  const response = NextResponse.json(
     {
       items,
       count: items.length,
@@ -64,6 +49,12 @@ export async function GET(request: NextRequest) {
       },
     }
   );
+
+  if (cookie) {
+    response.cookies.set(cookie.name, cookie.value, cookie.options);
+  }
+
+  return response;
 }
 
 export async function POST(request: NextRequest) {
@@ -75,7 +66,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  const userId = typeof payload.userId === "string" ? normalizeText(payload.userId) : "";
   const resourceType =
     typeof payload.resourceType === "string" ? normalizeText(payload.resourceType) : "";
   const resourceId =
@@ -84,15 +74,11 @@ export async function POST(request: NextRequest) {
     typeof payload.searchQuery === "string" ? normalizeText(payload.searchQuery) : "";
   const source = typeof payload.source === "string" ? normalizeText(payload.source) : "";
 
-  if (!userId || !resourceType) {
+  if (!resourceType) {
     return NextResponse.json(
-      { error: "userId and resourceType are required." },
+      { error: "resourceType is required." },
       { status: 400 }
     );
-  }
-
-  if (userId.length > MAX_USER_ID_LENGTH) {
-    return NextResponse.json({ error: "Invalid user id." }, { status: 400 });
   }
 
   if (!isHistoryResourceType(resourceType)) {
@@ -118,6 +104,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid source." }, { status: 400 });
   }
 
+  const { userId, cookie } = getOrCreateUserId(request);
   const item = recordView({
     userId,
     resourceType,
@@ -126,24 +113,28 @@ export async function POST(request: NextRequest) {
     source: source || null,
   });
 
-  return NextResponse.json({
+  const response = NextResponse.json({
     success: true,
     item,
   });
+
+  if (cookie) {
+    response.cookies.set(cookie.name, cookie.value, cookie.options);
+  }
+
+  return response;
 }
 
 export async function DELETE(request: NextRequest) {
-  const userId = getUserId(request) ?? "";
-
-  if (!userId) {
-    return NextResponse.json({ error: "userId is required." }, { status: 400 });
-  }
-
-  if (userId.length > MAX_USER_ID_LENGTH) {
-    return NextResponse.json({ error: "Invalid user id." }, { status: 400 });
-  }
+  const { userId, cookie } = getOrCreateUserId(request);
 
   clearHistory(userId);
 
-  return NextResponse.json({ success: true });
+  const response = NextResponse.json({ success: true });
+
+  if (cookie) {
+    response.cookies.set(cookie.name, cookie.value, cookie.options);
+  }
+
+  return response;
 }

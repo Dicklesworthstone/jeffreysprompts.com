@@ -4,21 +4,14 @@ import {
   getReferralUrl,
   REFERRAL_CONSTANTS,
 } from "@/lib/referral/referral-store";
-
-function getUserId(request: NextRequest): string | null {
-  const headerId = request.headers.get("x-user-id")?.trim();
-  if (headerId) return headerId;
-  const queryId = request.nextUrl.searchParams.get("userId")?.trim();
-  return queryId || null;
-}
+import { getOrCreateUserId } from "@/lib/user-id";
 
 /**
  * GET /api/referral/code
  *
  * Get the current user's referral code. Creates one if it doesn't exist.
  *
- * Query params:
- * - userId: User ID (or via x-user-id header)
+ * Uses the signed anonymous user cookie to identify the requester.
  *
  * Response:
  * {
@@ -29,17 +22,10 @@ function getUserId(request: NextRequest): string | null {
  * }
  */
 export async function GET(request: NextRequest) {
-  const userId = getUserId(request);
-  if (!userId) {
-    return NextResponse.json(
-      { success: false, error: "User ID is required." },
-      { status: 400 }
-    );
-  }
-
+  const { userId, cookie } = getOrCreateUserId(request);
   const referralCode = getOrCreateReferralCode(userId);
 
-  return NextResponse.json(
+  const response = NextResponse.json(
     {
       success: true,
       data: {
@@ -60,6 +46,12 @@ export async function GET(request: NextRequest) {
       },
     }
   );
+
+  if (cookie) {
+    response.cookies.set(cookie.name, cookie.value, cookie.options);
+  }
+
+  return response;
 }
 
 /**
@@ -67,34 +59,13 @@ export async function GET(request: NextRequest) {
  *
  * Generate a new referral code for a user (or return existing one).
  *
- * Body:
- * {
- *   userId: string;
- * }
+ * Uses the signed anonymous user cookie to identify the requester.
  */
 export async function POST(request: NextRequest) {
-  let payload: { userId?: string };
-
-  try {
-    payload = await request.json();
-  } catch {
-    return NextResponse.json(
-      { success: false, error: "Invalid JSON body." },
-      { status: 400 }
-    );
-  }
-
-  const userId = payload.userId?.trim() || getUserId(request);
-  if (!userId) {
-    return NextResponse.json(
-      { success: false, error: "User ID is required." },
-      { status: 400 }
-    );
-  }
-
+  const { userId, cookie } = getOrCreateUserId(request);
   const referralCode = getOrCreateReferralCode(userId);
 
-  return NextResponse.json({
+  const response = NextResponse.json({
     success: true,
     data: {
       code: referralCode.code,
@@ -107,4 +78,10 @@ export async function POST(request: NextRequest) {
       createdAt: referralCode.createdAt,
     },
   });
+
+  if (cookie) {
+    response.cookies.set(cookie.name, cookie.value, cookie.options);
+  }
+
+  return response;
 }

@@ -6,9 +6,9 @@ import {
   isRatingContentType,
   submitRating,
 } from "@/lib/ratings/rating-store";
+import { getOrCreateUserId, getUserIdFromRequest } from "@/lib/user-id";
 
 const MAX_ID_LENGTH = 200;
-const MAX_USER_ID_LENGTH = 200;
 
 function normalizeText(value: string) {
   return value.trim();
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const contentType = normalizeText(searchParams.get("contentType") ?? "");
   const contentId = normalizeText(searchParams.get("contentId") ?? "");
-  const userId = normalizeText(searchParams.get("userId") ?? "");
+  const userId = getUserIdFromRequest(request);
 
   if (!contentType || !contentId) {
     return NextResponse.json({ error: "contentType and contentId are required." }, { status: 400 });
@@ -32,14 +32,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Invalid content id." }, { status: 400 });
   }
 
-  if (userId && userId.length > MAX_USER_ID_LENGTH) {
-    return NextResponse.json({ error: "Invalid user id." }, { status: 400 });
-  }
-
   const summary = getRatingSummary({ contentType, contentId });
   const userRating = userId ? getUserRating({ contentType, contentId, userId }) : null;
 
-  // If userId was provided, the response includes user-specific data
+  // If a signed user ID cookie is present, the response includes user-specific data
   const cacheControl = userId
     ? "private, max-age=30"
     : "public, s-maxage=30, stale-while-revalidate=60";
@@ -68,12 +64,11 @@ export async function POST(request: NextRequest) {
 
   const contentType = typeof payload.contentType === "string" ? normalizeText(payload.contentType) : "";
   const contentId = typeof payload.contentId === "string" ? normalizeText(payload.contentId) : "";
-  const userId = typeof payload.userId === "string" ? normalizeText(payload.userId) : "";
   const value = typeof payload.value === "string" ? normalizeText(payload.value) : "";
 
-  if (!contentType || !contentId || !userId || !value) {
+  if (!contentType || !contentId || !value) {
     return NextResponse.json(
-      { error: "contentType, contentId, userId, and value are required." },
+      { error: "contentType, contentId, and value are required." },
       { status: 400 }
     );
   }
@@ -82,7 +77,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid content type." }, { status: 400 });
   }
 
-  if (contentId.length > MAX_ID_LENGTH || userId.length > MAX_USER_ID_LENGTH) {
+  if (contentId.length > MAX_ID_LENGTH) {
     return NextResponse.json({ error: "Invalid identifiers." }, { status: 400 });
   }
 
@@ -90,6 +85,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid rating value." }, { status: 400 });
   }
 
+  const { userId, cookie } = getOrCreateUserId(request);
   const result = submitRating({
     contentType,
     contentId,
@@ -97,9 +93,15 @@ export async function POST(request: NextRequest) {
     value: value === "up" ? "up" : "down",
   });
 
-  return NextResponse.json({
+  const response = NextResponse.json({
     success: true,
     rating: result.rating,
     summary: result.summary,
   });
+
+  if (cookie) {
+    response.cookies.set(cookie.name, cookie.value, cookie.options);
+  }
+
+  return response;
 }

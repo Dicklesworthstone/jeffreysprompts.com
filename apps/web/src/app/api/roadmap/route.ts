@@ -6,6 +6,7 @@ import {
   submitFeature,
   type FeatureStatus,
 } from "@/lib/roadmap/roadmap-store";
+import { getOrCreateUserId } from "@/lib/user-id";
 
 /**
  * GET /api/roadmap
@@ -84,14 +85,15 @@ export async function GET(request: NextRequest) {
  * - title: string (required)
  * - description: string (required)
  * - useCase: string (optional)
- * - userId: string (optional, for tracking submitter)
  * - userName: string (optional)
+ *
+ * Uses the signed anonymous user cookie to track the submitter.
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const { title, description, useCase, userId, userName } = body;
+    const { title, description, useCase, userName } = body;
 
     if (!title || typeof title !== "string" || title.trim().length < 5) {
       return NextResponse.json(
@@ -131,6 +133,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const { userId, cookie } = getOrCreateUserId(request);
     const feature = submitFeature({
       title: title.trim(),
       description: description.trim(),
@@ -139,7 +142,13 @@ export async function POST(request: NextRequest) {
       submittedByName: userName,
     });
 
-    return NextResponse.json({ feature }, { status: 201 });
+    const response = NextResponse.json({ feature }, { status: 201 });
+
+    if (cookie) {
+      response.cookies.set(cookie.name, cookie.value, cookie.options);
+    }
+
+    return response;
   } catch {
     return NextResponse.json(
       { error: "invalid_json", message: "Invalid JSON body" },

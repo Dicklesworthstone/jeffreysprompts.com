@@ -39,8 +39,6 @@ export function FeatureSubmitForm() {
           title: form.title,
           description: form.description,
           useCase: form.useCase || undefined,
-          // In a real app, we'd get userId from auth
-          userId: `anon-${Date.now()}`,
           userName: "Anonymous",
         }),
       });

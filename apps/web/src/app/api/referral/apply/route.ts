@@ -5,13 +5,7 @@ import {
   getReferralByReferee,
   REFERRAL_CONSTANTS,
 } from "@/lib/referral/referral-store";
-
-function getUserId(request: NextRequest): string | null {
-  const headerId = request.headers.get("x-user-id")?.trim();
-  if (headerId) return headerId;
-  const queryId = request.nextUrl.searchParams.get("userId")?.trim();
-  return queryId || null;
-}
+import { getOrCreateUserId } from "@/lib/user-id";
 
 /**
  * GET /api/referral/apply?code=XXXX
@@ -68,8 +62,9 @@ export async function GET(request: NextRequest) {
  * Body:
  * {
  *   code: string;
- *   refereeId: string; // New user's ID
  * }
+ *
+ * Uses the signed anonymous user cookie to identify the referee.
  *
  * Response:
  * {
@@ -78,7 +73,7 @@ export async function GET(request: NextRequest) {
  * }
  */
 export async function POST(request: NextRequest) {
-  let payload: { code?: string; refereeId?: string };
+  let payload: { code?: string };
 
   try {
     payload = await request.json();
@@ -90,18 +85,11 @@ export async function POST(request: NextRequest) {
   }
 
   const code = payload.code?.trim();
-  const refereeId = payload.refereeId?.trim() || getUserId(request);
+  const { userId: refereeId, cookie } = getOrCreateUserId(request);
 
   if (!code) {
     return NextResponse.json(
       { success: false, error: "Referral code is required." },
-      { status: 400 }
-    );
-  }
-
-  if (!refereeId) {
-    return NextResponse.json(
-      { success: false, error: "User ID is required." },
       { status: 400 }
     );
   }
@@ -124,7 +112,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  return NextResponse.json({
+  const response = NextResponse.json({
     success: true,
     data: {
       applied: true,
@@ -138,4 +126,10 @@ export async function POST(request: NextRequest) {
       createdAt: result.createdAt,
     },
   });
+
+  if (cookie) {
+    response.cookies.set(cookie.name, cookie.value, cookie.options);
+  }
+
+  return response;
 }

@@ -12,7 +12,6 @@ import { cn } from "@/lib/utils";
 import { Users, Clock, CheckCircle, Trophy, Gift } from "lucide-react";
 
 interface ReferralStatsProps {
-  userId: string;
   className?: string;
 }
 
@@ -42,16 +41,14 @@ interface StatsData {
   }>;
 }
 
-export function ReferralStats({ userId, className }: ReferralStatsProps) {
+export function ReferralStats({ className }: ReferralStatsProps) {
   const [data, setData] = React.useState<StatsData | null>(null);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
     async function fetchStats() {
       try {
-        const response = await fetch(
-          `/api/referral/stats?userId=${encodeURIComponent(userId)}&includeReferrals=true`
-        );
+        const response = await fetch("/api/referral/stats?includeReferrals=true");
         const result = await response.json();
         if (result.success) {
           setData(result.data);
@@ -64,7 +61,7 @@ export function ReferralStats({ userId, className }: ReferralStatsProps) {
     }
 
     fetchStats();
-  }, [userId]);
+  }, []);
 
   if (loading) {
     return (

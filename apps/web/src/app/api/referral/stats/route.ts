@@ -6,13 +6,7 @@ import {
   getReferralUrl,
   REFERRAL_CONSTANTS,
 } from "@/lib/referral/referral-store";
-
-function getUserId(request: NextRequest): string | null {
-  const headerId = request.headers.get("x-user-id")?.trim();
-  if (headerId) return headerId;
-  const queryId = request.nextUrl.searchParams.get("userId")?.trim();
-  return queryId || null;
-}
+import { getOrCreateUserId } from "@/lib/user-id";
 
 /**
  * GET /api/referral/stats
@@ -20,8 +14,9 @@ function getUserId(request: NextRequest): string | null {
  * Get referral statistics for the current user.
  *
  * Query params:
- * - userId: User ID (or via x-user-id header)
  * - includeReferrals: Whether to include detailed referral list (default: false)
+ *
+ * Uses the signed anonymous user cookie to identify the requester.
  *
  * Response:
  * {
@@ -31,13 +26,7 @@ function getUserId(request: NextRequest): string | null {
  * }
  */
 export async function GET(request: NextRequest) {
-  const userId = getUserId(request);
-  if (!userId) {
-    return NextResponse.json(
-      { success: false, error: "User ID is required." },
-      { status: 400 }
-    );
-  }
+  const { userId, cookie } = getOrCreateUserId(request);
 
   const includeReferrals = request.nextUrl.searchParams.get("includeReferrals") === "true";
 
@@ -106,10 +95,16 @@ export async function GET(request: NextRequest) {
     }));
   }
 
-  return NextResponse.json(response, {
+  const res = NextResponse.json(response, {
     headers: {
       // User-specific data - prevent CDN caching
       "Cache-Control": "private, max-age=60",
     },
   });
+
+  if (cookie) {
+    res.cookies.set(cookie.name, cookie.value, cookie.options);
+  }
+
+  return res;
 }

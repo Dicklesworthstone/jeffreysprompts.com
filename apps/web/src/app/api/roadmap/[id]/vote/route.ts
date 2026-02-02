@@ -4,14 +4,14 @@ import {
   unvoteFeature,
   getFeature,
 } from "@/lib/roadmap/roadmap-store";
+import { getOrCreateUserId } from "@/lib/user-id";
 
 /**
  * POST /api/roadmap/[id]/vote
  *
  * Vote for a feature request.
  *
- * Body:
- * - userId: string (required)
+ * Uses the signed anonymous user cookie to identify the voter.
  */
 export async function POST(
   request: NextRequest,
@@ -19,44 +19,35 @@ export async function POST(
 ) {
   const { id } = await context.params;
 
-  try {
-    const body = await request.json();
-    const { userId } = body;
+  const { userId, cookie } = getOrCreateUserId(request);
 
-    if (!userId || typeof userId !== "string") {
-      return NextResponse.json(
-        { error: "user_id_required", message: "User ID is required" },
-        { status: 400 }
-      );
-    }
-
-    const feature = getFeature(id);
-    if (!feature) {
-      return NextResponse.json(
-        { error: "not_found", message: "Feature not found" },
-        { status: 404 }
-      );
-    }
-
-    const result = voteForFeature(id, userId);
-
-    if (!result.success) {
-      return NextResponse.json(
-        { error: "vote_failed", message: result.error },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      voteCount: result.voteCount,
-    });
-  } catch {
+  const feature = getFeature(id);
+  if (!feature) {
     return NextResponse.json(
-      { error: "invalid_json", message: "Invalid JSON body" },
+      { error: "not_found", message: "Feature not found" },
+      { status: 404 }
+    );
+  }
+
+  const result = voteForFeature(id, userId);
+
+  if (!result.success) {
+    return NextResponse.json(
+      { error: "vote_failed", message: result.error },
       { status: 400 }
     );
   }
+
+  const response = NextResponse.json({
+    success: true,
+    voteCount: result.voteCount,
+  });
+
+  if (cookie) {
+    response.cookies.set(cookie.name, cookie.value, cookie.options);
+  }
+
+  return response;
 }
 
 /**
@@ -64,8 +55,7 @@ export async function POST(
  *
  * Remove vote from a feature request.
  *
- * Body:
- * - userId: string (required)
+ * Uses the signed anonymous user cookie to identify the voter.
  */
 export async function DELETE(
   request: NextRequest,
@@ -73,43 +63,34 @@ export async function DELETE(
 ) {
   const { id } = await context.params;
 
-  try {
-    const body = await request.json();
-    const { userId } = body;
+  const { userId, cookie } = getOrCreateUserId(request);
 
-    if (!userId || typeof userId !== "string") {
-      return NextResponse.json(
-        { error: "user_id_required", message: "User ID is required" },
-        { status: 400 }
-      );
-    }
-
-    const feature = getFeature(id);
-    if (!feature) {
-      return NextResponse.json(
-        { error: "not_found", message: "Feature not found" },
-        { status: 404 }
-      );
-    }
-
-    const result = unvoteFeature(id, userId);
-
-    if (!result.success) {
-      const status = result.error === "Feature not found" ? 404 : 400;
-      return NextResponse.json(
-        { error: "unvote_failed", message: result.error ?? "Unable to remove vote" },
-        { status }
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      voteCount: result.voteCount,
-    });
-  } catch {
+  const feature = getFeature(id);
+  if (!feature) {
     return NextResponse.json(
-      { error: "invalid_json", message: "Invalid JSON body" },
-      { status: 400 }
+      { error: "not_found", message: "Feature not found" },
+      { status: 404 }
     );
   }
+
+  const result = unvoteFeature(id, userId);
+
+  if (!result.success) {
+    const status = result.error === "Feature not found" ? 404 : 400;
+    return NextResponse.json(
+      { error: "unvote_failed", message: result.error ?? "Unable to remove vote" },
+      { status }
+    );
+  }
+
+  const response = NextResponse.json({
+    success: true,
+    voteCount: result.voteCount,
+  });
+
+  if (cookie) {
+    response.cookies.set(cookie.name, cookie.value, cookie.options);
+  }
+
+  return response;
 }

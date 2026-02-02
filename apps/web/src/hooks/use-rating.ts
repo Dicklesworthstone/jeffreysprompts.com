@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useEffect } from "react";
 import type { RatingValue, RatingSummary } from "@/lib/ratings/rating-store";
-import { getOrCreateLocalUserId } from "@/lib/history/client";
 
 interface RatingState {
   summary: RatingSummary | null;
@@ -30,11 +29,9 @@ export function useRating({ contentType, contentId }: UseRatingOptions): UseRati
   });
 
   const fetchRating = useCallback(async () => {
-    const userId = getOrCreateLocalUserId();
     const params = new URLSearchParams({
       contentType,
       contentId,
-      ...(userId ? { userId } : {}),
     });
 
     try {
@@ -60,12 +57,6 @@ export function useRating({ contentType, contentId }: UseRatingOptions): UseRati
 
   const rate = useCallback(
     async (value: RatingValue) => {
-      const userId = getOrCreateLocalUserId();
-      if (!userId) {
-        setState((prev) => ({ ...prev, error: "User ID required" }));
-        return;
-      }
-
       setState((prev) => ({ ...prev, loading: true, error: null }));
 
       try {
@@ -75,7 +66,6 @@ export function useRating({ contentType, contentId }: UseRatingOptions): UseRati
           body: JSON.stringify({
             contentType,
             contentId,
-            userId,
             value,
           }),
         });

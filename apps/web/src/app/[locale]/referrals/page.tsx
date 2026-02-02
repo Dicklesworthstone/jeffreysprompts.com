@@ -8,10 +8,6 @@ export const metadata: Metadata = {
   description: "Invite friends to JeffreysPrompts and earn rewards! Get 1 month free Premium for each friend who subscribes.",
 };
 
-// For demo purposes, we'll use a mock user ID
-// In production, this would come from authentication
-const DEMO_USER_ID = "demo-user-123";
-
 export default function ReferralsPage() {
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
@@ -71,10 +67,10 @@ export default function ReferralsPage() {
         {/* Main Content */}
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Referral Card */}
-          <ReferralCard userId={DEMO_USER_ID} />
+          <ReferralCard />
 
           {/* Stats Card */}
-          <ReferralStats userId={DEMO_USER_ID} />
+          <ReferralStats />
         </div>
 
         {/* Terms */}

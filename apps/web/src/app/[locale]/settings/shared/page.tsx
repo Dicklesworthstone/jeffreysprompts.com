@@ -21,7 +21,6 @@ import ShareManagement, { type ManagedShareLink } from "@/components/sharing/Sha
 import { getPrompt } from "@jeffreysprompts/core/prompts";
 import { getBundle } from "@jeffreysprompts/core/prompts/bundles";
 import { getWorkflow } from "@jeffreysprompts/core/prompts/workflows";
-import { getOrCreateLocalUserId } from "@/lib/history/client";
 
 function resolveContentTitle(contentType: string, contentId: string): string {
   switch (contentType) {
@@ -61,15 +60,9 @@ export default function SharedLinksPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchShareLinks = useCallback(async () => {
-    const userId = getOrCreateLocalUserId();
-    if (!userId) {
-      setShareLinks([]);
-      return;
-    }
-
     try {
       const response = await fetch(
-        `/api/share/mine?userId=${encodeURIComponent(userId)}&includeInactive=true`
+        "/api/share/mine?includeInactive=true"
       );
 
       if (!response.ok) {
@@ -128,15 +121,8 @@ export default function SharedLinksPage() {
   }, [fetchShareLinks, success]);
 
   const handleRevoke = useCallback(async (linkCode: string) => {
-    const userId = getOrCreateLocalUserId();
-    const headers: HeadersInit = {};
-    if (userId) {
-      headers["x-user-id"] = userId;
-    }
-
     const response = await fetch(`/api/share/${linkCode}`, {
       method: "DELETE",
-      headers,
     });
 
     if (!response.ok) {

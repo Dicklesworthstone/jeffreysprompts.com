@@ -38,7 +38,7 @@ import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { RelatedPrompts } from "@/components/RelatedPrompts";
 import { ChangelogAccordion } from "@/components/ChangelogAccordion";
 import { trackEvent } from "@/lib/analytics";
-import { getOrCreateLocalUserId, trackHistoryView } from "@/lib/history/client";
+import { trackHistoryView } from "@/lib/history/client";
 import type { RatingSummary, RatingValue } from "@/lib/ratings/rating-store";
 import {
   renderPrompt,
@@ -62,7 +62,6 @@ export function PromptContent({ prompt }: PromptContentProps) {
   const [context, setContext] = useState("");
   const [ratingSummary, setRatingSummary] = useState<RatingSummary | null>(null);
   const [userRating, setUserRating] = useState<RatingValue | null>(null);
-  const [ratingUserId, setRatingUserId] = useState<string | null>(null);
   const [ratingBusy, setRatingBusy] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [existingShare, setExistingShare] = useState<ShareLink | null>(null);
@@ -106,15 +105,9 @@ export function PromptContent({ prompt }: PromptContentProps) {
   }, [prompt.id]);
 
   useEffect(() => {
-    setRatingUserId(getOrCreateLocalUserId());
-  }, []);
-
-  useEffect(() => {
-    if (!ratingUserId) return;
     const params = new URLSearchParams({
       contentType: "prompt",
       contentId: prompt.id,
-      userId: ratingUserId,
     });
     fetch(`/api/ratings?${params.toString()}`, { cache: "no-store" })
       .then((response) => response.json())
@@ -128,7 +121,7 @@ export function PromptContent({ prompt }: PromptContentProps) {
         setRatingSummary(null);
         setUserRating(null);
       });
-  }, [prompt.id, ratingUserId]);
+  }, [prompt.id]);
 
   useEffect(() => {
     return () => {
@@ -199,7 +192,7 @@ export function PromptContent({ prompt }: PromptContentProps) {
 
   const handleRating = useCallback(
     async (value: RatingValue) => {
-      if (!ratingUserId || ratingBusy) return;
+      if (ratingBusy) return;
       if (userRating === value) return;
       setRatingBusy(true);
       try {
@@ -209,7 +202,6 @@ export function PromptContent({ prompt }: PromptContentProps) {
           body: JSON.stringify({
             contentType: "prompt",
             contentId: prompt.id,
-            userId: ratingUserId,
             value,
           }),
         });
@@ -227,7 +219,7 @@ export function PromptContent({ prompt }: PromptContentProps) {
         setRatingBusy(false);
       }
     },
-    [error, prompt.id, ratingBusy, ratingUserId, userRating]
+    [error, prompt.id, ratingBusy, userRating]
   );
 
   return (
@@ -266,7 +258,7 @@ export function PromptContent({ prompt }: PromptContentProps) {
               size="icon-sm"
               aria-pressed={userRating === "up"}
               onClick={() => handleRating("up")}
-              disabled={!ratingUserId || ratingBusy}
+              disabled={ratingBusy}
               className={userRating === "up" ? "border-emerald-300 text-emerald-600" : ""}
             >
               <ThumbsUp className="h-4 w-4" />
@@ -279,7 +271,7 @@ export function PromptContent({ prompt }: PromptContentProps) {
               size="icon-sm"
               aria-pressed={userRating === "down"}
               onClick={() => handleRating("down")}
-              disabled={!ratingUserId || ratingBusy}
+              disabled={ratingBusy}
               className={userRating === "down" ? "border-rose-300 text-rose-600" : ""}
             >
               <ThumbsDown className="h-4 w-4" />

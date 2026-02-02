@@ -9,6 +9,7 @@ import {
   updateShareLinkSettings,
   type ShareLink,
 } from "@/lib/share-links/share-link-store";
+import { getUserIdFromRequest } from "@/lib/user-id";
 
 const MAX_PASSWORD_LENGTH = 64;
 const MAX_EXPIRES_IN_DAYS = 365;
@@ -16,15 +17,6 @@ const MAX_EXPIRES_IN_DAYS = 365;
 function getClientIp(request: NextRequest): string | null {
   const forwardedFor = request.headers.get("x-forwarded-for");
   return forwardedFor?.split(",")[0]?.trim() || request.headers.get("x-real-ip");
-}
-
-function getUserId(request: NextRequest): string | null {
-  // SECURITY WARNING: trusting x-user-id from headers is unsafe unless behind a trusted proxy
-  // that strips/overwrites this header. Ensure your deployment environment handles this.
-  const headerId = request.headers.get("x-user-id")?.trim();
-  if (headerId) return headerId;
-  const queryId = request.nextUrl.searchParams.get("userId")?.trim();
-  return queryId || null;
 }
 
 function isOwner(link: ShareLink, userId: string | null): boolean {
@@ -133,7 +125,7 @@ export async function PUT(
     return NextResponse.json({ error: "Share link not found." }, { status: 404 });
   }
 
-  const userId = getUserId(request);
+  const userId = getUserIdFromRequest(request);
   if (!isOwner(existing, userId)) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 403 });
   }
@@ -215,7 +207,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Share link not found." }, { status: 404 });
   }
 
-  const userId = getUserId(request);
+  const userId = getUserIdFromRequest(request);
   if (!isOwner(existing, userId)) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 403 });
   }

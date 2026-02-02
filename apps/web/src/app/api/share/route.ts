@@ -3,6 +3,7 @@ import { getPrompt } from "@jeffreysprompts/core/prompts";
 import { getBundle } from "@jeffreysprompts/core/prompts/bundles";
 import { getWorkflow } from "@jeffreysprompts/core/prompts/workflows";
 import { createShareLink, type ShareContentType } from "@/lib/share-links/share-link-store";
+import { getOrCreateUserId } from "@/lib/user-id";
 
 const MAX_PASSWORD_LENGTH = 64;
 const MAX_EXPIRES_IN_DAYS = 365;
@@ -54,15 +55,6 @@ function parseExpiresAt(
 
   const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
   return expiresAt.toISOString();
-}
-
-function getUserId(request: NextRequest): string | null {
-  // SECURITY WARNING: trusting x-user-id from headers is unsafe unless behind a trusted proxy
-  // that strips/overwrites this header. Ensure your deployment environment handles this.
-  const headerId = request.headers.get("x-user-id")?.trim();
-  if (headerId) return headerId;
-  const queryId = request.nextUrl.searchParams.get("userId")?.trim();
-  return queryId || null;
 }
 
 export async function POST(request: NextRequest) {
@@ -125,17 +117,24 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const { userId, cookie } = getOrCreateUserId(request);
   const link = createShareLink({
-    userId: getUserId(request),
+    userId,
     contentType: mappedType,
     contentId,
     password: password === "" ? null : password,
     expiresAt: expiresAt || null,
   });
 
-  return NextResponse.json({
+  const response = NextResponse.json({
     linkCode: link.linkCode,
     url: `https://jeffreysprompts.com/share/${link.linkCode}`,
     expiresAt: link.expiresAt,
   });
+
+  if (cookie) {
+    response.cookies.set(cookie.name, cookie.value, cookie.options);
+  }
+
+  return response;
 }

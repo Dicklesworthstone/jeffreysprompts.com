@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { listShareLinks } from "@/lib/share-links/share-link-store";
+import { getOrCreateUserId } from "@/lib/user-id";
 
 function isExpired(expiresAt?: string | null): boolean {
   if (!expiresAt) return false;
@@ -8,23 +9,13 @@ function isExpired(expiresAt?: string | null): boolean {
   return parsed.getTime() < Date.now();
 }
 
-function getUserId(request: NextRequest): string | null {
-  const headerId = request.headers.get("x-user-id")?.trim();
-  if (headerId) return headerId;
-  const queryId = request.nextUrl.searchParams.get("userId")?.trim();
-  return queryId || null;
-}
-
 export async function GET(request: NextRequest) {
-  const userId = getUserId(request);
-  if (!userId) {
-    return NextResponse.json({ error: "User id is required." }, { status: 400 });
-  }
+  const { userId, cookie } = getOrCreateUserId(request);
 
   const includeInactive = request.nextUrl.searchParams.get("includeInactive") === "true";
   const links = listShareLinks({ userId, includeInactive });
 
-  return NextResponse.json(
+  const response = NextResponse.json(
     {
       links: links.map((link) => ({
         code: link.linkCode,
@@ -45,4 +36,10 @@ export async function GET(request: NextRequest) {
       },
     }
   );
+
+  if (cookie) {
+    response.cookies.set(cookie.name, cookie.value, cookie.options);
+  }
+
+  return response;
 }
