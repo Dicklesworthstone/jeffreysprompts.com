@@ -86,12 +86,15 @@ export function searchPrompts(
   const topMatches = filteredMatches.slice(0, limit);
 
   // 3. Map to full results with highlighting (only for survivors)
-  const results: SearchResult[] = topMatches.map(({ id, score }) => {
-    const prompt = promptsMap.get(id)!; // Known to exist from filter step
+  // Use flatMap to safely handle any edge case where prompt might be missing
+  const results: SearchResult[] = topMatches.flatMap(({ id, score }) => {
+    const prompt = promptsMap.get(id);
+    // Defensive: skip if prompt somehow doesn't exist (shouldn't happen due to filter)
+    if (!prompt) return [];
 
     // Determine which fields matched (check both original query and expanded synonyms)
     const matchedFields: string[] = [];
-    
+
     // Tokenize fields for accurate matching (aligns with BM25 logic)
     // We use a Set for O(1) lookups during the check
     const idTokens = new Set(tokenize(prompt.id));
@@ -121,7 +124,7 @@ export function searchPrompts(
       }
     }
 
-    return { prompt, score, matchedFields };
+    return [{ prompt, score, matchedFields }];
   });
 
   return results;

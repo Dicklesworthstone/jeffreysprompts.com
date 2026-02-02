@@ -8,9 +8,44 @@ import {
   verifyPassword,
 } from "@/lib/share-links/share-link-store";
 
+// Rate limiting for password verification to prevent brute-force attacks
+// More restrictive than general reports: 5 attempts per 15 minutes per IP+code combo
+const MAX_ATTEMPTS_PER_WINDOW = 5;
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+
+type RateLimitBucket = {
+  count: number;
+  resetAt: number;
+};
+
+const rateLimitBuckets = new Map<string, RateLimitBucket>();
+
 function getClientIp(request: NextRequest): string | null {
   const forwardedFor = request.headers.get("x-forwarded-for");
   return forwardedFor?.split(",")[0]?.trim() || request.headers.get("x-real-ip");
+}
+
+function getRateLimitKey(ip: string | null, code: string): string {
+  // Rate limit per IP + share code combination to prevent targeted attacks
+  return `${ip ?? "unknown"}:${code}`;
+}
+
+function getRateLimitBucket(key: string, now: number): RateLimitBucket {
+  const existing = rateLimitBuckets.get(key);
+  if (!existing || now > existing.resetAt) {
+    const bucket = { count: 0, resetAt: now + RATE_LIMIT_WINDOW_MS };
+    rateLimitBuckets.set(key, bucket);
+    return bucket;
+  }
+  return existing;
+}
+
+function pruneExpiredBuckets(now: number): void {
+  for (const [key, bucket] of rateLimitBuckets) {
+    if (bucket.resetAt <= now) {
+      rateLimitBuckets.delete(key);
+    }
+  }
 }
 
 function resolveContent(contentType: string, contentId: string): unknown | null {
@@ -41,6 +76,26 @@ export async function POST(
   const code = rawCode?.trim();
   if (!code) {
     return NextResponse.json({ error: "Missing share code." }, { status: 400 });
+  }
+
+  // Apply rate limiting BEFORE processing to prevent enumeration attacks
+  const now = Date.now();
+  pruneExpiredBuckets(now);
+
+  const clientIp = getClientIp(request);
+  const rateLimitKey = getRateLimitKey(clientIp, code);
+  const bucket = getRateLimitBucket(rateLimitKey, now);
+  bucket.count += 1;
+
+  if (bucket.count > MAX_ATTEMPTS_PER_WINDOW) {
+    const retryAfterSeconds = Math.max(1, Math.ceil((bucket.resetAt - now) / 1000));
+    return NextResponse.json(
+      { error: "Too many attempts. Please try again later." },
+      {
+        status: 429,
+        headers: { "Retry-After": retryAfterSeconds.toString() },
+      }
+    );
   }
 
   let payload: { password?: string | null };

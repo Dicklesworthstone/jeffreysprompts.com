@@ -65,13 +65,31 @@ function touchLink(store: ShareLinkStore, linkId: string) {
 
 /**
  * Generate a cryptographically secure link code.
- * Uses randomBytes instead of Math.random() to prevent prediction attacks.
+ * Uses randomBytes with rejection sampling to prevent modulo bias.
+ *
+ * Security note: Simple `byte % charSetLength` creates modulo bias when
+ * 256 doesn't divide evenly by the character set length (57 chars here).
+ * This would make some characters ~3% more likely than others.
+ * Rejection sampling ensures uniform distribution.
  */
 function createLinkCode(): string {
-  const bytes = randomBytes(CODE_LENGTH);
+  const charSetLength = CODE_CHARS.length; // 57
+  // Maximum byte value that divides evenly: floor(256 / 57) * 57 = 228
+  // Values 0-227 are unbiased, 228-255 would cause bias
+  const maxUnbiasedValue = Math.floor(256 / charSetLength) * charSetLength;
+
   let code = "";
-  for (let i = 0; i < CODE_LENGTH; i += 1) {
-    code += CODE_CHARS[bytes[i] % CODE_CHARS.length];
+  while (code.length < CODE_LENGTH) {
+    // Generate extra bytes to account for rejected values
+    const bytesNeeded = (CODE_LENGTH - code.length) * 2;
+    const bytes = randomBytes(bytesNeeded);
+    for (const byte of bytes) {
+      if (code.length >= CODE_LENGTH) break;
+      // Rejection sampling: only use bytes in unbiased range
+      if (byte < maxUnbiasedValue) {
+        code += CODE_CHARS[byte % charSetLength];
+      }
+    }
   }
   return code;
 }

@@ -14,9 +14,60 @@ import { getUserIdFromRequest } from "@/lib/user-id";
 const MAX_PASSWORD_LENGTH = 64;
 const MAX_EXPIRES_IN_DAYS = 365;
 
+// Rate limiting for share link lookups to prevent enumeration attacks
+// More permissive than password verification: 30 requests per minute per IP
+const MAX_LOOKUPS_PER_WINDOW = 30;
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+
+type RateLimitBucket = {
+  count: number;
+  resetAt: number;
+};
+
+const rateLimitBuckets = new Map<string, RateLimitBucket>();
+
 function getClientIp(request: NextRequest): string | null {
   const forwardedFor = request.headers.get("x-forwarded-for");
   return forwardedFor?.split(",")[0]?.trim() || request.headers.get("x-real-ip");
+}
+
+function getRateLimitBucket(ip: string, now: number): RateLimitBucket {
+  const existing = rateLimitBuckets.get(ip);
+  if (!existing || now > existing.resetAt) {
+    const bucket = { count: 0, resetAt: now + RATE_LIMIT_WINDOW_MS };
+    rateLimitBuckets.set(ip, bucket);
+    return bucket;
+  }
+  return existing;
+}
+
+function pruneExpiredBuckets(now: number): void {
+  for (const [key, bucket] of rateLimitBuckets) {
+    if (bucket.resetAt <= now) {
+      rateLimitBuckets.delete(key);
+    }
+  }
+}
+
+function checkRateLimit(request: NextRequest): NextResponse | null {
+  const now = Date.now();
+  pruneExpiredBuckets(now);
+
+  const clientIp = getClientIp(request) ?? "unknown";
+  const bucket = getRateLimitBucket(clientIp, now);
+  bucket.count += 1;
+
+  if (bucket.count > MAX_LOOKUPS_PER_WINDOW) {
+    const retryAfterSeconds = Math.max(1, Math.ceil((bucket.resetAt - now) / 1000));
+    return NextResponse.json(
+      { error: "Too many requests. Please try again later." },
+      {
+        status: 429,
+        headers: { "Retry-After": retryAfterSeconds.toString() },
+      }
+    );
+  }
+  return null;
 }
 
 function isOwner(link: ShareLink, userId: string | null): boolean {
@@ -56,10 +107,27 @@ function parseExpiresAt(
   return parsed.toISOString();
 }
 
+/**
+ * GET /api/share/[code]
+ *
+ * Retrieve a share link and its content.
+ *
+ * Security notes:
+ * - Rate limited to prevent enumeration attacks (30 req/min per IP)
+ * - Password-protected links return 401 with requiresPassword flag
+ * - This does reveal link existence vs non-existence, which is a deliberate
+ *   UX trade-off. The rate limiting and high entropy of link codes (57^12)
+ *   make enumeration impractical. For high-security use cases, consider
+ *   using password protection.
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ code: string }> }
 ) {
+  // Check rate limit before processing
+  const rateLimitResponse = checkRateLimit(request);
+  if (rateLimitResponse) return rateLimitResponse;
+
   const { code: rawCode } = await params;
   const code = rawCode?.trim();
   if (!code) {
