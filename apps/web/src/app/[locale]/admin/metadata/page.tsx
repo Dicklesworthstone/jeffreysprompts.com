@@ -20,7 +20,7 @@ interface TagMappingsResponse {
   success: boolean;
   data?: TagMapping[];
   record?: Record<string, string>;
-  meta?: { count: number };
+  meta?: { count: number; persistedPath?: string | null; lastPersistError?: string | null };
   error?: string;
   message?: string;
 }
@@ -80,7 +80,6 @@ export default function AdminMetadataPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [alias, setAlias] = useState("");
   const [canonical, setCanonical] = useState("");
-  const [updatedBy, setUpdatedBy] = useState("");
   const [saving, setSaving] = useState(false);
   const [removingAlias, setRemovingAlias] = useState<string | null>(null);
 
@@ -140,7 +139,6 @@ export default function AdminMetadataPage() {
           body: JSON.stringify({
             alias,
             canonical,
-            updatedBy: updatedBy.trim() || "admin",
           }),
         });
         const payload = (await response.json().catch(() => null)) as TagMappingsResponse | null;
@@ -164,7 +162,7 @@ export default function AdminMetadataPage() {
         setSaving(false);
       }
     },
-    [alias, canonical, updatedBy, loadMappings, toastError, toastSuccess]
+    [alias, canonical, loadMappings, toastError, toastSuccess]
   );
 
   const handleRemove = useCallback(
@@ -201,7 +199,6 @@ export default function AdminMetadataPage() {
   const handlePrefill = useCallback((mapping: TagMapping) => {
     setAlias(mapping.alias);
     setCanonical(mapping.canonical);
-    setUpdatedBy(mapping.updatedBy);
   }, []);
 
   const mappingCount = useMemo(() => Object.keys(record).length, [record]);
@@ -288,15 +285,7 @@ export default function AdminMetadataPage() {
                   />
                 </div>
               </div>
-              <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Updated by</label>
-                  <Input
-                    value={updatedBy}
-                    onChange={(event) => setUpdatedBy(event.target.value)}
-                    placeholder="admin"
-                  />
-                </div>
+              <div className="flex justify-end">
                 <Button type="submit" loading={saving} disabled={saving} className="w-full sm:w-auto">
                   Save mapping
                 </Button>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { checkAdminPermission } from "@/lib/admin/permissions";
 import {
   getTagMappingsRecord,
+  getTagMappingsMeta,
   listTagMappings,
   removeTagMapping,
   upsertTagMapping,
@@ -24,6 +25,7 @@ export async function GET(request: NextRequest) {
   if (response) return response;
 
   const mappings = listTagMappings();
+  const meta = getTagMappingsMeta();
 
   return NextResponse.json(
     {
@@ -32,6 +34,8 @@ export async function GET(request: NextRequest) {
       record: getTagMappingsRecord(),
       meta: {
         count: mappings.length,
+        persistedPath: meta.persistedPath,
+        lastPersistError: meta.lastPersistError,
       },
     },
     {
