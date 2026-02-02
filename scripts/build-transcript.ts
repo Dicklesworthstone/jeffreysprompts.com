@@ -419,8 +419,6 @@ async function main() {
   console.log(`  Tool calls: ${stats.toolCalls}`);
   console.log(`  Files edited: ${stats.filesEdited}`);
   console.log(`  Lines written: ${stats.linesWritten}`);
-  // ubs:ignore — aggregate token estimate only; no secrets involved
-  console.log(`  Est. tokens: ${stats.tokensUsed.toLocaleString()}`);
 
   // Detect sections
   const sections = detectSections(messages);

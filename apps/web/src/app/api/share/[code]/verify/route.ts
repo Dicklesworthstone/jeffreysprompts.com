@@ -50,15 +50,14 @@ export async function POST(
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  let password = "";
   if (payload.password === undefined || payload.password === null) {
-    password = "";
-  } else if (typeof payload.password === "string") {
-    password = payload.password.trim();
-  } else {
+    return NextResponse.json({ error: "Password is required." }, { status: 400 });
+  }
+  if (typeof payload.password !== "string") {
     return NextResponse.json({ error: "Invalid password value." }, { status: 400 });
   }
-  if (!password) {
+  const passwordInput = payload.password.trim();
+  if (!passwordInput) {
     return NextResponse.json({ error: "Password is required." }, { status: 400 });
   }
 
@@ -71,7 +70,7 @@ export async function POST(
     return NextResponse.json({ error: "Share link expired." }, { status: 410 });
   }
 
-  if (!verifyPassword(password, link.passwordHash)) {
+  if (!verifyPassword(passwordInput, link.passwordHash)) {
     return NextResponse.json({ error: "Invalid password." }, { status: 401 });
   }
 

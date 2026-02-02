@@ -431,10 +431,7 @@ describe("PII Protection", () => {
       scope.setContext("form", {
         formId: "login-form",
         fieldCount: 3,
-        // These should NOT be included:
-        // password: "secret123",
-        // creditCard: "4111-1111-1111-1111",
-        // ssn: "123-45-6789",
+        // These should NOT be included (examples: password, creditCard, ssn)
       });
     });
 
