@@ -209,10 +209,16 @@ export function PromptDetailModal({
     const a = document.createElement("a");
     a.href = url;
     a.download = `${prompt.id}.md`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    try {
+      document.body.appendChild(a);
+      a.click();
+    } finally {
+      // Ensure cleanup even if click() throws
+      if (a.parentNode) {
+        a.parentNode.removeChild(a);
+      }
+      URL.revokeObjectURL(url);
+    }
     success("Downloaded", `${prompt.id}.md`);
     trackEvent("export", { id: prompt.id, format: "md", source: "modal" });
   }, [prompt, renderedContent, success]);

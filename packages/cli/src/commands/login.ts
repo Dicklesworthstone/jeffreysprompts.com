@@ -477,7 +477,18 @@ async function loginRemote(options: LoginOptions): Promise<void> {
       }
 
       // Check for specific errors
-      const errorBody = (await tokenResponse.json()) as DeviceTokenError;
+      let errorBody: DeviceTokenError;
+      try {
+        errorBody = (await tokenResponse.json()) as DeviceTokenError;
+      } catch {
+        // Response body is not valid JSON, treat as generic error
+        if (jsonOutput) {
+          writeJsonError("invalid_response", `Server returned non-JSON error (status ${tokenResponse.status})`);
+        } else {
+          console.log(chalk.red(`\n\nServer returned invalid response (status ${tokenResponse.status})`));
+        }
+        process.exit(1);
+      }
 
       if (errorBody.error === "authorization_pending") {
         // User hasn't completed auth yet, keep polling

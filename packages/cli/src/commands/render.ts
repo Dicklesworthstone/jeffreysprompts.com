@@ -114,7 +114,9 @@ export async function renderCommand(id: string, options: RenderOptions) {
   // Handle context
   let context = "";
   const parsedMax = Number.parseInt(options.maxContext || String(DEFAULT_MAX_CONTEXT), 10);
-  const maxContext = Number.isFinite(parsedMax) ? parsedMax : DEFAULT_MAX_CONTEXT;
+  // Cap maxContext to prevent memory exhaustion (10MB max)
+  const MAX_CONTEXT_CAP = 10_000_000;
+  const maxContext = Number.isFinite(parsedMax) ? Math.min(Math.max(0, parsedMax), MAX_CONTEXT_CAP) : DEFAULT_MAX_CONTEXT;
   let contextSource = "";
 
   if (options.stdin) {

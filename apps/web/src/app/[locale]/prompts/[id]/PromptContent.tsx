@@ -175,10 +175,16 @@ export function PromptContent({ prompt }: PromptContentProps) {
     const a = document.createElement("a");
     a.href = url;
     a.download = `${prompt.id}-SKILL.md`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    try {
+      document.body.appendChild(a);
+      a.click();
+    } finally {
+      // Ensure cleanup even if click() throws
+      if (a.parentNode) {
+        a.parentNode.removeChild(a);
+      }
+      URL.revokeObjectURL(url);
+    }
     success("Downloaded SKILL.md");
     trackEvent("export", { id: prompt.id, format: "skill" });
   }, [prompt, success]);
