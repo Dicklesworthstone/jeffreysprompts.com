@@ -37,6 +37,7 @@ describe("useFilterState", () => {
     mockSearchParams.delete("category");
     mockSearchParams.delete("tags");
     mockSearchParams.delete("sort");
+    mockSearchParams.delete("minRating");
     mockPathname = "/";
   });
 
@@ -53,6 +54,7 @@ describe("useFilterState", () => {
         category: null,
         tags: [],
         sortBy: "default",
+        minRating: 0,
       });
     });
 
@@ -88,6 +90,7 @@ describe("useFilterState", () => {
         category: "automation",
         tags: ["cli", "agent"],
         sortBy: "default",
+        minRating: 0,
       });
     });
 
@@ -103,6 +106,27 @@ describe("useFilterState", () => {
       const { result } = renderHook(() => useFilterState());
 
       expect(result.current.filters.sortBy).toBe("default");
+    });
+
+    it("parses minRating param from URL", () => {
+      mockSearchParams.set("minRating", "70");
+      const { result } = renderHook(() => useFilterState());
+
+      expect(result.current.filters.minRating).toBe(70);
+    });
+
+    it("defaults to 0 for invalid minRating param", () => {
+      mockSearchParams.set("minRating", "invalid");
+      const { result } = renderHook(() => useFilterState());
+
+      expect(result.current.filters.minRating).toBe(0);
+    });
+
+    it("defaults to 0 for out-of-range minRating param", () => {
+      mockSearchParams.set("minRating", "75");
+      const { result } = renderHook(() => useFilterState());
+
+      expect(result.current.filters.minRating).toBe(0);
     });
 
     it("handles empty tags param gracefully", () => {
@@ -306,6 +330,41 @@ describe("useFilterState", () => {
     });
   });
 
+  describe("setMinRating", () => {
+    it("updates URL with minRating param", () => {
+      const { result } = renderHook(() => useFilterState());
+
+      act(() => {
+        result.current.setMinRating(70);
+      });
+
+      expect(mockPush).toHaveBeenCalledWith("/?minRating=70", { scroll: false });
+    });
+
+    it("removes minRating param when set to 0", () => {
+      mockSearchParams.set("minRating", "70");
+      const { result } = renderHook(() => useFilterState());
+
+      act(() => {
+        result.current.setMinRating(0);
+      });
+
+      expect(mockPush).toHaveBeenCalledWith("/", { scroll: false });
+    });
+
+    it("preserves other params when setting minRating", () => {
+      mockSearchParams.set("q", "test");
+      const { result } = renderHook(() => useFilterState());
+
+      act(() => {
+        result.current.setMinRating(80);
+      });
+
+      expect(mockPush).toHaveBeenCalledWith(expect.stringContaining("q=test"), { scroll: false });
+      expect(mockPush).toHaveBeenCalledWith(expect.stringContaining("minRating=80"), { scroll: false });
+    });
+  });
+
   describe("clearFilters", () => {
     it("removes all filter params from URL", () => {
       mockSearchParams.set("q", "wizard");
@@ -375,6 +434,13 @@ describe("useFilterState", () => {
       mockSearchParams.set("q", "test");
       mockSearchParams.set("category", "automation");
       mockSearchParams.set("tags", "cli,agent");
+      const { result } = renderHook(() => useFilterState());
+
+      expect(result.current.hasActiveFilters).toBe(true);
+    });
+
+    it("returns true when minRating is set", () => {
+      mockSearchParams.set("minRating", "70");
       const { result } = renderHook(() => useFilterState());
 
       expect(result.current.hasActiveFilters).toBe(true);

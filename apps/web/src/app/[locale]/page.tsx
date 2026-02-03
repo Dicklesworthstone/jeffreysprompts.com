@@ -10,6 +10,7 @@ import { PromptGrid } from "@/components/PromptGrid";
 import { CategoryFilter } from "@/components/CategoryFilter";
 import { TagFilter } from "@/components/TagFilter";
 import { SortSelector } from "@/components/SortSelector";
+import { RatingFilter } from "@/components/RatingFilter";
 import { ActiveFilterChips } from "@/components/ActiveFilterChips";
 import { PromptDetailModal } from "@/components/PromptDetailModal";
 import { Button } from "@/components/ui/button";
@@ -42,7 +43,7 @@ function PromptGridFallback({ onRefresh }: { onRefresh: () => void }) {
 }
 
 function HomeContent() {
-  const { filters, setQuery, setCategory, setTags, setSortBy, clearFilters, hasActiveFilters } =
+  const { filters, setQuery, setCategory, setTags, setSortBy, setMinRating, clearFilters, hasActiveFilters } =
     useFilterState();
   const { summaries: ratingSummaries, loading: ratingsLoading } = useAllRatings();
 
@@ -120,6 +121,18 @@ function HomeContent() {
           filters.tags.some((tag) => p.tags.includes(tag))
         );
       }
+    }
+
+    // Apply minimum rating filter
+    if (filters.minRating > 0) {
+      results = results.filter((p) => {
+        const summary = ratingSummaries[p.id];
+        // Include prompts with no ratings if minRating is low, or exclude if they don't meet threshold
+        if (!summary || summary.total === 0) {
+          return false; // Exclude unrated prompts when filtering by rating
+        }
+        return summary.approvalRate >= filters.minRating;
+      });
     }
 
     // Apply sorting
@@ -272,6 +285,14 @@ function HomeContent() {
             />
 
             <div className="flex items-center gap-2">
+              {/* Rating filter */}
+              <RatingFilter
+                value={filters.minRating}
+                onChange={setMinRating}
+                disabled={ratingsLoading}
+                className="h-8 w-[140px]"
+              />
+
               {/* Sort selector */}
               <SortSelector
                 value={filters.sortBy}
@@ -345,6 +366,7 @@ function HomeContent() {
                       {filteredPrompts.length} prompt{filteredPrompts.length !== 1 ? "s" : ""}
                       {filters.query && ` matching "${filters.query}"`}
                       {filters.tags.length > 0 && ` with tags: ${filters.tags.join(", ")}`}
+                      {filters.minRating > 0 && ` with ${filters.minRating}%+ approval`}
                     </p>
                   </>
                 ) : (

@@ -13,11 +13,23 @@ export const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "newest", label: "Newest first" },
 ];
 
+export type MinRatingOption = 0 | 50 | 60 | 70 | 80 | 90;
+
+export const MIN_RATING_OPTIONS: { value: MinRatingOption; label: string }[] = [
+  { value: 0, label: "Any rating" },
+  { value: 50, label: "50%+" },
+  { value: 60, label: "60%+" },
+  { value: 70, label: "70%+" },
+  { value: 80, label: "80%+" },
+  { value: 90, label: "90%+" },
+];
+
 export interface FilterState {
   query: string;
   category: PromptCategory | null;
   tags: string[];
   sortBy: SortOption;
+  minRating: MinRatingOption;
 }
 
 export interface UseFilterStateReturn {
@@ -27,6 +39,7 @@ export interface UseFilterStateReturn {
   setTags: (tags: string[]) => void;
   toggleTag: (tag: string) => void;
   setSortBy: (sortBy: SortOption) => void;
+  setMinRating: (minRating: MinRatingOption) => void;
   clearFilters: () => void;
   hasActiveFilters: boolean;
 }
@@ -52,8 +65,14 @@ export function useFilterState(): UseFilterStateReturn {
         ? sortByParam
         : "default"
     ) as SortOption;
+    const minRatingParam = searchParams.get("minRating");
+    const minRating = (
+      minRatingParam && [0, 50, 60, 70, 80, 90].includes(Number(minRatingParam))
+        ? Number(minRatingParam)
+        : 0
+    ) as MinRatingOption;
 
-    return { query, category, tags, sortBy };
+    return { query, category, tags, sortBy, minRating };
   }, [searchParams]);
 
   // Update URL with new params
@@ -90,6 +109,14 @@ export function useFilterState(): UseFilterStateReturn {
           params.set("sort", updates.sortBy);
         } else {
           params.delete("sort");
+        }
+      }
+
+      if ("minRating" in updates) {
+        if (updates.minRating && updates.minRating > 0) {
+          params.set("minRating", String(updates.minRating));
+        } else {
+          params.delete("minRating");
         }
       }
 
@@ -140,12 +167,20 @@ export function useFilterState(): UseFilterStateReturn {
     [updateUrl]
   );
 
+  const setMinRating = useCallback(
+    (minRating: MinRatingOption) => {
+      updateUrl({ minRating });
+    },
+    [updateUrl]
+  );
+
   const clearFilters = useCallback(() => {
     const params = new URLSearchParams(searchParams.toString());
     params.delete("q");
     params.delete("category");
     params.delete("tags");
     params.delete("sort");
+    params.delete("minRating");
 
     const newUrl = params.toString()
       ? `${pathname}?${params.toString()}`
@@ -155,7 +190,7 @@ export function useFilterState(): UseFilterStateReturn {
   }, [searchParams, router, pathname]);
 
   const hasActiveFilters = useMemo(
-    () => Boolean(filters.query || filters.category || filters.tags.length > 0),
+    () => Boolean(filters.query || filters.category || filters.tags.length > 0 || filters.minRating > 0),
     [filters]
   );
 
@@ -166,6 +201,7 @@ export function useFilterState(): UseFilterStateReturn {
     setTags,
     toggleTag,
     setSortBy,
+    setMinRating,
     clearFilters,
     hasActiveFilters,
   };
