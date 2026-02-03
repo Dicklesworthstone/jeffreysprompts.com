@@ -36,6 +36,7 @@ describe("useFilterState", () => {
     mockSearchParams.delete("q");
     mockSearchParams.delete("category");
     mockSearchParams.delete("tags");
+    mockSearchParams.delete("sort");
     mockPathname = "/";
   });
 
@@ -51,6 +52,7 @@ describe("useFilterState", () => {
         query: "",
         category: null,
         tags: [],
+        sortBy: "default",
       });
     });
 
@@ -85,7 +87,22 @@ describe("useFilterState", () => {
         query: "test query",
         category: "automation",
         tags: ["cli", "agent"],
+        sortBy: "default",
       });
+    });
+
+    it("parses sort param from URL", () => {
+      mockSearchParams.set("sort", "rating");
+      const { result } = renderHook(() => useFilterState());
+
+      expect(result.current.filters.sortBy).toBe("rating");
+    });
+
+    it("defaults to 'default' for invalid sort param", () => {
+      mockSearchParams.set("sort", "invalid");
+      const { result } = renderHook(() => useFilterState());
+
+      expect(result.current.filters.sortBy).toBe("default");
     });
 
     it("handles empty tags param gracefully", () => {
@@ -254,11 +271,47 @@ describe("useFilterState", () => {
     });
   });
 
+  describe("setSortBy", () => {
+    it("updates URL with sort param", () => {
+      const { result } = renderHook(() => useFilterState());
+
+      act(() => {
+        result.current.setSortBy("rating");
+      });
+
+      expect(mockPush).toHaveBeenCalledWith("/?sort=rating", { scroll: false });
+    });
+
+    it("removes sort param when set to default", () => {
+      mockSearchParams.set("sort", "rating");
+      const { result } = renderHook(() => useFilterState());
+
+      act(() => {
+        result.current.setSortBy("default");
+      });
+
+      expect(mockPush).toHaveBeenCalledWith("/", { scroll: false });
+    });
+
+    it("preserves other params when setting sort", () => {
+      mockSearchParams.set("q", "test");
+      const { result } = renderHook(() => useFilterState());
+
+      act(() => {
+        result.current.setSortBy("votes");
+      });
+
+      expect(mockPush).toHaveBeenCalledWith(expect.stringContaining("q=test"), { scroll: false });
+      expect(mockPush).toHaveBeenCalledWith(expect.stringContaining("sort=votes"), { scroll: false });
+    });
+  });
+
   describe("clearFilters", () => {
     it("removes all filter params from URL", () => {
       mockSearchParams.set("q", "wizard");
       mockSearchParams.set("category", "ideation");
       mockSearchParams.set("tags", "ai,brainstorming");
+      mockSearchParams.set("sort", "rating");
       const { result } = renderHook(() => useFilterState());
 
       act(() => {

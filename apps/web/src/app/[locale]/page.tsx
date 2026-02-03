@@ -9,11 +9,13 @@ import { Hero } from "@/components/Hero";
 import { PromptGrid } from "@/components/PromptGrid";
 import { CategoryFilter } from "@/components/CategoryFilter";
 import { TagFilter } from "@/components/TagFilter";
+import { SortSelector } from "@/components/SortSelector";
 import { ActiveFilterChips } from "@/components/ActiveFilterChips";
 import { PromptDetailModal } from "@/components/PromptDetailModal";
 import { Button } from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { useFilterState } from "@/hooks/useFilterState";
+import { useAllRatings } from "@/hooks/useAllRatings";
 import { FeaturedPromptsSection, ForYouPromptsSection } from "@/components/landing";
 import { RecentlyViewedSidebar } from "@/components/history/RecentlyViewedSidebar";
 import { AnimatedSection } from "@/components/AnimatedSection";
@@ -40,8 +42,9 @@ function PromptGridFallback({ onRefresh }: { onRefresh: () => void }) {
 }
 
 function HomeContent() {
-  const { filters, setQuery, setCategory, setTags, clearFilters, hasActiveFilters } =
+  const { filters, setQuery, setCategory, setTags, setSortBy, clearFilters, hasActiveFilters } =
     useFilterState();
+  const { summaries: ratingSummaries, loading: ratingsLoading } = useAllRatings();
 
   // Modal state for viewing prompt details
   const [selectedPrompt, setSelectedPrompt] = useState<Prompt | null>(null);
@@ -94,7 +97,7 @@ function HomeContent() {
     return [...featured, ...nonFeatured].slice(0, 6);
   }, []);
 
-  // Filter prompts based on search, category, and tags
+  // Filter and sort prompts based on search, category, tags, and sort option
   const filteredPrompts = useMemo(() => {
     let results: Prompt[];
 
@@ -119,8 +122,37 @@ function HomeContent() {
       }
     }
 
+    // Apply sorting
+    if (filters.sortBy !== "default") {
+      results = [...results].sort((a, b) => {
+        switch (filters.sortBy) {
+          case "rating": {
+            const ratingA = ratingSummaries[a.id]?.approvalRate ?? 0;
+            const ratingB = ratingSummaries[b.id]?.approvalRate ?? 0;
+            // Higher rating first, then by votes as tiebreaker
+            if (ratingB !== ratingA) return ratingB - ratingA;
+            const votesA = ratingSummaries[a.id]?.total ?? 0;
+            const votesB = ratingSummaries[b.id]?.total ?? 0;
+            return votesB - votesA;
+          }
+          case "votes": {
+            const votesA = ratingSummaries[a.id]?.total ?? 0;
+            const votesB = ratingSummaries[b.id]?.total ?? 0;
+            return votesB - votesA;
+          }
+          case "newest": {
+            const dateA = a.updatedAt ?? a.created ?? "";
+            const dateB = b.updatedAt ?? b.created ?? "";
+            return dateB.localeCompare(dateA);
+          }
+          default:
+            return 0;
+        }
+      });
+    }
+
     return results;
-  }, [filters]);
+  }, [filters, ratingSummaries]);
 
   const handlePromptClick = useCallback((prompt: Prompt) => {
     setSelectedPrompt(prompt);
@@ -239,27 +271,37 @@ function HomeContent() {
               counts={categoryCounts}
             />
 
-            {/* Clear all filters */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearFilters}
-              disabled={!hasActiveFilters}
-              aria-label={hasActiveFilters ? `Clear all ${filterCount} active filters` : "No active filters to clear"}
-              className={
-                hasActiveFilters
-                  ? "h-8 px-3 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white"
-                  : "h-8 px-3 text-sm font-medium text-neutral-400 dark:text-neutral-600 cursor-not-allowed opacity-50"
-              }
-            >
-              <X className="w-3.5 h-3.5 mr-1.5" />
-              Clear filters
-              {hasActiveFilters && (
-                <span className="ml-1.5 text-xs bg-neutral-200 dark:bg-neutral-700 px-1.5 py-0.5 rounded-full">
-                  {filterCount}
-                </span>
-              )}
-            </Button>
+            <div className="flex items-center gap-2">
+              {/* Sort selector */}
+              <SortSelector
+                value={filters.sortBy}
+                onChange={setSortBy}
+                disabled={ratingsLoading}
+                className="h-8 w-[160px]"
+              />
+
+              {/* Clear all filters */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                disabled={!hasActiveFilters}
+                aria-label={hasActiveFilters ? `Clear all ${filterCount} active filters` : "No active filters to clear"}
+                className={
+                  hasActiveFilters
+                    ? "h-8 px-3 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white"
+                    : "h-8 px-3 text-sm font-medium text-neutral-400 dark:text-neutral-600 cursor-not-allowed opacity-50"
+                }
+              >
+                <X className="w-3.5 h-3.5 mr-1.5" />
+                Clear filters
+                {hasActiveFilters && (
+                  <span className="ml-1.5 text-xs bg-neutral-200 dark:bg-neutral-700 px-1.5 py-0.5 rounded-full">
+                    {filterCount}
+                  </span>
+                )}
+              </Button>
+            </div>
           </div>
 
           {/* Tag Filter */}

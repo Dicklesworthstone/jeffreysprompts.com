@@ -4,10 +4,20 @@ import { useCallback, useMemo } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import type { PromptCategory } from "@jeffreysprompts/core/prompts/types";
 
+export type SortOption = "default" | "rating" | "votes" | "newest";
+
+export const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: "default", label: "Default" },
+  { value: "rating", label: "Highest rated" },
+  { value: "votes", label: "Most votes" },
+  { value: "newest", label: "Newest first" },
+];
+
 export interface FilterState {
   query: string;
   category: PromptCategory | null;
   tags: string[];
+  sortBy: SortOption;
 }
 
 export interface UseFilterStateReturn {
@@ -16,6 +26,7 @@ export interface UseFilterStateReturn {
   setCategory: (category: PromptCategory | null) => void;
   setTags: (tags: string[]) => void;
   toggleTag: (tag: string) => void;
+  setSortBy: (sortBy: SortOption) => void;
   clearFilters: () => void;
   hasActiveFilters: boolean;
 }
@@ -35,8 +46,14 @@ export function useFilterState(): UseFilterStateReturn {
     const category = categoryParam as PromptCategory | null;
     const tagsParam = searchParams.get("tags");
     const tags = tagsParam ? tagsParam.split(",").filter(Boolean) : [];
+    const sortByParam = searchParams.get("sort");
+    const sortBy = (
+      sortByParam && ["default", "rating", "votes", "newest"].includes(sortByParam)
+        ? sortByParam
+        : "default"
+    ) as SortOption;
 
-    return { query, category, tags };
+    return { query, category, tags, sortBy };
   }, [searchParams]);
 
   // Update URL with new params
@@ -65,6 +82,14 @@ export function useFilterState(): UseFilterStateReturn {
           params.set("tags", updates.tags.join(","));
         } else {
           params.delete("tags");
+        }
+      }
+
+      if ("sortBy" in updates) {
+        if (updates.sortBy && updates.sortBy !== "default") {
+          params.set("sort", updates.sortBy);
+        } else {
+          params.delete("sort");
         }
       }
 
@@ -108,11 +133,19 @@ export function useFilterState(): UseFilterStateReturn {
     [filters.tags, updateUrl]
   );
 
+  const setSortBy = useCallback(
+    (sortBy: SortOption) => {
+      updateUrl({ sortBy });
+    },
+    [updateUrl]
+  );
+
   const clearFilters = useCallback(() => {
     const params = new URLSearchParams(searchParams.toString());
     params.delete("q");
     params.delete("category");
     params.delete("tags");
+    params.delete("sort");
 
     const newUrl = params.toString()
       ? `${pathname}?${params.toString()}`
@@ -132,6 +165,7 @@ export function useFilterState(): UseFilterStateReturn {
     setCategory,
     setTags,
     toggleTag,
+    setSortBy,
     clearFilters,
     hasActiveFilters,
   };
