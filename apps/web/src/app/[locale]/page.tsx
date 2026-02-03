@@ -19,6 +19,7 @@ import { useFilterState } from "@/hooks/useFilterState";
 import { useAllRatings } from "@/hooks/useAllRatings";
 import { FeaturedPromptsSection, ForYouPromptsSection } from "@/components/landing";
 import { RecentlyViewedSidebar } from "@/components/history/RecentlyViewedSidebar";
+import { Leaderboard } from "@/components/ratings/Leaderboard";
 import { AnimatedSection } from "@/components/AnimatedSection";
 import { trackEvent } from "@/lib/analytics";
 import { trackHistoryView } from "@/lib/history/client";
@@ -386,7 +387,19 @@ function HomeContent() {
             </ErrorBoundary>
           </div>
 
-          <div className="lg:pt-12">
+          <div className="lg:pt-12 space-y-8">
+            {/* Top Rated Prompts */}
+            <div>
+              <h3 className="text-sm font-semibold text-neutral-900 dark:text-white mb-4 flex items-center gap-2">
+                <span className="text-yellow-500">🏆</span> Top Rated
+              </h3>
+              <Leaderboard
+                limit={5}
+                minVotes={1}
+                onPromptClick={handlePromptClick}
+              />
+            </div>
+
             <RecentlyViewedSidebar />
           </div>
         </div>
