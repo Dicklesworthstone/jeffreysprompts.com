@@ -8,9 +8,16 @@ import {
   REVIEW_MAX_LENGTH,
 } from "@/lib/reviews/review-store";
 import { isRatingContentType } from "@/lib/ratings/rating-store";
+import { createRateLimiter } from "@/lib/rate-limit";
 import { getOrCreateUserId, getUserIdFromRequest } from "@/lib/user-id";
 
 const MAX_ID_LENGTH = 200;
+
+const reviewRateLimiter = createRateLimiter({
+  name: "reviews",
+  windowMs: 60 * 60 * 1000, // 1 hour
+  maxRequests: 20,
+});
 const MAX_LIMIT = 50;
 const DEFAULT_LIMIT = 10;
 
@@ -108,6 +115,19 @@ export async function GET(request: NextRequest) {
  * Returns the created/updated review
  */
 export async function POST(request: NextRequest) {
+  const forwardedFor = request.headers.get("x-forwarded-for");
+  const clientIp = forwardedFor?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "unknown";
+  const rateLimit = await reviewRateLimiter.check(clientIp);
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Too many reviews. Please try again later." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
+      }
+    );
+  }
+
   let payload: Record<string, unknown>;
 
   try {
