@@ -56,7 +56,14 @@ export function useFilterState(): UseFilterStateReturn {
   const filters = useMemo<FilterState>(() => {
     const query = searchParams.get("q") ?? "";
     const categoryParam = searchParams.get("category");
-    const category = categoryParam as PromptCategory | null;
+    // Validate category before casting to prevent invalid values from URL
+    const validCategories: PromptCategory[] = [
+      "ideation", "documentation", "automation", "refactoring",
+      "testing", "debugging", "workflow", "communication"
+    ];
+    const category = categoryParam && validCategories.includes(categoryParam as PromptCategory)
+      ? (categoryParam as PromptCategory)
+      : null;
     const tagsParam = searchParams.get("tags");
     const tags = tagsParam ? tagsParam.split(",").filter(Boolean) : [];
     const sortByParam = searchParams.get("sort");

@@ -477,8 +477,8 @@ describe("useFilterState", () => {
       mockSearchParams.set("category", "");
       const { result } = renderHook(() => useFilterState());
 
-      // Empty string should be treated as no category
-      expect(result.current.filters.category).toBe("");
+      // Empty string is not a valid category, so it should be treated as null
+      expect(result.current.filters.category).toBeNull();
     });
 
     it("filters out empty tag values", () => {
