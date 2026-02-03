@@ -74,6 +74,38 @@ const STORE_KEY = "__jfp_review_store__";
 const MAX_REVIEW_LENGTH = 2000;
 const MAX_RESPONSE_LENGTH = 1000;
 
+/**
+ * Sanitize user input to prevent XSS attacks.
+ * This is more comprehensive than just stripping < and >.
+ *
+ * Security approach:
+ * 1. Remove all HTML tags and their contents for script/style
+ * 2. Escape HTML entities to prevent injection
+ * 3. Remove javascript: and data: URLs
+ * 4. Remove event handlers (onclick, onerror, etc.)
+ */
+function sanitizeUserInput(input: string): string {
+  return (
+    input
+      // Remove script and style tags with content
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
+      // Remove all HTML tags
+      .replace(/<[^>]*>/g, "")
+      // Remove javascript: and data: URLs that might be in attributes
+      .replace(/javascript:/gi, "")
+      .replace(/data:/gi, "")
+      // Remove common event handlers patterns
+      .replace(/on\w+\s*=/gi, "")
+      // Encode remaining special characters
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#x27;")
+  );
+}
+
 function getStore(): ReviewStore {
   const globalStore = globalThis as typeof globalThis & {
     [STORE_KEY]?: ReviewStore;
@@ -197,14 +229,11 @@ export function submitReview(input: SubmitReviewInput): SubmitReviewResult {
   const existing = store.reviews.get(reviewId);
 
   // Sanitize and truncate content
-  const sanitizedContent = input.content
-    .trim()
-    .slice(0, MAX_REVIEW_LENGTH)
-    .replace(/[<>]/g, ""); // Basic XSS prevention
+  const sanitizedContent = sanitizeUserInput(input.content.trim()).slice(0, MAX_REVIEW_LENGTH);
 
   // Sanitize displayName as well
   const sanitizedDisplayName = input.displayName
-    ? input.displayName.trim().slice(0, 50).replace(/[<>]/g, "")
+    ? sanitizeUserInput(input.displayName.trim()).slice(0, 50)
     : null;
 
   const review: Review = existing
@@ -343,10 +372,7 @@ export function submitAuthorResponse(input: {
   const responseId = `response:${input.reviewId}`;
 
   // Sanitize and truncate content
-  const sanitizedContent = input.content
-    .trim()
-    .slice(0, MAX_RESPONSE_LENGTH)
-    .replace(/[<>]/g, "");
+  const sanitizedContent = sanitizeUserInput(input.content.trim()).slice(0, MAX_RESPONSE_LENGTH);
 
   const existing = review.authorResponse;
 

@@ -20,9 +20,9 @@ interface RouteParams {
  * Body:
  * - content: string (response text, max 1000 chars)
  *
- * Note: In a production system, you would verify that the current user
- * is actually the author of the content being reviewed. For this MVP,
- * we'll use a simple check based on a header or environment variable.
+ * SECURITY NOTE: This endpoint currently requires server-side author verification.
+ * The contentId from the review is used to look up the actual content author.
+ * For MVP without a user/content ownership system, this is disabled.
  */
 export async function POST(request: NextRequest, context: RouteParams) {
   const { id: reviewId } = await context.params;
@@ -42,16 +42,19 @@ export async function POST(request: NextRequest, context: RouteParams) {
     return NextResponse.json({ error: "Review not found." }, { status: 404 });
   }
 
-  // For MVP: Allow the content author to respond
-  // In production, verify the user is the actual content author
-  // For now, we'll use a simple header check or allow any authenticated user
-  // to respond (simulating author functionality)
-  const authorHeader = request.headers.get("x-content-author-id");
-  const isAuthor = authorHeader === userId || process.env.NODE_ENV === "development";
-
-  if (!isAuthor) {
+  // SECURITY: Author verification is disabled for MVP.
+  // In production, this should verify the user owns the content being reviewed
+  // by checking against a content ownership database/service.
+  //
+  // DO NOT trust client headers like x-content-author-id - they can be spoofed.
+  // The proper implementation would be:
+  //   const content = await getContentById(review.contentId);
+  //   const isAuthor = content?.authorId === userId;
+  //
+  // For now, author responses are disabled in production to prevent abuse.
+  if (process.env.NODE_ENV !== "development") {
     return NextResponse.json(
-      { error: "Only the content author can respond to reviews." },
+      { error: "Author responses are not available yet." },
       { status: 403 }
     );
   }

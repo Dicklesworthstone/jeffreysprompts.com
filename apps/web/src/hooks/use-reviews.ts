@@ -98,8 +98,14 @@ export function useReviews({
         });
 
         if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.error || "Failed to submit review");
+          let errorMessage = "Failed to submit review";
+          try {
+            const data = await res.json();
+            errorMessage = data.error || errorMessage;
+          } catch {
+            // Response wasn't JSON, use default error
+          }
+          throw new Error(errorMessage);
         }
 
         const data = await res.json();
@@ -137,8 +143,14 @@ export function useReviews({
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to delete review");
+        let errorMessage = "Failed to delete review";
+        try {
+          const data = await res.json();
+          errorMessage = data.error || errorMessage;
+        } catch {
+          // Response wasn't JSON, use default error
+        }
+        throw new Error(errorMessage);
       }
 
       setState((prev) => ({
@@ -237,8 +249,14 @@ export function useReviewVote({ reviewId }: UseReviewVoteOptions): UseReviewVote
         });
 
         if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.error || "Failed to submit vote");
+          let errorMessage = "Failed to submit vote";
+          try {
+            const data = await res.json();
+            errorMessage = data.error || errorMessage;
+          } catch {
+            // Response wasn't JSON, use default error
+          }
+          throw new Error(errorMessage);
         }
 
         const data = await res.json();
