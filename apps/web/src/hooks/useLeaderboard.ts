@@ -31,37 +31,52 @@ export function useLeaderboard(options: UseLeaderboardOptions = {}): UseLeaderbo
   });
 
   const fetchedRef = useRef(false);
+  const mountedRef = useRef(true);
 
-  const fetchLeaderboard = useCallback(async () => {
+  const fetchLeaderboard = useCallback(async (signal?: AbortSignal) => {
     try {
       const params = new URLSearchParams();
       params.set("limit", String(limit));
       params.set("minVotes", String(minVotes));
 
-      const res = await fetch(`/api/ratings/leaderboard?${params.toString()}`);
+      const res = await fetch(`/api/ratings/leaderboard?${params.toString()}`, { signal });
       if (!res.ok) {
         throw new Error("Failed to fetch leaderboard");
       }
       const data = await res.json();
-      setState({
-        entries: data.entries,
-        loading: false,
-        error: null,
-      });
+      if (mountedRef.current) {
+        setState({
+          entries: data.entries,
+          loading: false,
+          error: null,
+        });
+      }
     } catch (err) {
-      setState((prev) => ({
-        ...prev,
-        loading: false,
-        error: err instanceof Error ? err.message : "Unknown error",
-      }));
+      // Don't update state for aborted requests
+      if (err instanceof Error && err.name === "AbortError") return;
+      if (mountedRef.current) {
+        setState((prev) => ({
+          ...prev,
+          loading: false,
+          error: err instanceof Error ? err.message : "Unknown error",
+        }));
+      }
     }
   }, [limit, minVotes]);
 
   useEffect(() => {
+    mountedRef.current = true;
+    const controller = new AbortController();
+
     if (!fetchedRef.current) {
       fetchedRef.current = true;
-      fetchLeaderboard();
+      fetchLeaderboard(controller.signal);
     }
+
+    return () => {
+      mountedRef.current = false;
+      controller.abort();
+    };
   }, [fetchLeaderboard]);
 
   return {

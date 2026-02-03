@@ -28,26 +28,33 @@ export function useAllRatings(): UseAllRatingsReturn {
   });
 
   const fetchedRef = useRef(false);
+  const mountedRef = useRef(true);
 
-  const fetchRatings = useCallback(async () => {
+  const fetchRatings = useCallback(async (signal?: AbortSignal) => {
     try {
-      const res = await fetch("/api/ratings/summaries");
+      const res = await fetch("/api/ratings/summaries", { signal });
       if (!res.ok) {
         throw new Error("Failed to fetch ratings");
       }
       const data = await res.json();
-      setState({
-        summaries: data.summaries,
-        loading: false,
-        error: null,
-        lastUpdated: data.generated_at,
-      });
+      if (mountedRef.current) {
+        setState({
+          summaries: data.summaries,
+          loading: false,
+          error: null,
+          lastUpdated: data.generated_at,
+        });
+      }
     } catch (err) {
-      setState((prev) => ({
-        ...prev,
-        loading: false,
-        error: err instanceof Error ? err.message : "Unknown error",
-      }));
+      // Don't update state for aborted requests
+      if (err instanceof Error && err.name === "AbortError") return;
+      if (mountedRef.current) {
+        setState((prev) => ({
+          ...prev,
+          loading: false,
+          error: err instanceof Error ? err.message : "Unknown error",
+        }));
+      }
     }
   }, []);
 
@@ -59,11 +66,19 @@ export function useAllRatings(): UseAllRatingsReturn {
   );
 
   useEffect(() => {
+    mountedRef.current = true;
+    const controller = new AbortController();
+
     // Only fetch once on mount
     if (!fetchedRef.current) {
       fetchedRef.current = true;
-      fetchRatings();
+      fetchRatings(controller.signal);
     }
+
+    return () => {
+      mountedRef.current = false;
+      controller.abort();
+    };
   }, [fetchRatings]);
 
   return {
