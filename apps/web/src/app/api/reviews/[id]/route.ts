@@ -142,7 +142,7 @@ export async function PUT(request: NextRequest, context: RouteParams) {
   };
 
   // Re-import to get the store update function
-  const { submitReview, getReviewSummary } = await import("@/lib/reviews/review-store");
+  const { submitReview } = await import("@/lib/reviews/review-store");
 
   // We need to use submitReview which handles store updates
   const result = submitReview({
