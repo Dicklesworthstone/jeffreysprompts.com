@@ -15,6 +15,12 @@ import type { RatingContentType, RatingValue } from "../ratings/rating-store";
 
 export type { RatingContentType };
 
+export interface ReviewReport {
+  reporterId: string;
+  reason?: string;
+  createdAt: string;
+}
+
 export interface Review {
   id: string;
   contentType: RatingContentType;
@@ -28,6 +34,7 @@ export interface Review {
   helpfulCount: number;
   notHelpfulCount: number;
   reported: boolean;
+  reportInfo: ReviewReport | null;
   authorResponse: AuthorResponse | null;
 }
 
@@ -195,12 +202,17 @@ export function submitReview(input: SubmitReviewInput): SubmitReviewResult {
     .slice(0, MAX_REVIEW_LENGTH)
     .replace(/[<>]/g, ""); // Basic XSS prevention
 
+  // Sanitize displayName as well
+  const sanitizedDisplayName = input.displayName
+    ? input.displayName.trim().slice(0, 50).replace(/[<>]/g, "")
+    : null;
+
   const review: Review = existing
     ? {
         ...existing,
         rating: input.rating,
         content: sanitizedContent,
-        displayName: input.displayName ?? existing.displayName,
+        displayName: sanitizedDisplayName ?? existing.displayName,
         updatedAt: now,
       }
     : {
@@ -208,7 +220,7 @@ export function submitReview(input: SubmitReviewInput): SubmitReviewResult {
         contentType: input.contentType,
         contentId: input.contentId,
         userId: input.userId,
-        displayName: input.displayName ?? null,
+        displayName: sanitizedDisplayName,
         rating: input.rating,
         content: sanitizedContent,
         createdAt: now,
@@ -216,6 +228,7 @@ export function submitReview(input: SubmitReviewInput): SubmitReviewResult {
         helpfulCount: 0,
         notHelpfulCount: 0,
         reported: false,
+        reportInfo: null,
         authorResponse: null,
       };
 
@@ -392,8 +405,14 @@ export function reportReview(input: {
     return false;
   }
 
+  const now = new Date().toISOString();
   review.reported = true;
-  review.updatedAt = new Date().toISOString();
+  review.reportInfo = {
+    reporterId: input.reporterId,
+    reason: input.reason,
+    createdAt: now,
+  };
+  review.updatedAt = now;
   store.reviews.set(input.reviewId, review);
 
   return true;

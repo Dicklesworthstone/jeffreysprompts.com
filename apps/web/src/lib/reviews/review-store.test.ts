@@ -10,7 +10,6 @@ import {
   submitAuthorResponse,
   deleteAuthorResponse,
   reportReview,
-  type RatingContentType,
 } from "./review-store";
 
 // Clear store between tests by accessing the global store
@@ -497,6 +496,51 @@ describe("review-store", () => {
       });
 
       expect(result.reviews[0].reported).toBe(true);
+    });
+
+    it("stores report info with reason", () => {
+      const { review } = submitReview({
+        contentType: "prompt",
+        contentId: "test-prompt-1",
+        userId: "user-1",
+        rating: "up",
+        content: "Review that will be reported with reason.",
+      });
+
+      const success = reportReview({
+        reviewId: review.id,
+        reporterId: "reporter-1",
+        reason: "Inappropriate content",
+      });
+
+      expect(success).toBe(true);
+
+      const result = listReviewsForContent({
+        contentType: "prompt",
+        contentId: "test-prompt-1",
+        includeReported: true,
+      });
+
+      expect(result.reviews[0].reportInfo).not.toBeNull();
+      expect(result.reviews[0].reportInfo?.reporterId).toBe("reporter-1");
+      expect(result.reviews[0].reportInfo?.reason).toBe("Inappropriate content");
+      expect(result.reviews[0].reportInfo?.createdAt).toBeDefined();
+    });
+  });
+
+  describe("displayName sanitization", () => {
+    it("sanitizes HTML from displayName", () => {
+      const result = submitReview({
+        contentType: "prompt",
+        contentId: "test-prompt-1",
+        userId: "user-1",
+        rating: "up",
+        content: "Review with script in display name.",
+        displayName: "<script>alert('xss')</script>BadUser",
+      });
+
+      expect(result.review.displayName).not.toContain("<script>");
+      expect(result.review.displayName).toContain("BadUser");
     });
   });
 });

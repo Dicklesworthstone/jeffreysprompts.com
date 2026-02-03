@@ -132,26 +132,17 @@ export async function PUT(request: NextRequest, context: RouteParams) {
     return NextResponse.json({ error: "Invalid rating value. Must be 'up' or 'down'." }, { status: 400 });
   }
 
-  // Update the review in place
-  const now = new Date().toISOString();
-  const updatedReview = {
-    ...review,
-    content: newContent !== undefined ? newContent.replace(/[<>]/g, "") : review.content,
-    rating: newRating !== undefined ? (newRating as "up" | "down") : review.rating,
-    updatedAt: now,
-  };
-
   // Re-import to get the store update function
   const { submitReview } = await import("@/lib/reviews/review-store");
 
-  // We need to use submitReview which handles store updates
+  // We need to use submitReview which handles store updates and sanitization
   const result = submitReview({
-    contentType: updatedReview.contentType,
-    contentId: updatedReview.contentId,
-    userId: updatedReview.userId,
-    displayName: updatedReview.displayName ?? undefined,
-    rating: updatedReview.rating,
-    content: updatedReview.content,
+    contentType: review.contentType,
+    contentId: review.contentId,
+    userId: review.userId,
+    displayName: review.displayName ?? undefined,
+    rating: newRating !== undefined ? (newRating as "up" | "down") : review.rating,
+    content: newContent !== undefined ? newContent : review.content,
   });
 
   return NextResponse.json({
