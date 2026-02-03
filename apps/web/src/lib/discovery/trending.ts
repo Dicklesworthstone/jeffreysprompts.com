@@ -149,13 +149,19 @@ export function calculateTrendingScore(
 
 /**
  * Calculate max values from a collection of prompts for normalization.
+ * Filters out undefined/NaN values to prevent NaN propagation.
  */
 function calculateMaxValues(prompts: CommunityPrompt[]) {
+  const safeMax = (values: number[]) => {
+    const validValues = values.filter((v) => Number.isFinite(v));
+    return validValues.length > 0 ? Math.max(1, ...validValues) : 1;
+  };
+
   return {
-    maxViews: Math.max(1, ...prompts.map((p) => p.stats.views)),
-    maxCopies: Math.max(1, ...prompts.map((p) => p.stats.copies)),
-    maxSaves: Math.max(1, ...prompts.map((p) => p.stats.saves)),
-    maxRatingCount: Math.max(1, ...prompts.map((p) => p.stats.ratingCount)),
+    maxViews: safeMax(prompts.map((p) => p.stats?.views ?? 0)),
+    maxCopies: safeMax(prompts.map((p) => p.stats?.copies ?? 0)),
+    maxSaves: safeMax(prompts.map((p) => p.stats?.saves ?? 0)),
+    maxRatingCount: safeMax(prompts.map((p) => p.stats?.ratingCount ?? 0)),
   };
 }
 

@@ -78,9 +78,13 @@ export function getRelatedRecommendations(
   const limit = options?.limit ?? CONFIG.maxRecommendations;
   const excludeIds = new Set([sourcePrompt.id, ...(options?.excludeIds ?? [])]);
 
-  // Calculate max values for normalization
-  const maxViews = Math.max(1, ...allPrompts.map((p) => p.stats.views));
-  const maxCopies = Math.max(1, ...allPrompts.map((p) => p.stats.copies));
+  // Calculate max values for normalization (filter out undefined/NaN to prevent propagation)
+  const safeMax = (values: number[]) => {
+    const validValues = values.filter((v) => Number.isFinite(v));
+    return validValues.length > 0 ? Math.max(1, ...validValues) : 1;
+  };
+  const maxViews = safeMax(allPrompts.map((p) => p.stats?.views ?? 0));
+  const maxCopies = safeMax(allPrompts.map((p) => p.stats?.copies ?? 0));
 
   const recommendations: Recommendation[] = [];
 
@@ -160,11 +164,19 @@ export function getRecommendationsFromHistory(
     categoryFrequency.set(source.category, (categoryFrequency.get(source.category) ?? 0) + 1);
   }
 
-  // Calculate max values for normalization
-  const maxViews = Math.max(1, ...allPrompts.map((p) => p.stats.views));
-  const maxCopies = Math.max(1, ...allPrompts.map((p) => p.stats.copies));
-  const maxTagFreq = Math.max(1, ...tagFrequency.values());
-  const maxCatFreq = Math.max(1, ...categoryFrequency.values());
+  // Calculate max values for normalization (filter out undefined/NaN to prevent propagation)
+  const safeMaxArr = (values: number[]) => {
+    const validValues = values.filter((v) => Number.isFinite(v));
+    return validValues.length > 0 ? Math.max(1, ...validValues) : 1;
+  };
+  const safeMaxIter = (values: Iterable<number>) => {
+    const arr = [...values].filter((v) => Number.isFinite(v));
+    return arr.length > 0 ? Math.max(1, ...arr) : 1;
+  };
+  const maxViews = safeMaxArr(allPrompts.map((p) => p.stats?.views ?? 0));
+  const maxCopies = safeMaxArr(allPrompts.map((p) => p.stats?.copies ?? 0));
+  const maxTagFreq = safeMaxIter(tagFrequency.values());
+  const maxCatFreq = safeMaxIter(categoryFrequency.values());
 
   const recommendations: Recommendation[] = [];
 

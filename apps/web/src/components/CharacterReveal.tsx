@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useMemo } from "react";
-import { motion, useInView, type Variants } from "framer-motion";
+import { motion, useInView, useReducedMotion, type Variants } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 interface CharacterRevealProps {
@@ -88,6 +88,7 @@ export function CharacterReveal({
 }: CharacterRevealProps) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once, amount: threshold });
+  const prefersReducedMotion = useReducedMotion();
 
   const config = presetConfigs[preset];
 
@@ -95,6 +96,41 @@ export function CharacterReveal({
   const words = useMemo(() => {
     return text.split(" ").map((word) => word.split(""));
   }, [text]);
+
+  // Skip animation entirely when user prefers reduced motion
+  if (prefersReducedMotion) {
+    return (
+      <div
+        className={cn(
+          "flex flex-wrap justify-center",
+          gradient &&
+            "bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text",
+          className
+        )}
+        aria-label={text}
+      >
+        {words.map((word, wordIndex) => (
+          <span key={wordIndex} className="inline-flex">
+            {word.map((char, charIdx) => (
+              <span
+                key={`${char}-${charIdx}`}
+                className={cn(
+                  "inline-block",
+                  gradient && "text-transparent"
+                )}
+                aria-hidden="true"
+              >
+                {char}
+              </span>
+            ))}
+            {wordIndex < words.length - 1 && (
+              <span className="inline-block w-[0.3em]" aria-hidden="true" />
+            )}
+          </span>
+        ))}
+      </div>
+    );
+  }
 
   const containerVariants: Variants = {
     hidden: {},

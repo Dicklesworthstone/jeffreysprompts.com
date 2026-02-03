@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useMemo } from "react";
-import { motion, useInView, type Variants } from "framer-motion";
+import { motion, useInView, useReducedMotion, type Variants } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 interface TextRevealProps {
@@ -64,9 +64,37 @@ export function TextReveal({
 }: TextRevealProps) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once, amount: threshold });
+  const prefersReducedMotion = useReducedMotion();
 
   const words = useMemo(() => text.split(" "), [text]);
   const offset = directionOffsets[direction];
+
+  // Skip animation entirely when user prefers reduced motion
+  if (prefersReducedMotion) {
+    return (
+      <div
+        className={cn(
+          "flex flex-wrap justify-center",
+          gradient && "bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text",
+          className
+        )}
+        aria-label={text}
+      >
+        {words.map((word, index) => (
+          <span
+            key={`${word}-${index}`}
+            className={cn(
+              "inline-block mr-[0.25em]",
+              gradient && "text-transparent"
+            )}
+            aria-hidden="true"
+          >
+            {word}
+          </span>
+        ))}
+      </div>
+    );
+  }
 
   const containerVariants: Variants = {
     hidden: {},

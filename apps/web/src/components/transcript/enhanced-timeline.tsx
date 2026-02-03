@@ -281,7 +281,7 @@ function MessageCard({ message }: { message: TranscriptMessage }) {
               <span className="font-mono">{tc.name}</span>
               {typeof tc.input?.file_path === "string" && (
                 <span className="truncate text-neutral-400">
-                  {tc.input.file_path.split("/").pop()}
+                  {tc.input.file_path.split("/").pop() || tc.input.file_path}
                 </span>
               )}
             </div>

@@ -397,6 +397,7 @@ export function ShareDialog({
                     placeholder="Enter a password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="new-password"
                     icon={<Lock className="h-4 w-4" />}
                   />
                 )}

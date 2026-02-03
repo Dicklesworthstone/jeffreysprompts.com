@@ -49,8 +49,8 @@ export async function copyToClipboard(text: string): Promise<CopyResult> {
   // 2. readonly attribute prevents keyboard popup
   // 3. contentEditable + readOnly combo works best on iOS
   // 4. setSelectionRange is required for iOS
+  const textarea = document.createElement("textarea");
   try {
-    const textarea = document.createElement("textarea");
     textarea.value = text;
 
     // Style to be invisible but in viewport (iOS needs this)
@@ -89,7 +89,6 @@ export async function copyToClipboard(text: string): Promise<CopyResult> {
     }
 
     const success = document.execCommand("copy");
-    document.body.removeChild(textarea);
 
     if (!success) {
       throw new Error("execCommand('copy') returned false");
@@ -100,5 +99,10 @@ export async function copyToClipboard(text: string): Promise<CopyResult> {
     const error = err instanceof Error ? err : new Error(String(err));
     console.error("Clipboard fallback failed:", error);
     return { success: false, error };
+  } finally {
+    // Always clean up the textarea, even if an error occurred
+    if (textarea.parentNode) {
+      textarea.parentNode.removeChild(textarea);
+    }
   }
 }

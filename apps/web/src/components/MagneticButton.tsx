@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, type ReactNode, type MouseEvent } from "react";
-import { motion, useSpring, useTransform } from "framer-motion";
+import { motion, useSpring, useTransform, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 interface MagneticButtonProps {
@@ -33,6 +33,7 @@ interface MagneticButtonProps {
  * - Press scale with spring physics
  * - Bounce animation on click
  * - Inner highlight on press
+ * - Respects reduced motion preferences
  *
  * @example
  * ```tsx
@@ -59,6 +60,7 @@ export function MagneticButton({
   variant = "primary",
 }: MagneticButtonProps) {
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const prefersReducedMotion = useReducedMotion();
   const [isHovered, setIsHovered] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
   const [glowPosition, setGlowPosition] = useState({ x: 50, y: 50 });
@@ -73,7 +75,8 @@ export function MagneticButton({
   const contentY = useTransform(y, (val) => val * 0.5);
 
   const handleMouseMove = (e: MouseEvent<HTMLButtonElement>) => {
-    if (!buttonRef.current || disabled) return;
+    // Skip magnetic effect for reduced motion
+    if (!buttonRef.current || disabled || prefersReducedMotion) return;
 
     const rect = buttonRef.current.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
@@ -150,7 +153,7 @@ export function MagneticButton({
       animate={{
         scale: isPressed ? pressScale : 1,
       }}
-      whileTap={bounceOnClick ? { scale: [pressScale, 1.02, 1] } : undefined}
+      whileTap={bounceOnClick && !prefersReducedMotion ? { scale: [pressScale, 1.02, 1] } : undefined}
       transition={{
         scale: {
           type: "spring",
@@ -200,22 +203,24 @@ export function MagneticButton({
         {children}
       </motion.span>
 
-      {/* Shimmer effect on hover */}
-      <motion.div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            "linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)",
-          transform: "translateX(-100%)",
-        }}
-        animate={{
-          x: isHovered ? ["0%", "200%"] : "-100%",
-        }}
-        transition={{
-          duration: 0.8,
-          ease: "easeInOut",
-        }}
-      />
+      {/* Shimmer effect on hover - skip for reduced motion */}
+      {!prefersReducedMotion && (
+        <motion.div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              "linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)",
+            transform: "translateX(-100%)",
+          }}
+          animate={{
+            x: isHovered ? ["0%", "200%"] : "-100%",
+          }}
+          transition={{
+            duration: 0.8,
+            ease: "easeInOut",
+          }}
+        />
+      )}
     </motion.button>
   );
 }

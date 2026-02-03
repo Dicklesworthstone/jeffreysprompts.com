@@ -24,7 +24,9 @@ function scoreRelatedPrompts(promptId: string, limit: number): ScoredPrompt[] {
   const query = `${current.title} ${current.description}`.trim();
   const bm25Results = searchPrompts(query, { limit: prompts.length, expandSynonyms: false });
   const bm25ScoreById = new Map(bm25Results.map((result) => [result.prompt.id, result.score]));
-  const maxBm25 = Math.max(1, ...bm25Results.map((result) => result.score));
+  // Filter out undefined/NaN scores to prevent NaN propagation
+  const validScores = bm25Results.map((result) => result.score).filter((s) => Number.isFinite(s));
+  const maxBm25 = validScores.length > 0 ? Math.max(1, ...validScores) : 1;
 
   const scored = prompts
     .filter((prompt) => prompt.id !== promptId)

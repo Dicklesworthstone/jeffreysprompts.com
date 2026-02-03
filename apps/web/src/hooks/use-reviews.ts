@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import type { Review, ReviewSummary, RatingContentType } from "@/lib/reviews/review-store";
 
 interface ReviewsState {
@@ -44,8 +44,11 @@ export function useReviews({
     error: null,
   });
 
+  // Ref to track mounted state for safe state updates after async operations
+  const mountedRef = useRef(true);
+
   const fetchReviews = useCallback(
-    async (offset = 0, append = false) => {
+    async (offset = 0, append = false, signal?: AbortSignal) => {
       const params = new URLSearchParams({
         contentType,
         contentId,
@@ -54,25 +57,32 @@ export function useReviews({
       });
 
       try {
-        const res = await fetch(`/api/reviews?${params.toString()}`);
+        const res = await fetch(`/api/reviews?${params.toString()}`, { signal });
         if (!res.ok) {
           throw new Error("Failed to fetch reviews");
         }
         const data = await res.json();
-        setState((prev) => ({
-          reviews: append ? [...prev.reviews, ...data.reviews] : data.reviews,
-          summary: data.summary,
-          userReview: data.userReview,
-          pagination: data.pagination,
-          loading: false,
-          error: null,
-        }));
+        // Only update state if component is still mounted
+        if (mountedRef.current) {
+          setState((prev) => ({
+            reviews: append ? [...prev.reviews, ...data.reviews] : data.reviews,
+            summary: data.summary,
+            userReview: data.userReview,
+            pagination: data.pagination,
+            loading: false,
+            error: null,
+          }));
+        }
       } catch (err) {
-        setState((prev) => ({
-          ...prev,
-          loading: false,
-          error: err instanceof Error ? err.message : "Unknown error",
-        }));
+        // Don't update state for aborted requests
+        if (err instanceof Error && err.name === "AbortError") return;
+        if (mountedRef.current) {
+          setState((prev) => ({
+            ...prev,
+            loading: false,
+            error: err instanceof Error ? err.message : "Unknown error",
+          }));
+        }
       }
     },
     [contentType, contentId, limit]
@@ -181,7 +191,14 @@ export function useReviews({
   }, [fetchReviews, state.pagination, state.loading]);
 
   useEffect(() => {
-    fetchReviews();
+    mountedRef.current = true;
+    const controller = new AbortController();
+    fetchReviews(0, false, controller.signal);
+
+    return () => {
+      mountedRef.current = false;
+      controller.abort();
+    };
   }, [fetchReviews]);
 
   return {
@@ -216,24 +233,33 @@ export function useReviewVote({ reviewId }: UseReviewVoteOptions): UseReviewVote
     error: null,
   });
 
-  const fetchVote = useCallback(async () => {
+  // Ref to track mounted state for safe state updates after async operations
+  const mountedRef = useRef(true);
+
+  const fetchVote = useCallback(async (signal?: AbortSignal) => {
     try {
-      const res = await fetch(`/api/reviews/${reviewId}/vote`);
+      const res = await fetch(`/api/reviews/${reviewId}/vote`, { signal });
       if (!res.ok) {
         throw new Error("Failed to fetch vote");
       }
       const data = await res.json();
-      setState({
-        userVote: data.vote,
-        loading: false,
-        error: null,
-      });
+      if (mountedRef.current) {
+        setState({
+          userVote: data.vote,
+          loading: false,
+          error: null,
+        });
+      }
     } catch (err) {
-      setState((prev) => ({
-        ...prev,
-        loading: false,
-        error: err instanceof Error ? err.message : "Unknown error",
-      }));
+      // Don't update state for aborted requests
+      if (err instanceof Error && err.name === "AbortError") return;
+      if (mountedRef.current) {
+        setState((prev) => ({
+          ...prev,
+          loading: false,
+          error: err instanceof Error ? err.message : "Unknown error",
+        }));
+      }
     }
   }, [reviewId]);
 
@@ -279,7 +305,14 @@ export function useReviewVote({ reviewId }: UseReviewVoteOptions): UseReviewVote
   );
 
   useEffect(() => {
-    fetchVote();
+    mountedRef.current = true;
+    const controller = new AbortController();
+    fetchVote(controller.signal);
+
+    return () => {
+      mountedRef.current = false;
+      controller.abort();
+    };
   }, [fetchVote]);
 
   return {

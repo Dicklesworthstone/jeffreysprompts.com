@@ -192,6 +192,7 @@ export function ReviewForm({
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
           placeholder="Anonymous"
+          autoComplete="name"
           className={cn(
             "w-full h-10 px-3 rounded-lg border",
             "bg-white dark:bg-neutral-900",
