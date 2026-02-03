@@ -34,14 +34,14 @@ export function Hero({
   selectedCategory,
 }: HeroProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [modifierKey] = useState(() => {
-    if (typeof navigator !== "undefined" && navigator.platform?.includes("Mac")) {
-      return "⌘";
-    }
-    return "Ctrl";
-  });
   const searchDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasMounted = useRef(false);
+
+  // Detect modifier key on client only to avoid hydration mismatch
+  const modifierKey =
+    typeof navigator !== "undefined" && navigator.platform?.includes("Mac")
+      ? "⌘"
+      : "Ctrl";
 
   useEffect(() => {
     if (!onSearch) return;
@@ -154,7 +154,11 @@ export function Hero({
                   "transition-shadow"
                 )}
               />
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 hidden sm:flex items-center gap-1 text-xs text-neutral-400">
+              {/* suppressHydrationWarning: modifier key differs between server (Ctrl) and client (⌘ on Mac) */}
+              <div
+                className="absolute right-4 top-1/2 -translate-y-1/2 hidden sm:flex items-center gap-1 text-xs text-neutral-400"
+                suppressHydrationWarning
+              >
                 <kbd className="px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-700 border border-neutral-200 dark:border-neutral-600 font-mono">
                   {modifierKey}
                 </kbd>
