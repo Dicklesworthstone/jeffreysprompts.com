@@ -8,11 +8,12 @@
  */
 
 import Link from "next/link";
-import { useCallback, useMemo } from "react";
-import { ArrowLeft, EyeOff, Sparkles, Target, RotateCcw } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ArrowLeft, EyeOff, Sparkles, Target, RotateCcw, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { categories as allCategories } from "@jeffreysprompts/core/prompts";
 import type { RecommendationPreferences } from "@jeffreysprompts/core/search";
@@ -38,11 +39,28 @@ function sortUnique(values: string[] | undefined): string[] {
   return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b));
 }
 
+function parseTagCsv(value: string): string[] {
+  return sortUnique(
+    value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .map((item) => item.toLowerCase())
+  );
+}
+
+function formatCsv(values: string[] | undefined): string {
+  return (values ?? []).join(", ");
+}
+
 export default function RecommendationsSettingsPage() {
   const [preferences, setPreferences, removePreferences] = useLocalStorage<RecommendationPreferences>(
     STORAGE_KEY,
     DEFAULT_PREFERENCES
   );
+
+  const [boostTagsDraft, setBoostTagsDraft] = useState("");
+  const [hideTagsDraft, setHideTagsDraft] = useState("");
 
   const preferredCategories = useMemo(
     () => new Set(preferences.categories ?? []),
@@ -62,6 +80,17 @@ export default function RecommendationsSettingsPage() {
         preferences.excludeCategories?.length
     );
   }, [preferences]);
+
+  // Sync draft inputs from persisted preferences (e.g. after Reset).
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    setBoostTagsDraft(formatCsv(preferences.tags));
+  }, [preferences.tags]);
+
+  useEffect(() => {
+    setHideTagsDraft(formatCsv(preferences.excludeTags));
+  }, [preferences.excludeTags]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const togglePreferredCategory = useCallback(
     (category: string) => {
@@ -110,6 +139,36 @@ export default function RecommendationsSettingsPage() {
     },
     [setPreferences]
   );
+
+  const applyBoostTags = useCallback(() => {
+    const nextTags = parseTagCsv(boostTagsDraft);
+    setPreferences((prev) => {
+      const nextExcluded = new Set(prev.excludeTags ?? []);
+      for (const tag of nextTags) {
+        nextExcluded.delete(tag);
+      }
+      return {
+        ...prev,
+        tags: nextTags,
+        excludeTags: sortUnique([...nextExcluded]),
+      };
+    });
+  }, [boostTagsDraft, setPreferences]);
+
+  const applyHideTags = useCallback(() => {
+    const nextExcluded = parseTagCsv(hideTagsDraft);
+    setPreferences((prev) => {
+      const nextPreferred = new Set(prev.tags ?? []);
+      for (const tag of nextExcluded) {
+        nextPreferred.delete(tag);
+      }
+      return {
+        ...prev,
+        tags: sortUnique([...nextPreferred]),
+        excludeTags: nextExcluded,
+      };
+    });
+  }, [hideTagsDraft, setPreferences]);
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
@@ -179,6 +238,45 @@ export default function RecommendationsSettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
+              <Tag className="h-4 w-4 text-sky-600 dark:text-sky-400" />
+              Tags
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-foreground">Boost tags</p>
+              <p className="text-sm text-muted-foreground">
+                Comma-separated. Example: <code className="text-xs">ultrathink, docs, refactor</code>
+                . Changes apply when the field loses focus.
+              </p>
+              <Textarea
+                value={boostTagsDraft}
+                onChange={(event) => setBoostTagsDraft(event.target.value)}
+                onBlur={applyBoostTags}
+                placeholder="ultrathink, docs"
+                rows={2}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-foreground">Hide tags</p>
+              <p className="text-sm text-muted-foreground">
+                Comma-separated. Prompts with any hidden tag will be excluded from recommendations.
+              </p>
+              <Textarea
+                value={hideTagsDraft}
+                onChange={(event) => setHideTagsDraft(event.target.value)}
+                onBlur={applyHideTags}
+                placeholder="spam, low-quality"
+                rows={2}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
               <EyeOff className="h-4 w-4 text-rose-600 dark:text-rose-400" />
               Hide Categories
             </CardTitle>
@@ -223,4 +321,3 @@ export default function RecommendationsSettingsPage() {
     </div>
   );
 }
-

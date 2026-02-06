@@ -148,7 +148,7 @@ export default function SettingsPage() {
               icon={<Sparkles className="h-6 w-6 text-violet-600 dark:text-violet-400" />}
               iconBg="bg-violet-100 dark:bg-violet-900/30"
               title="Recommendations"
-              description="Tune your For You feed using category preferences."
+              description="Tune your For You feed using category and tag preferences."
             />
             <SettingCard
               href="/settings/budget"
