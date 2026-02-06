@@ -295,71 +295,75 @@ describe("CLI Network Failure E2E", () => {
   });
 
   describe("complete workflow with network failures", () => {
-    it("should allow full list→search→show workflow without network", async () => {
-      logger = new TestLogger({
-        testName: "full-workflow-offline",
-        outputFile: join(TEST_LOG_DIR, "full-workflow-offline.log"),
-        minLevel: "debug",
-      });
+    it(
+      "should allow full list→search→show workflow without network",
+      async () => {
+        logger = new TestLogger({
+          testName: "full-workflow-offline",
+          outputFile: join(TEST_LOG_DIR, "full-workflow-offline.log"),
+          minLevel: "debug",
+        });
 
-      const offlineEnv = {
-        ...process.env,
-        JFP_REGISTRY_URL: "http://localhost:59999/nonexistent",
-        JFP_HOME: testDir,
-      };
+        const offlineEnv = {
+          ...process.env,
+          JFP_REGISTRY_URL: "http://localhost:59999/nonexistent",
+          JFP_HOME: testDir,
+        };
 
-      // Step 1: List all prompts
-      logger.step("List all prompts (offline mode)");
-      const listResult = await spawnCli({
-        cmd: ["bun", "run", "jfp.ts", "list", "--json"],
-        cwd: PROJECT_ROOT,
-        env: offlineEnv,
-        logger,
-      });
-      expect(listResult.success).toBe(true);
+        // Step 1: List all prompts
+        logger.step("List all prompts (offline mode)");
+        const listResult = await spawnCli({
+          cmd: ["bun", "run", "jfp.ts", "list", "--json"],
+          cwd: PROJECT_ROOT,
+          env: offlineEnv,
+          logger,
+        });
+        expect(listResult.success).toBe(true);
 
-      const listOutput = JSON.parse(listResult.stdout);
-      const allPrompts = listOutput.prompts;
-      expect(allPrompts.length).toBeGreaterThan(0);
-      logger.info("Found prompts", { count: allPrompts.length });
+        const listOutput = JSON.parse(listResult.stdout);
+        const allPrompts = listOutput.prompts;
+        expect(allPrompts.length).toBeGreaterThan(0);
+        logger.info("Found prompts", { count: allPrompts.length });
 
-      // Step 2: Search for specific content
-      logger.step("Search for improvement prompts (offline mode)");
-      const searchResult = await spawnCli({
-        cmd: ["bun", "run", "jfp.ts", "search", "improvement", "--json"],
-        cwd: PROJECT_ROOT,
-        env: offlineEnv,
-        logger,
-      });
-      expect(searchResult.success).toBe(true);
+        // Step 2: Search for specific content
+        logger.step("Search for improvement prompts (offline mode)");
+        const searchResult = await spawnCli({
+          cmd: ["bun", "run", "jfp.ts", "search", "improvement", "--json"],
+          cwd: PROJECT_ROOT,
+          env: offlineEnv,
+          logger,
+        });
+        expect(searchResult.success).toBe(true);
 
-      const searchOutput = JSON.parse(searchResult.stdout);
-      const searchResults = searchOutput.results;
-      expect(searchResults.length).toBeGreaterThan(0);
-      logger.info("Search results", { count: searchResults.length });
+        const searchOutput = JSON.parse(searchResult.stdout);
+        const searchResults = searchOutput.results;
+        expect(searchResults.length).toBeGreaterThan(0);
+        logger.info("Search results", { count: searchResults.length });
 
-      // Step 3: Show the top result (flat structure - id directly on result)
-      const topResultId = searchResults[0].id;
-      logger.step(`Show details for ${topResultId} (offline mode)`);
-      const showResult = await spawnCli({
-        cmd: ["bun", "run", "jfp.ts", "show", topResultId, "--json"],
-        cwd: PROJECT_ROOT,
-        env: offlineEnv,
-        logger,
-      });
-      expect(showResult.success).toBe(true);
+        // Step 3: Show the top result (flat structure - id directly on result)
+        const topResultId = searchResults[0].id;
+        logger.step(`Show details for ${topResultId} (offline mode)`);
+        const showResult = await spawnCli({
+          cmd: ["bun", "run", "jfp.ts", "show", topResultId, "--json"],
+          cwd: PROJECT_ROOT,
+          env: offlineEnv,
+          logger,
+        });
+        expect(showResult.success).toBe(true);
 
-      const promptDetails = JSON.parse(showResult.stdout);
-      expect(promptDetails.id).toBe(topResultId);
-      expect(promptDetails.content).toBeDefined();
+        const promptDetails = JSON.parse(showResult.stdout);
+        expect(promptDetails.id).toBe(topResultId);
+        expect(promptDetails.content).toBeDefined();
 
-      logger.info("Workflow completed successfully", {
-        listCount: allPrompts.length,
-        searchCount: searchResults.length,
-        showedPrompt: topResultId,
-      });
+        logger.info("Workflow completed successfully", {
+          listCount: allPrompts.length,
+          searchCount: searchResults.length,
+          showedPrompt: topResultId,
+        });
 
-      logger.summary();
-    });
+        logger.summary();
+      },
+      { timeout: 15000 }
+    );
   });
 });

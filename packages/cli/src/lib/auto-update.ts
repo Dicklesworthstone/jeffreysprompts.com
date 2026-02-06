@@ -64,6 +64,13 @@ async function fetchLatestVersion(): Promise<string | null> {
  * 2. If check is due, spawn a detached process to check and update cache
  */
 export function checkForUpdatesInBackground(): void {
+  // Never run update checks in non-interactive contexts. This avoids spawning
+  // background processes during tests/CI and prevents hanging piped/JSON runs.
+  // Humans still get update notifications in normal TTY usage.
+  if (process.argv.includes("--json") || process.argv.includes("serve") || !process.stdout.isTTY) {
+    return;
+  }
+
   const config = loadConfig();
 
   // Skip if auto-check is disabled
@@ -74,9 +81,6 @@ export function checkForUpdatesInBackground(): void {
     config.updates.latestKnownVersion &&
     compareVersions(version, config.updates.latestKnownVersion) < 0
   ) {
-    // Don't pollute JSON output or break MCP server (serve mode)
-    if (process.argv.includes("--json") || process.argv.includes("serve")) return;
-
     // Use setImmediate to print after CLI output settles
     setTimeout(() => {
       console.log();
