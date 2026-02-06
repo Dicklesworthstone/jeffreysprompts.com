@@ -194,6 +194,8 @@ export function ReviewList({
                   animate={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }}
                   className="mt-2 p-3 rounded-lg bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800"
+                  role="alertdialog"
+                  aria-label="Confirm review deletion"
                 >
                   <p className="text-sm text-rose-700 dark:text-rose-300 mb-3">
                     Are you sure you want to delete your review? This cannot be undone.
@@ -247,11 +249,13 @@ export function ReviewList({
 
       {/* Review List */}
       {hasReviews && (
-        <div className="space-y-4">
+        <div className="space-y-4" role="list" aria-label="Reviews">
           {reviews
             .filter((r) => r.id !== userReview?.id) // Exclude user's review from list
             .map((review) => (
-              <ReviewCard key={review.id} review={review} />
+              <div key={review.id} role="listitem">
+                <ReviewCard review={review} />
+              </div>
             ))}
         </div>
       )}

@@ -220,6 +220,8 @@ export function ReviewCard({
               )}
               onClick={() => handleVote(true)}
               disabled={voteLoading}
+              aria-pressed={userVote?.isHelpful === true}
+              aria-label={`Helpful${review.helpfulCount > 0 ? ` (${review.helpfulCount})` : ""}`}
             >
               <ThumbsUp
                 className={cn(
@@ -241,6 +243,8 @@ export function ReviewCard({
               )}
               onClick={() => handleVote(false)}
               disabled={voteLoading}
+              aria-pressed={userVote?.isHelpful === false}
+              aria-label={`Not helpful${review.notHelpfulCount > 0 ? ` (${review.notHelpfulCount})` : ""}`}
             >
               <ThumbsDown
                 className={cn(
@@ -294,26 +298,30 @@ export function ReviewCard({
       </AnimatePresence>
 
       {/* Report Confirmation */}
-      <AnimatePresence>
-        {reportSubmitted && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            className="text-sm text-amber-600 dark:text-amber-400 mt-2"
-          >
-            Thank you for your report. We&apos;ll review it shortly.
-          </motion.div>
-        )}
-        {reportFailed && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            className="text-sm text-rose-600 dark:text-rose-400 mt-2"
-          >
-            Failed to submit report. Please try again later.
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <div aria-live="polite">
+        <AnimatePresence>
+          {reportSubmitted && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              className="text-sm text-amber-600 dark:text-amber-400 mt-2"
+              role="status"
+            >
+              Thank you for your report. We&apos;ll review it shortly.
+            </motion.div>
+          )}
+          {reportFailed && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              className="text-sm text-rose-600 dark:text-rose-400 mt-2"
+              role="alert"
+            >
+              Failed to submit report. Please try again later.
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

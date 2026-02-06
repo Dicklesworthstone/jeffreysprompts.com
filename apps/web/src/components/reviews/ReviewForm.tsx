@@ -104,6 +104,8 @@ export function ReviewForm({
             )}
             onClick={() => setRating("up")}
             disabled={loading || submitting}
+            aria-pressed={rating === "up"}
+            aria-label="Recommend this prompt"
           >
             <ThumbsUp
               className={cn("w-5 h-5", rating === "up" && "fill-current")}
@@ -121,6 +123,8 @@ export function ReviewForm({
             )}
             onClick={() => setRating("down")}
             disabled={loading || submitting}
+            aria-pressed={rating === "down"}
+            aria-label="Do not recommend this prompt"
           >
             <ThumbsDown
               className={cn("w-5 h-5", rating === "down" && "fill-current")}
@@ -153,9 +157,11 @@ export function ReviewForm({
           )}
           disabled={loading || submitting}
           maxLength={REVIEW_MAX_LENGTH + 100} // Allow some overage for warning
+          aria-describedby="review-char-count"
+          aria-invalid={isOverLimit}
         />
-        <div className="flex justify-between text-xs">
-          <span className="text-neutral-500">
+        <div className="flex justify-between text-xs" id="review-char-count">
+          <span className="text-neutral-500" aria-live="polite">
             {content.length < 10 && content.length > 0 && (
               <span className="text-amber-600">
                 {10 - content.length} more characters needed
@@ -171,6 +177,7 @@ export function ReviewForm({
                   ? "text-amber-500"
                   : "text-neutral-500"
             )}
+            aria-live="polite"
           >
             {charCount}/{REVIEW_MAX_LENGTH}
           </span>
