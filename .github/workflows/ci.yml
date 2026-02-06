@@ -153,6 +153,22 @@ jobs:
       - name: Build CLI
         run: bun run build:cli
 
+  rust:
+    name: Rust (cargo test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Cache cargo build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            . -> target
+      - name: Cargo test (jfp)
+        run: cargo test -p jfp
+
   e2e-cli:
     name: E2E CLI Tests
     runs-on: ubuntu-latest
