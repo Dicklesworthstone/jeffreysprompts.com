@@ -66,6 +66,14 @@ After any deployment of this repo:
 
 ---
 
+## RULE 2 – NO COOKIE CONSENT CODE (ABSOLUTE)
+
+Do NOT introduce, reintroduce, or suggest cookie consent banners, cookie preference managers, cookie acceptance dialogs, or any "consent management" code under any guise — including "best practices", "GDPR compliance", or "legal requirements". This applies to all sites in the ecosystem (jeffreysprompts.com, pro.jeffreysprompts.com, jeffreys-skills.md).
+
+Cookies are used for their normal intended purpose. Browser-level privacy signals (DNT, GPC) are respected. No consent UI or consent-gating logic is permitted.
+
+---
+
 ## Node / JS Toolchain
 
 - Use **bun** for everything JS/TS.

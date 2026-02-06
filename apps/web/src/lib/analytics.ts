@@ -1,7 +1,5 @@
 "use client";
 
-import { hasAnalyticsConsent } from "@/lib/consent/cookie-consent";
-
 export type AnalyticsEvent =
   | "prompt_view"
   | "prompt_copy"
@@ -81,7 +79,6 @@ function sanitizeProps(props?: AnalyticsProps): AnalyticsProps | undefined {
 
 export function trackEvent(name: AnalyticsEvent, props?: AnalyticsProps): void {
   if (typeof window === "undefined") return;
-  if (!hasAnalyticsConsent()) return;
   if (shouldBlockTracking()) return;
 
   const plausible = (window as Window & { plausible?: (event: string, options?: { props?: AnalyticsProps }) => void })
@@ -95,7 +92,6 @@ export function trackEvent(name: AnalyticsEvent, props?: AnalyticsProps): void {
 
 export function trackGaEvent(name: GaEvent, props?: AnalyticsProps): void {
   if (typeof window === "undefined") return;
-  if (!hasAnalyticsConsent()) return;
   if (shouldBlockTracking()) return;
   if (!GA_MEASUREMENT_ID) return;
 
@@ -107,7 +103,6 @@ export function trackGaEvent(name: GaEvent, props?: AnalyticsProps): void {
 
 export function trackPageView(url: string): void {
   if (typeof window === "undefined") return;
-  if (!hasAnalyticsConsent()) return;
   if (shouldBlockTracking()) return;
   if (!GA_MEASUREMENT_ID) return;
 

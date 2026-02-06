@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import type { AnalyticsProps, GaEvent } from "@/lib/analytics";
 import { trackGaEvent, trackPageView } from "@/lib/analytics";
-import { useCookieConsent } from "@/hooks/use-cookie-consent";
 import { initWebVitals } from "@/lib/performance";
 
 const SCROLL_THRESHOLDS = [25, 50, 75, 100];
@@ -12,9 +11,6 @@ const SCROLL_THRESHOLDS = [25, 50, 75, 100];
 export function AnalyticsProvider() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { consent, privacySignals } = useCookieConsent();
-  const hasAnalyticsConsent =
-    consent?.analytics === true && !privacySignals.dnt && !privacySignals.gpc;
 
   const url = useMemo(() => {
     const query = searchParams?.toString();
@@ -27,14 +23,12 @@ export function AnalyticsProvider() {
 
   // Initialize Web Vitals tracking (once per session)
   useEffect(() => {
-    if (!hasAnalyticsConsent) return;
     if (webVitalsInitRef.current) return;
     webVitalsInitRef.current = true;
     initWebVitals();
-  }, [hasAnalyticsConsent]);
+  }, []);
 
   useEffect(() => {
-    if (!hasAnalyticsConsent) return;
     startTimeRef.current = Date.now();
     scrollTrackedRef.current = new Set();
 
@@ -99,7 +93,7 @@ export function AnalyticsProvider() {
         trackGaEvent("time_on_page", { duration_ms: durationMs, page_path: url });
       }
     };
-  }, [pathname, url, hasAnalyticsConsent]);
+  }, [pathname, url]);
 
   return null;
 }

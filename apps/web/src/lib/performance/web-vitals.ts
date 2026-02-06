@@ -1,7 +1,6 @@
 "use client";
 
 import { onCLS, onFCP, onINP, onLCP, onTTFB, type Metric } from "web-vitals";
-import { hasAnalyticsConsent } from "@/lib/consent/cookie-consent";
 
 export type WebVitalName = "CLS" | "FCP" | "INP" | "LCP" | "TTFB";
 
@@ -77,7 +76,6 @@ function sendToAnalytics(metric: Metric): void {
 
 function shouldTrackVitals(): boolean {
   if (typeof window === "undefined") return false;
-  if (!hasAnalyticsConsent()) return false;
 
   // Respect Do Not Track
   const nav = navigator as Navigator & { msDoNotTrack?: string };
