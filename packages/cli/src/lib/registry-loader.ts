@@ -9,7 +9,7 @@ import { prompts as bundledPrompts, bundles as bundledBundles, workflows as bund
 import { PromptSchema } from "@jeffreysprompts/core/prompts/schema";
 import type { RegistryPayload } from "@jeffreysprompts/core/export";
 import { loadConfig } from "./config";
-import { readOfflineLibrary, normalizePromptCategory } from "./offline";
+import { readCachedPackPrompts, readOfflineLibrary, normalizePromptCategory } from "./offline";
 import chalk from "chalk";
 import { atomicWriteFileSync } from "./utils";
 
@@ -180,15 +180,17 @@ export async function loadRegistry(): Promise<LoadedRegistry> {
     : [];
   
   const offlinePrompts = loadOfflinePrompts();
+  const packPrompts = readCachedPackPrompts();
 
   if (cachedPrompts?.length) {
     if (!isCacheFresh(cachedMeta, config.registry.cacheTtl) && config.registry.autoRefresh) {
       void refreshRegistry().catch(() => undefined);
     }
-    // offline -> cached -> local
+    // offline -> cached -> packs -> local
     const merged = mergePrompts(offlinePrompts, cachedPrompts);
+    const withPacks = mergePrompts(merged, packPrompts);
     return {
-      prompts: mergePrompts(merged, localPrompts),
+      prompts: mergePrompts(withPacks, localPrompts),
       bundles: cachedBundles,
       workflows: cachedWorkflows,
       meta: cachedMeta,
@@ -208,8 +210,9 @@ export async function loadRegistry(): Promise<LoadedRegistry> {
     writeJsonFile(config.registry.metaPath, remote.meta);
     
     const merged = mergePrompts(offlinePrompts, remotePrompts);
+    const withPacks = mergePrompts(merged, packPrompts);
     return {
-      prompts: mergePrompts(merged, localPrompts),
+      prompts: mergePrompts(withPacks, localPrompts),
       bundles: remote.payload.bundles || [],
       workflows: remote.payload.workflows || [],
       meta: remote.meta,
@@ -217,10 +220,11 @@ export async function loadRegistry(): Promise<LoadedRegistry> {
     };
   }
 
-  // offline -> bundled -> local
+  // offline -> bundled -> packs -> local
   const merged = mergePrompts(offlinePrompts, bundledPrompts);
+  const withPacks = mergePrompts(merged, packPrompts);
   return {
-    prompts: mergePrompts(merged, localPrompts),
+    prompts: mergePrompts(withPacks, localPrompts),
     bundles: bundledBundles,
     workflows: bundledWorkflows,
     meta: null,
@@ -244,6 +248,7 @@ export async function refreshRegistry(): Promise<LoadedRegistry> {
     : [];
   
   const offlinePrompts = loadOfflinePrompts();
+  const packPrompts = readCachedPackPrompts();
 
   const remote = await fetchRegistry(
     config.registry.remote,
@@ -260,8 +265,9 @@ export async function refreshRegistry(): Promise<LoadedRegistry> {
     }
     
     const merged = mergePrompts(offlinePrompts, cachedPrompts);
+    const withPacks = mergePrompts(merged, packPrompts);
     return {
-      prompts: mergePrompts(merged, localPrompts),
+      prompts: mergePrompts(withPacks, localPrompts),
       bundles: cachedBundles,
       workflows: cachedWorkflows,
       meta: refreshedMeta,
@@ -275,8 +281,9 @@ export async function refreshRegistry(): Promise<LoadedRegistry> {
     writeJsonFile(config.registry.metaPath, remote.meta);
     
     const merged = mergePrompts(offlinePrompts, remotePrompts);
+    const withPacks = mergePrompts(merged, packPrompts);
     return {
-      prompts: mergePrompts(merged, localPrompts),
+      prompts: mergePrompts(withPacks, localPrompts),
       bundles: remote.payload.bundles || [],
       workflows: remote.payload.workflows || [],
       meta: remote.meta,
@@ -286,8 +293,9 @@ export async function refreshRegistry(): Promise<LoadedRegistry> {
 
   if (cachedPrompts?.length) {
     const merged = mergePrompts(offlinePrompts, cachedPrompts);
+    const withPacks = mergePrompts(merged, packPrompts);
     return {
-      prompts: mergePrompts(merged, localPrompts),
+      prompts: mergePrompts(withPacks, localPrompts),
       bundles: cachedBundles,
       workflows: cachedWorkflows,
       meta: cachedMeta,
@@ -296,8 +304,9 @@ export async function refreshRegistry(): Promise<LoadedRegistry> {
   }
 
   const merged = mergePrompts(offlinePrompts, bundledPrompts);
+  const withPacks = mergePrompts(merged, packPrompts);
   return {
-    prompts: mergePrompts(merged, localPrompts),
+    prompts: mergePrompts(withPacks, localPrompts),
     bundles: bundledBundles,
     workflows: bundledWorkflows,
     meta: null,

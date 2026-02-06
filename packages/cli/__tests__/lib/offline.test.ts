@@ -18,13 +18,20 @@ import {
   getLibraryDir,
   getLibraryPath,
   getMetaPath,
+  getPackCachePath,
+  getPacksDir,
+  getPacksManifestPath,
   hasOfflineLibrary,
+  cachePremiumPack,
+  readCachedPackPrompts,
+  readPacksManifest,
   readSyncMeta,
   readOfflineLibrary,
   getOfflinePromptById,
   searchOfflineLibrary,
   formatSyncAge,
   normalizePromptCategory,
+  uncachePremiumPack,
   type SyncedPrompt,
 } from "../../src/lib/offline";
 
@@ -100,12 +107,12 @@ afterEach(() => {
 /**
  * Helper to create the library directory and populate with test data
  */
-function setupLibrary(prompts: SyncedPrompt[] = samplePrompts, meta = sampleMeta): void {
+const setupLibrary = (prompts: SyncedPrompt[] = samplePrompts, meta = sampleMeta): void => {
   const libraryDir = getLibraryDir();
   mkdirSync(libraryDir, { recursive: true });
   writeFileSync(getLibraryPath(), JSON.stringify(prompts));
   writeFileSync(getMetaPath(), JSON.stringify(meta));
-}
+};
 
 describe("path resolution", () => {
   it("getLibraryDir returns correct path based on JFP_HOME", () => {
@@ -421,5 +428,93 @@ describe("cache integrity", () => {
     const prompts = readOfflineLibrary();
     expect(prompts[0].content).toContain("{{variable}}");
     expect(prompts[0].content).toContain("<tag>");
+  });
+});
+
+describe("premium packs cache (bd-kfuj)", () => {
+  it("resolves pack cache paths under the library directory", () => {
+    expect(getPacksDir()).toBe(join(FAKE_HOME, ".config", "jfp", "library", "packs"));
+    expect(getPacksManifestPath()).toBe(join(FAKE_HOME, ".config", "jfp", "library", "packs", "manifest.json"));
+    expect(getPackCachePath("starter-pack")).toBe(
+      join(FAKE_HOME, ".config", "jfp", "library", "packs", "starter-pack.json")
+    );
+  });
+
+  it("writes manifest + pack payload and loads cached prompts", () => {
+    const pack = {
+      id: "starter-pack",
+      title: "Starter Pack",
+      version: "1.2.3",
+      promptCount: 1,
+      installedAt: "2026-02-06T00:00:00Z",
+      publishedAt: "2026-01-01T00:00:00Z",
+      prompts: [
+        {
+          id: "premium-idea",
+          title: "Premium Idea Wizard",
+          description: "Premium twist on idea generation",
+          content: "Generate 50 ideas with ruthless evaluation.",
+          category: "automation",
+          tags: ["premium", "ideation"],
+          author: "Jeffrey Emanuel",
+          version: "2.0.0",
+          created: "2026-01-01",
+        },
+      ],
+    };
+
+    const result = cachePremiumPack(pack);
+    expect(result.ok).toBe(true);
+
+    const manifest = readPacksManifest();
+    expect(manifest).not.toBeNull();
+    const entry = manifest?.entries.find((e) => e.id === "starter-pack");
+    expect(entry?.installed).toBe(true);
+    expect(entry?.version).toBe("1.2.3");
+
+    expect(existsSync(getPackCachePath("starter-pack"))).toBe(true);
+
+    const prompts = readCachedPackPrompts();
+    const cached = prompts.find((p) => p.id === "premium-idea");
+    expect(cached).toBeTruthy();
+    expect(cached?.category).toBe("automation");
+    expect(cached?.tags).toContain("premium");
+    expect(cached?.content).toContain("Generate 50 ideas");
+  });
+
+  it("skips corrupted pack cache when hash mismatches", () => {
+    const pack = {
+      id: "starter-pack",
+      title: "Starter Pack",
+      version: "1.0.0",
+      promptCount: 1,
+      prompts: [{ id: "p1", title: "P1", content: "Hello" }],
+    };
+    expect(cachePremiumPack(pack).ok).toBe(true);
+
+    // Corrupt the on-disk payload.
+    writeFileSync(getPackCachePath("starter-pack"), JSON.stringify({ nope: true }));
+
+    const prompts = readCachedPackPrompts();
+    expect(prompts).toEqual([]);
+  });
+
+  it("uncache removes payload file and marks installed=false in manifest", () => {
+    const pack = {
+      id: "starter-pack",
+      title: "Starter Pack",
+      version: "1.0.0",
+      promptCount: 1,
+      prompts: [{ id: "p1", title: "P1", content: "Hello" }],
+    };
+    expect(cachePremiumPack(pack).ok).toBe(true);
+
+    const uncacheResult = uncachePremiumPack("starter-pack");
+    expect(uncacheResult.ok).toBe(true);
+
+    expect(existsSync(getPackCachePath("starter-pack"))).toBe(false);
+    const manifest = readPacksManifest();
+    const entry = manifest?.entries.find((e) => e.id === "starter-pack");
+    expect(entry?.installed).toBe(false);
   });
 });

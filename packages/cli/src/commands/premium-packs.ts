@@ -3,6 +3,7 @@ import boxen from "boxen";
 import Table from "cli-table3";
 import { apiClient, isAuthError, isNotFoundError, requiresPremium, type ApiResponse } from "../lib/api-client";
 import { getCurrentUser, isLoggedIn } from "../lib/credentials";
+import { cachePremiumPack, getCachedPackEntry, readPacksManifest, uncachePremiumPack } from "../lib/offline";
 import { shouldOutputJson } from "../lib/utils";
 
 interface PackCategory {
@@ -162,17 +163,38 @@ async function listPremiumPacks(options: PacksOptions): Promise<void> {
   }
 
   const packs = response.data?.packs ?? [];
+  const manifest = readPacksManifest();
+  const cachedById = new Map(manifest?.entries.map((entry) => [entry.id, entry]));
+  const enrichedPacks = packs.map((pack) => {
+    const cached = cachedById.get(pack.id) ?? null;
+    const cachedVersion = cached?.version ?? null;
+    const cachedAt = cached?.cachedAt ?? null;
+    const updateAvailable =
+      pack.isInstalled &&
+      Boolean(pack.version) &&
+      Boolean(cachedVersion) &&
+      pack.version !== cachedVersion;
+    const cacheMissing = pack.isInstalled && !cached;
+
+    return {
+      ...pack,
+      cachedVersion,
+      cachedAt,
+      updateAvailable: updateAvailable || cacheMissing,
+    };
+  });
 
   if (shouldOutputJson(options)) {
     writeJson({
-      packs,
-      count: packs.length,
+      packs: enrichedPacks,
+      count: enrichedPacks.length,
       installedOnly: options.installed ?? false,
+      updatesAvailable: enrichedPacks.filter((pack) => pack.updateAvailable).length,
     });
     return;
   }
 
-  if (packs.length === 0) {
+  if (enrichedPacks.length === 0) {
     console.log(
       chalk.yellow(options.installed ? "No installed premium packs yet." : "No premium packs found.")
     );
@@ -180,22 +202,28 @@ async function listPremiumPacks(options: PacksOptions): Promise<void> {
   }
 
   const table = new Table({
-    head: ["ID", "Title", "Prompts", "Installed", "Version"],
+    head: ["ID", "Title", "Prompts", "Installed", "Version", "Update"],
     style: { head: ["cyan"] },
   });
 
-  for (const pack of packs) {
+  for (const pack of enrichedPacks) {
     table.push([
       pack.id,
       pack.title,
       chalk.yellow(String(pack.promptCount)),
       pack.isInstalled ? chalk.green("✓") : chalk.dim("—"),
       pack.version ?? "1.0.0",
+      pack.updateAvailable ? chalk.yellow("available") : chalk.dim("—"),
     ]);
   }
 
   console.log(table.toString());
-  console.log(chalk.dim(`\nFound ${packs.length} premium packs.`));
+  const updatesAvailable = enrichedPacks.filter((pack) => pack.updateAvailable).length;
+  console.log(chalk.dim(`\nFound ${enrichedPacks.length} premium packs.`));
+  if (updatesAvailable > 0) {
+    console.log(chalk.yellow(`Updates available for ${updatesAvailable} installed pack(s).`));
+    console.log(chalk.dim("Run: jfp packs update <pack-id>"));
+  }
 }
 
 async function fetchPremiumPackDetail(id: string, options: PacksOptions): Promise<PremiumPackDetail> {
@@ -295,6 +323,22 @@ async function showPackChangelog(id: string, options: PacksOptions): Promise<voi
 
 type InstallMode = "install" | "subscribe" | "update";
 
+const tryCachePack = async (id: string): Promise<{ ok: boolean; error?: string }> => {
+  const response = await apiClient.get<PackDetailResponse>(`/cli/premium-packs/${id}`);
+  if (!response.ok) {
+    return { ok: false, error: response.error || "Failed to fetch pack for offline cache" };
+  }
+  const pack = response.data?.pack;
+  if (!pack) {
+    return { ok: false, error: "Pack detail missing from API response" };
+  }
+  const result = cachePremiumPack(pack);
+  if (!result.ok) {
+    return { ok: false, error: result.error };
+  }
+  return { ok: true };
+};
+
 async function installPremiumPack(
   id: string,
   options: PacksOptions,
@@ -315,13 +359,24 @@ async function installPremiumPack(
 
   const data = response.data;
 
+  const cachedEntry = getCachedPackEntry(id);
+  const shouldCache = !data?.alreadyInstalled || !cachedEntry || cachedEntry.installed !== true;
+  const cacheResult = shouldCache ? await tryCachePack(id) : { ok: true };
+
   if (shouldOutputJson(options)) {
-    writeJson({ ...(data ?? { installed: true, packId: id }), action: mode });
+    writeJson({
+      ...(data ?? { installed: true, packId: id }),
+      action: mode,
+      cache: cacheResult.ok ? { ok: true } : { ok: false, error: cacheResult.error },
+    });
     return;
   }
 
   if (data?.alreadyInstalled) {
     console.log(chalk.yellow(mode === "update" ? "Pack already up to date." : "Pack already installed."));
+    if (!cacheResult.ok) {
+      console.log(chalk.dim(`Note: Could not cache pack for offline use: ${cacheResult.error}`));
+    }
     return;
   }
 
@@ -332,6 +387,9 @@ async function installPremiumPack(
         ? "Pack subscribed."
         : "Pack installed.";
   console.log(chalk.green("✓") + ` ${message}`);
+  if (!cacheResult.ok) {
+    console.log(chalk.dim(`Note: Could not cache pack for offline use: ${cacheResult.error}`));
+  }
 }
 
 async function uninstallPremiumPack(id: string, options: PacksOptions): Promise<void> {
@@ -344,8 +402,12 @@ async function uninstallPremiumPack(id: string, options: PacksOptions): Promise<
   }
 
   const data = response.data;
+  const uncacheResult = uncachePremiumPack(id);
   if (shouldOutputJson(options)) {
-    writeJson({ ...(data ?? { uninstalled: true, packId: id }) });
+    writeJson({
+      ...(data ?? { uninstalled: true, packId: id }),
+      cache: uncacheResult.ok ? { ok: true } : { ok: false, error: uncacheResult.error },
+    });
     return;
   }
 
@@ -355,6 +417,9 @@ async function uninstallPremiumPack(id: string, options: PacksOptions): Promise<
   }
 
   console.log(chalk.green("✓") + " Pack uninstalled.");
+  if (!uncacheResult.ok) {
+    console.log(chalk.dim(`Note: Could not remove local cache: ${uncacheResult.error}`));
+  }
 }
 
 export async function premiumPacksCommand(
