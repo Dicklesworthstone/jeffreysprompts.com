@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
 import ShareManagement, { type ManagedShareLink } from "@/components/sharing/ShareManagement";
-import { getPrompt } from "@jeffreysprompts/core/prompts";
+import { getPrompt } from "@jeffreysprompts/core/prompts/registry";
 import { getBundle } from "@jeffreysprompts/core/prompts/bundles";
 import { getWorkflow } from "@jeffreysprompts/core/prompts/workflows";
 

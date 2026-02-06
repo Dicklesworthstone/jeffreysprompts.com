@@ -18,10 +18,10 @@ import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { copyToClipboard } from "@/lib/clipboard";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { prompts, getPrompt } from "@jeffreysprompts/core/prompts";
-import type { Prompt } from "@jeffreysprompts/core/prompts";
-import type { Workflow } from "@jeffreysprompts/core/prompts";
-import { generateWorkflowMarkdown } from "@jeffreysprompts/core/export";
+import { prompts, getPrompt } from "@jeffreysprompts/core/prompts/registry";
+import type { Prompt } from "@jeffreysprompts/core/prompts/types";
+import type { Workflow } from "@jeffreysprompts/core/prompts/workflows";
+import { generateWorkflowMarkdown } from "@jeffreysprompts/core/export/markdown";
 
 interface WorkflowBuilderProps {
   className?: string;

@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { categories as allCategories } from "@jeffreysprompts/core/prompts";
+import { categories as allCategories } from "@jeffreysprompts/core/prompts/registry";
 import type { RecommendationPreferences } from "@jeffreysprompts/core/search";
 import { formatCategoryLabel, sortUnique, parseTagCsv, formatCsv } from "@/lib/discovery/recommendation-helpers";
 

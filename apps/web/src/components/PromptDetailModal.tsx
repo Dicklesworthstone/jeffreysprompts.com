@@ -59,7 +59,6 @@ import {
   formatVariableName,
   getVariablePlaceholder,
 } from "@jeffreysprompts/core/template";
-import { generateInstallOneLiner } from "@jeffreysprompts/core/export/skills";
 import type { Prompt, PromptVariable } from "@jeffreysprompts/core/prompts/types";
 import { RatingButton, RatingDisplay } from "@/components/ratings";
 import { ReviewList } from "@/components/reviews";
@@ -187,7 +186,12 @@ export function PromptDetailModal({
   const handleInstall = useCallback(async () => {
     if (!prompt) return;
     try {
-      const command = generateInstallOneLiner(prompt);
+      const baseUrl = typeof window !== "undefined"
+        ? window.location.origin
+        : "https://jeffreysprompts.com";
+      const params = new URLSearchParams({ ids: prompt.id });
+      const url = `${baseUrl}/install.sh?${params.toString()}`;
+      const command = `curl -fsSL "${url}" | bash`;
       const result = await copyToClipboard(command);
 
       if (result.success) {

@@ -47,7 +47,6 @@ import {
   formatVariableName,
   getVariablePlaceholder,
 } from "@jeffreysprompts/core/template";
-import { generateSkillMd, generateInstallOneLiner } from "@jeffreysprompts/core/export";
 import { copyToClipboard } from "@/lib/clipboard";
 import type { Prompt, PromptVariable } from "@jeffreysprompts/core/prompts/types";
 
@@ -155,8 +154,12 @@ export function PromptContent({ prompt }: PromptContentProps) {
   }, [renderedContent, prompt.id, success, error]);
 
   const handleInstall = useCallback(async () => {
-    // Generate standard install command (default to personal)
-    const command = generateInstallOneLiner(prompt);
+    const baseUrl = typeof window !== "undefined"
+      ? window.location.origin
+      : "https://jeffreysprompts.com";
+    const params = new URLSearchParams({ ids: prompt.id });
+    const url = `${baseUrl}/install.sh?${params.toString()}`;
+    const command = `curl -fsSL "${url}" | bash`;
     try {
       const result = await copyToClipboard(command);
       if (result.success) {
@@ -168,27 +171,36 @@ export function PromptContent({ prompt }: PromptContentProps) {
     } catch {
       error("Failed to copy install command");
     }
-  }, [prompt, success, error]);
+  }, [prompt.id, success, error]);
 
-  const handleDownload = useCallback(() => {
-    const blob = new Blob([generateSkillMd(prompt)], { type: "text/markdown" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${prompt.id}-SKILL.md`;
+  const handleDownload = useCallback(async () => {
     try {
-      document.body.appendChild(a);
-      a.click();
-    } finally {
-      // Ensure cleanup even if click() throws
-      if (a.parentNode) {
-        a.parentNode.removeChild(a);
+      const response = await fetch(`/api/skills/${encodeURIComponent(prompt.id)}`);
+      if (!response.ok) {
+        error("Download failed", "Could not fetch SKILL.md");
+        return;
       }
-      URL.revokeObjectURL(url);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${prompt.id}.SKILL.md`;
+      try {
+        document.body.appendChild(a);
+        a.click();
+      } finally {
+        // Ensure cleanup even if click() throws
+        if (a.parentNode) {
+          a.parentNode.removeChild(a);
+        }
+        URL.revokeObjectURL(url);
+      }
+      success("Downloaded SKILL.md");
+      trackEvent("export", { id: prompt.id, format: "skill" });
+    } catch {
+      error("Download failed", "Please try again");
     }
-    success("Downloaded SKILL.md");
-    trackEvent("export", { id: prompt.id, format: "skill" });
-  }, [prompt, success]);
+  }, [prompt.id, success, error]);
 
   const updateVariable = useCallback(
     (name: string, value: string) => {

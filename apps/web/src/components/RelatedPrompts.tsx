@@ -2,8 +2,8 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { prompts, getPrompt } from "@jeffreysprompts/core/prompts";
-import { searchPrompts } from "@jeffreysprompts/core/search";
+import { prompts, getPrompt } from "@jeffreysprompts/core/prompts/registry";
+import { searchPrompts } from "@jeffreysprompts/core/search/engine";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 

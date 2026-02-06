@@ -32,7 +32,7 @@ import {
   type RecommendationPreferences,
   type RecommendationSignal,
   type RecommendationResult,
-} from "@jeffreysprompts/core/search";
+} from "@jeffreysprompts/core/search/recommendations";
 import type { Prompt } from "@jeffreysprompts/core/prompts/types";
 
 type Timeframe = "7d" | "30d" | "all";

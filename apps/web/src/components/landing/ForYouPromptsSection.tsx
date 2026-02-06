@@ -10,7 +10,7 @@ import {
   type RecommendationResult,
   type RecommendationPreferences,
   type RecommendationSignal,
-} from "@jeffreysprompts/core/search";
+} from "@jeffreysprompts/core/search/recommendations";
 import { getOrCreateLocalUserId, listHistory } from "@/lib/history/client";
 import { useBasket } from "@/hooks/use-basket";
 import { useLocalStorage } from "@/hooks/useLocalStorage";

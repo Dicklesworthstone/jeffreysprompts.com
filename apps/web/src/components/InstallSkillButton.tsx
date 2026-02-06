@@ -7,7 +7,6 @@ import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
 import { copyToClipboard } from "@/lib/clipboard";
-import { generateInstallOneLiner } from "@jeffreysprompts/core/export/skills";
 import type { Prompt } from "@jeffreysprompts/core/prompts/types";
 
 interface InstallSkillButtonProps {
@@ -43,7 +42,15 @@ export function InstallSkillButton({
 
   const handleCopy = useCallback(async () => {
     try {
-      const command = generateInstallOneLiner(prompt, { project });
+      const baseUrl = typeof window !== "undefined"
+        ? window.location.origin
+        : "https://jeffreysprompts.com";
+      const params = new URLSearchParams({ ids: prompt.id });
+      if (project) {
+        params.set("project", "1");
+      }
+      const url = `${baseUrl}/install.sh?${params.toString()}`;
+      const command = `curl -fsSL "${url}" | bash`;
       const result = await copyToClipboard(command);
       if (result.success) {
         setCopied(true);

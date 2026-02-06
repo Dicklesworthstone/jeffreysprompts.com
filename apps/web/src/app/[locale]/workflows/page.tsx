@@ -11,9 +11,9 @@ import { useToast } from "@/components/ui/toast";
 import { copyToClipboard } from "@/lib/clipboard";
 import { cn } from "@/lib/utils";
 import { trackHistoryView } from "@/lib/history/client";
-import { workflows, type Workflow } from "@jeffreysprompts/core/prompts";
-import { getPrompt } from "@jeffreysprompts/core/prompts";
-import { generateWorkflowMarkdown } from "@jeffreysprompts/core/export";
+import { workflows, type Workflow } from "@jeffreysprompts/core/prompts/workflows";
+import { getPrompt } from "@jeffreysprompts/core/prompts/registry";
+import { generateWorkflowMarkdown } from "@jeffreysprompts/core/export/markdown";
 
 export default function WorkflowsPage() {
   const [activeTab, setActiveTab] = useState<"builder" | "library">("builder");

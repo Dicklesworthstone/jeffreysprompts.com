@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-// JSZip is dynamically imported when needed to reduce initial bundle
 import {
   X,
   Trash2,
@@ -21,9 +20,8 @@ import { useToast } from "./ui/toast";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
 import { copyToClipboard } from "@/lib/clipboard";
-import { getPrompt, type Prompt } from "@jeffreysprompts/core/prompts";
-import { generatePromptMarkdown } from "@jeffreysprompts/core/export/markdown";
-import { generateSkillMd } from "@jeffreysprompts/core/export/skills";
+import { getPrompt } from "@jeffreysprompts/core/prompts/registry";
+import type { Prompt } from "@jeffreysprompts/core/prompts/types";
 
 interface BasketSidebarProps {
   isOpen: boolean;
@@ -86,22 +84,13 @@ export function BasketSidebar({ isOpen, onClose }: BasketSidebarProps) {
 
     setExporting(true);
     try {
-      if (basketPrompts.length === 1) {
-        // Single file download
-        const prompt = basketPrompts[0];
-        const content = generatePromptMarkdown(prompt);
-        downloadFile(`${prompt.id}.md`, content, "text/markdown");
-      } else {
-        // ZIP download for multiple prompts - dynamically import JSZip
-        const JSZip = (await import("jszip")).default;
-        const zip = new JSZip();
-        for (const prompt of basketPrompts) {
-          const content = generatePromptMarkdown(prompt);
-          zip.file(`${prompt.id}.md`, content);
-        }
-        const blob = await zip.generateAsync({ type: "blob" });
-        downloadBlob(blob, "prompts.zip");
-      }
+      const ids = basketPrompts.map((p) => p.id);
+      const params = new URLSearchParams({ format: "md", ids: ids.join(",") });
+      const response = await fetch(`/api/export?${params.toString()}`);
+      if (!response.ok) throw new Error("export_failed");
+      const blob = await response.blob();
+      const filename = basketPrompts.length === 1 ? `${basketPrompts[0].id}.md` : "prompts.zip";
+      downloadBlob(blob, filename);
       toast({
         type: "success",
         title: "Downloaded",
@@ -124,15 +113,11 @@ export function BasketSidebar({ isOpen, onClose }: BasketSidebarProps) {
 
     setExporting(true);
     try {
-      // Dynamically import JSZip to reduce initial bundle
-      const JSZip = (await import("jszip")).default;
-      const zip = new JSZip();
-      for (const prompt of basketPrompts) {
-        const content = generateSkillMd(prompt);
-        // Each skill goes in its own directory
-        zip.file(`${prompt.id}/SKILL.md`, content);
-      }
-      const blob = await zip.generateAsync({ type: "blob" });
+      const ids = basketPrompts.map((p) => p.id);
+      const params = new URLSearchParams({ format: "skill", ids: ids.join(",") });
+      const response = await fetch(`/api/export?${params.toString()}`);
+      if (!response.ok) throw new Error("export_failed");
+      const blob = await response.blob();
       downloadBlob(blob, "skills.zip");
       toast({
         type: "success",
@@ -391,11 +376,6 @@ export function BasketSidebar({ isOpen, onClose }: BasketSidebarProps) {
 }
 
 // Helper functions
-function downloadFile(filename: string, content: string, type: string) {
-  const blob = new Blob([content], { type });
-  downloadBlob(blob, filename);
-}
-
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

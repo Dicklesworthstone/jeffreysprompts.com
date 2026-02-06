@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
-import { getPrompt } from "@jeffreysprompts/core/prompts";
+import { getPrompt } from "@jeffreysprompts/core/prompts/registry";
 import { clearHistoryForUser, getOrCreateLocalUserId, listHistory } from "@/lib/history/client";
 import type { ViewHistoryEntry } from "@/lib/history/types";
 

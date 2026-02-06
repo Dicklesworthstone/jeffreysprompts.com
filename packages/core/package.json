@@ -38,6 +38,14 @@
       "types": "./src/search/engine.ts",
       "import": "./src/search/engine.ts"
     },
+    "./search/recommendations": {
+      "types": "./src/search/recommendations.ts",
+      "import": "./src/search/recommendations.ts"
+    },
+    "./search/semantic": {
+      "types": "./src/search/semantic.ts",
+      "import": "./src/search/semantic.ts"
+    },
     "./export": {
       "types": "./src/export/index.ts",
       "import": "./src/export/index.ts"
