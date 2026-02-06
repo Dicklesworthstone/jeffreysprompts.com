@@ -405,6 +405,27 @@ export function getPackCachePath(packId: string): string {
   return resolveSafeChildPath(getPacksDir(), `${packId}.json`);
 }
 
+export function doesPackCachePayloadExist(packId: string): boolean {
+  try {
+    const path = getPackCachePath(packId);
+    return existsSync(path);
+  } catch {
+    return false;
+  }
+}
+
+export function isPackCacheHealthy(packId: string, expectedHash: string): boolean {
+  if (!expectedHash) return false;
+  try {
+    const path = getPackCachePath(packId);
+    if (!existsSync(path)) return false;
+    const raw = readFileSync(path, "utf-8");
+    return sha256Hex(raw) === expectedHash;
+  } catch {
+    return false;
+  }
+}
+
 export function readPacksManifest(): PacksCacheManifest | null {
   const path = getPacksManifestPath();
   const parsed = readJsonFile<unknown>(path);

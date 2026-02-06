@@ -3,7 +3,14 @@ import boxen from "boxen";
 import Table from "cli-table3";
 import { apiClient, isAuthError, isNotFoundError, requiresPremium, type ApiResponse } from "../lib/api-client";
 import { getCurrentUser, isLoggedIn } from "../lib/credentials";
-import { cachePremiumPack, getCachedPackEntry, readPacksManifest, uncachePremiumPack } from "../lib/offline";
+import {
+  cachePremiumPack,
+  doesPackCachePayloadExist,
+  getCachedPackEntry,
+  isPackCacheHealthy,
+  readPacksManifest,
+  uncachePremiumPack,
+} from "../lib/offline";
 import { shouldOutputJson } from "../lib/utils";
 
 interface PackCategory {
@@ -174,13 +181,15 @@ async function listPremiumPacks(options: PacksOptions): Promise<void> {
       Boolean(pack.version) &&
       Boolean(cachedVersion) &&
       pack.version !== cachedVersion;
-    const cacheMissing = pack.isInstalled && !cached;
+    const cacheMissing = pack.isInstalled && (!cached || cached.installed !== true);
+    const cachePayloadMissing =
+      pack.isInstalled && cached?.installed === true && !doesPackCachePayloadExist(pack.id);
 
     return {
       ...pack,
       cachedVersion,
       cachedAt,
-      updateAvailable: updateAvailable || cacheMissing,
+      updateAvailable: updateAvailable || cacheMissing || cachePayloadMissing,
     };
   });
 
@@ -360,7 +369,9 @@ async function installPremiumPack(
   const data = response.data;
 
   const cachedEntry = getCachedPackEntry(id);
-  const shouldCache = !data?.alreadyInstalled || !cachedEntry || cachedEntry.installed !== true;
+  const cacheHealthy =
+    cachedEntry?.installed === true && isPackCacheHealthy(id, cachedEntry.hash);
+  const shouldCache = !data?.alreadyInstalled || !cacheHealthy;
   const cacheResult = shouldCache ? await tryCachePack(id) : { ok: true };
 
   if (shouldOutputJson(options)) {

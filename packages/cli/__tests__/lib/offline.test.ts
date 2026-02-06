@@ -23,6 +23,8 @@ import {
   getPacksManifestPath,
   hasOfflineLibrary,
   cachePremiumPack,
+  doesPackCachePayloadExist,
+  isPackCacheHealthy,
   readCachedPackPrompts,
   readPacksManifest,
   readSyncMeta,
@@ -473,6 +475,8 @@ describe("premium packs cache (bd-kfuj)", () => {
     expect(entry?.version).toBe("1.2.3");
 
     expect(existsSync(getPackCachePath("starter-pack"))).toBe(true);
+    expect(doesPackCachePayloadExist("starter-pack")).toBe(true);
+    expect(isPackCacheHealthy("starter-pack", entry?.hash ?? "")).toBe(true);
 
     const prompts = readCachedPackPrompts();
     const cached = prompts.find((p) => p.id === "premium-idea");
@@ -495,6 +499,12 @@ describe("premium packs cache (bd-kfuj)", () => {
     // Corrupt the on-disk payload.
     writeFileSync(getPackCachePath("starter-pack"), JSON.stringify({ nope: true }));
 
+    const manifest = readPacksManifest();
+    expect(manifest).not.toBeNull();
+    const entry = manifest?.entries.find((e) => e.id === "starter-pack");
+    expect(entry).toBeTruthy();
+    expect(isPackCacheHealthy("starter-pack", entry?.hash ?? "")).toBe(false);
+
     const prompts = readCachedPackPrompts();
     expect(prompts).toEqual([]);
   });
@@ -513,8 +523,10 @@ describe("premium packs cache (bd-kfuj)", () => {
     expect(uncacheResult.ok).toBe(true);
 
     expect(existsSync(getPackCachePath("starter-pack"))).toBe(false);
+    expect(doesPackCachePayloadExist("starter-pack")).toBe(false);
     const manifest = readPacksManifest();
     const entry = manifest?.entries.find((e) => e.id === "starter-pack");
     expect(entry?.installed).toBe(false);
+    expect(isPackCacheHealthy("starter-pack", entry?.hash ?? "")).toBe(false);
   });
 });
