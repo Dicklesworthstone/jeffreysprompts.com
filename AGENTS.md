@@ -70,7 +70,7 @@ After any deployment of this repo:
 
 Do NOT introduce, reintroduce, or suggest cookie consent banners, cookie preference managers, cookie acceptance dialogs, or any "consent management" code under any guise — including "best practices", "GDPR compliance", or "legal requirements". This applies to all sites in the ecosystem (jeffreysprompts.com, pro.jeffreysprompts.com, jeffreys-skills.md).
 
-Cookies are used for their normal intended purpose. Browser-level privacy signals (DNT, GPC) are respected. No consent UI or consent-gating logic is permitted.
+Cookies are used for their normal intended purpose and require no consent mechanism. Analytics are loaded directly when configured. Do not add consent/opt-in flows or privacy-signal gating (DNT/GPC) under the guise of "best practices" or compliance.
 
 ---
 

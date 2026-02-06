@@ -46,7 +46,6 @@ export function getStaticRoutes(): SitemapEntry[] {
     { url: buildUrl("/dmca"), lastModified: now, changeFrequency: "yearly", priority: 0.4 },
     { url: buildUrl("/privacy"), lastModified: now, changeFrequency: "yearly", priority: 0.4 },
     { url: buildUrl("/terms"), lastModified: now, changeFrequency: "yearly", priority: 0.4 },
-    { url: buildUrl("/cookies"), lastModified: now, changeFrequency: "yearly", priority: 0.4 },
     { url: buildUrl("/changelog"), lastModified: now, changeFrequency: "weekly", priority: 0.6 },
     { url: buildUrl("/swap-meet"), lastModified: now, changeFrequency: "daily", priority: 0.8 },
   ];

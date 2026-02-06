@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 import { LegalPageLayout } from "@/components/legal/LegalPageLayout";
 
@@ -198,16 +197,12 @@ export default function PrivacyPage() {
         </li>
       </ul>
       <p>
-        We use Plausible Analytics, which does not use cookies and is fully GDPR compliant. We do
-        not use third-party tracking or advertising cookies without your consent. Google Analytics
-        is only loaded when you opt in to analytics cookies.
+        We use Plausible Analytics (no cookies) and Google Analytics (GA4) for product analytics.
+        We do not use advertising cookies.
       </p>
       <p>
-        You can control cookies through your browser settings or the{" "}
-        <Link href="/cookies" className="underline underline-offset-4">
-          cookie settings page
-        </Link>
-        . Disabling essential cookies may affect Service functionality.
+        You can control cookies through your browser settings. Disabling essential cookies may
+        affect Service functionality.
       </p>
 
       <h2 id="children">7. Children&apos;s Privacy</h2>

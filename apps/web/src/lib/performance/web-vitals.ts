@@ -74,23 +74,8 @@ function sendToAnalytics(metric: Metric): void {
   }
 }
 
-function shouldTrackVitals(): boolean {
-  if (typeof window === "undefined") return false;
-
-  // Respect Do Not Track
-  const nav = navigator as Navigator & { msDoNotTrack?: string };
-  const dnt = nav.doNotTrack || nav.msDoNotTrack ||
-    (window as Window & { doNotTrack?: string }).doNotTrack;
-  if (dnt === "1" || dnt === "yes" || dnt === "true") return false;
-
-  // Respect Global Privacy Control
-  if ((navigator as Navigator & { globalPrivacyControl?: boolean }).globalPrivacyControl) return false;
-
-  return true;
-}
-
 export function initWebVitals(): void {
-  if (!shouldTrackVitals()) return;
+  if (typeof window === "undefined") return;
 
   try {
     // Core Web Vitals

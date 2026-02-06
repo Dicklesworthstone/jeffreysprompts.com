@@ -50,26 +50,6 @@ export type GaEvent =
 
 const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "";
 
-function getDoNotTrack(): boolean {
-  if (typeof navigator === "undefined") return false;
-  const nav = navigator as Navigator & { msDoNotTrack?: string };
-  const dnt =
-    nav.doNotTrack ||
-    nav.msDoNotTrack ||
-    (window as Window & { doNotTrack?: string }).doNotTrack;
-  // W3C spec allows "1", "yes", or "true" for DNT enabled
-  return dnt === "1" || dnt === "yes" || dnt === "true";
-}
-
-function getGlobalPrivacyControl(): boolean {
-  if (typeof navigator === "undefined") return false;
-  return (navigator as Navigator & { globalPrivacyControl?: boolean }).globalPrivacyControl === true;
-}
-
-function shouldBlockTracking(): boolean {
-  return getDoNotTrack() || getGlobalPrivacyControl();
-}
-
 function sanitizeProps(props?: AnalyticsProps): AnalyticsProps | undefined {
   if (!props) return undefined;
   const entries = Object.entries(props).filter(([, value]) => value !== undefined);
@@ -79,7 +59,6 @@ function sanitizeProps(props?: AnalyticsProps): AnalyticsProps | undefined {
 
 export function trackEvent(name: AnalyticsEvent, props?: AnalyticsProps): void {
   if (typeof window === "undefined") return;
-  if (shouldBlockTracking()) return;
 
   const plausible = (window as Window & { plausible?: (event: string, options?: { props?: AnalyticsProps }) => void })
     .plausible;
@@ -92,7 +71,6 @@ export function trackEvent(name: AnalyticsEvent, props?: AnalyticsProps): void {
 
 export function trackGaEvent(name: GaEvent, props?: AnalyticsProps): void {
   if (typeof window === "undefined") return;
-  if (shouldBlockTracking()) return;
   if (!GA_MEASUREMENT_ID) return;
 
   const gtag = (window as Window & { gtag?: (...args: unknown[]) => void }).gtag;
@@ -103,7 +81,6 @@ export function trackGaEvent(name: GaEvent, props?: AnalyticsProps): void {
 
 export function trackPageView(url: string): void {
   if (typeof window === "undefined") return;
-  if (shouldBlockTracking()) return;
   if (!GA_MEASUREMENT_ID) return;
 
   const gtag = (window as Window & { gtag?: (...args: unknown[]) => void }).gtag;
