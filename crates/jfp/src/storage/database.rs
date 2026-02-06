@@ -17,7 +17,6 @@ use crate::types::{Prompt, PromptVariable, VariableType};
 /// Database wrapper with connection management
 pub struct Database {
     conn: Connection,
-    path: PathBuf,
 }
 
 /// Get the default database path
@@ -53,7 +52,6 @@ impl Database {
 
         let db = Self {
             conn,
-            path: path.to_path_buf(),
         };
 
         // Initialize schema if needed
@@ -69,7 +67,6 @@ impl Database {
 
         let db = Self {
             conn,
-            path: PathBuf::from(":memory:"),
         };
 
         db.init_schema()?;
@@ -97,11 +94,6 @@ impl Database {
         }
 
         Ok(())
-    }
-
-    /// Get database path
-    pub fn path(&self) -> &Path {
-        &self.path
     }
 
     /// Insert or update a prompt
@@ -542,6 +534,7 @@ impl Database {
     }
 
     /// Checkpoint WAL
+    #[allow(dead_code)]
     pub fn checkpoint(&self) -> Result<()> {
         self.conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE)")?;
         Ok(())
@@ -592,14 +585,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_open_in_memory() {
-        let db = Database::in_memory().unwrap();
-        assert!(db.integrity_check().unwrap());
+    fn test_open_in_memory() -> Result<()> {
+        let db = Database::in_memory()?;
+        assert!(db.integrity_check()?);
+        Ok(())
     }
 
     #[test]
-    fn test_upsert_and_get_prompt() {
-        let db = Database::in_memory().unwrap();
+    fn test_upsert_and_get_prompt() -> Result<()> {
+        let db = Database::in_memory()?;
 
         let prompt = Prompt {
             id: "test-1".to_string(),
@@ -616,18 +610,24 @@ mod tests {
             is_local: false,
         };
 
-        db.upsert_prompt(&prompt).unwrap();
+        db.upsert_prompt(&prompt)?;
 
-        let loaded = db.get_prompt("test-1").unwrap().unwrap();
+        let loaded = db.get_prompt("test-1")?.ok_or_else(|| {
+            std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                "expected prompt test-1 to exist after upsert",
+            )
+        })?;
         assert_eq!(loaded.id, "test-1");
         assert_eq!(loaded.title, "Test Prompt");
         assert_eq!(loaded.tags, vec!["rust", "test"]);
         assert!(loaded.featured);
+        Ok(())
     }
 
     #[test]
-    fn test_list_prompts_filtered() {
-        let db = Database::in_memory().unwrap();
+    fn test_list_prompts_filtered() -> Result<()> {
+        let db = Database::in_memory()?;
 
         let prompts = vec![
             Prompt {
@@ -661,28 +661,29 @@ mod tests {
         ];
 
         for p in &prompts {
-            db.upsert_prompt(p).unwrap();
+            db.upsert_prompt(p)?;
         }
 
         // Filter by category
-        let cat1 = db.list_prompts_filtered(Some("cat1"), None, false).unwrap();
+        let cat1 = db.list_prompts_filtered(Some("cat1"), None, false)?;
         assert_eq!(cat1.len(), 1);
         assert_eq!(cat1[0].id, "p1");
 
         // Filter by tag
-        let tag2 = db.list_prompts_filtered(None, Some("tag2"), false).unwrap();
+        let tag2 = db.list_prompts_filtered(None, Some("tag2"), false)?;
         assert_eq!(tag2.len(), 1);
         assert_eq!(tag2[0].id, "p2");
 
         // Filter featured
-        let featured = db.list_prompts_filtered(None, None, true).unwrap();
+        let featured = db.list_prompts_filtered(None, None, true)?;
         assert_eq!(featured.len(), 1);
         assert_eq!(featured[0].id, "p1");
+        Ok(())
     }
 
     #[test]
-    fn test_category_and_tag_counts() {
-        let db = Database::in_memory().unwrap();
+    fn test_category_and_tag_counts() -> Result<()> {
+        let db = Database::in_memory()?;
 
         let prompts = vec![
             Prompt::new("p1", "P1", "C1"),
@@ -697,17 +698,18 @@ mod tests {
         p2.category = Some("cat1".to_string());
         p2.tags = vec!["tag1".to_string()];
 
-        db.upsert_prompt(&p1).unwrap();
-        db.upsert_prompt(&p2).unwrap();
+        db.upsert_prompt(&p1)?;
+        db.upsert_prompt(&p2)?;
 
-        let cats = db.category_counts().unwrap();
+        let cats = db.category_counts()?;
         assert_eq!(cats.len(), 1);
         assert_eq!(cats[0], ("cat1".to_string(), 2));
 
-        let tags = db.tag_counts().unwrap();
+        let tags = db.tag_counts()?;
         assert_eq!(tags.len(), 2);
         // tag1 should have count 2, tag2 should have count 1
         assert!(tags.iter().any(|(t, c)| t == "tag1" && *c == 2));
         assert!(tags.iter().any(|(t, c)| t == "tag2" && *c == 1));
+        Ok(())
     }
 }
