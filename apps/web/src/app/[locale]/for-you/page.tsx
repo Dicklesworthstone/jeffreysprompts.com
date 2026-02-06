@@ -26,7 +26,7 @@ import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { formatCategoryLabel } from "@/lib/discovery/recommendation-helpers";
 import { getOrCreateLocalUserId, listHistory } from "@/lib/history/client";
 import type { ViewHistoryEntry } from "@/lib/history/types";
-import { categories, prompts } from "@jeffreysprompts/core/prompts";
+import { categories, prompts } from "@jeffreysprompts/core/prompts/registry";
 import {
   getForYouRecommendations,
   type RecommendationPreferences,
@@ -225,7 +225,8 @@ export default function ForYouPage() {
                 </h1>
               </div>
               <p className="mt-2 text-neutral-600 dark:text-neutral-400 max-w-2xl">
-                {subtitle}. Filters apply to the signals used for ranking (not your preferences).
+                {subtitle}. Timeframe filters your view-history signals; category filters which prompts
+                are shown. Preferences always apply.
               </p>
             </div>
 
@@ -304,7 +305,8 @@ export default function ForYouPage() {
         ) : recommendations.length === 0 ? (
           <Card>
             <CardContent className="p-8 text-center text-sm text-muted-foreground">
-              No recommendations yet. Browse a few prompts or tune your preferences to get started.
+              No recommendations match your current filters and preferences. Try widening your
+              preferences or changing the category.
             </CardContent>
           </Card>
         ) : (
@@ -331,4 +333,3 @@ export default function ForYouPage() {
     </div>
   );
 }
-
