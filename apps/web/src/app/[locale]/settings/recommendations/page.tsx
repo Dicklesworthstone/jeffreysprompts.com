@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { categories as allCategories } from "@jeffreysprompts/core/prompts";
 import type { RecommendationPreferences } from "@jeffreysprompts/core/search";
+import { formatCategoryLabel, sortUnique, parseTagCsv, formatCsv } from "@/lib/discovery/recommendation-helpers";
 
 const STORAGE_KEY = "jfp_recommendation_preferences_v1";
 
@@ -26,32 +27,6 @@ const DEFAULT_PREFERENCES: RecommendationPreferences = {
   excludeTags: [],
   excludeCategories: [],
 };
-
-function formatCategoryLabel(value: string): string {
-  return value
-    .split("-")
-    .map((part) => (part ? part[0]!.toUpperCase() + part.slice(1) : part))
-    .join(" ");
-}
-
-function sortUnique(values: string[] | undefined): string[] {
-  if (!values?.length) return [];
-  return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b));
-}
-
-function parseTagCsv(value: string): string[] {
-  return sortUnique(
-    value
-      .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean)
-      .map((item) => item.toLowerCase())
-  );
-}
-
-function formatCsv(values: string[] | undefined): string {
-  return (values ?? []).join(", ");
-}
 
 export default function RecommendationsSettingsPage() {
   const [preferences, setPreferences, removePreferences] = useLocalStorage<RecommendationPreferences>(
