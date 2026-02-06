@@ -10,9 +10,12 @@ import {
   updateShareLinkSettings,
 } from "./share-link-store";
 
+const PASSWORD_1 = "pw1";
+const PASSWORD_2 = "pw2";
+
 function clearStore() {
   const globalStore = globalThis as unknown as Record<string, unknown>;
-  delete globalStore["__jfp_share_link_store__"];
+  globalStore["__jfp_share_link_store__"] = undefined;
 }
 
 describe("share-link-store", () => {
@@ -38,7 +41,7 @@ describe("share-link-store", () => {
       const link = createShareLink({
         contentType: "prompt",
         contentId: "test-prompt-1",
-        password: "secret123",
+        password: PASSWORD_1,
       });
 
       expect(link.passwordHash).not.toBeNull();
@@ -137,18 +140,18 @@ describe("share-link-store", () => {
 
   describe("hashPassword + verifyPassword", () => {
     it("verifies correct password", () => {
-      const hash = hashPassword("my-secret");
-      expect(verifyPassword("my-secret", hash)).toBe(true);
+      const hash = hashPassword(PASSWORD_1);
+      expect(verifyPassword(PASSWORD_1, hash)).toBe(true);
     });
 
     it("rejects incorrect password", () => {
-      const hash = hashPassword("my-secret");
-      expect(verifyPassword("wrong-password", hash)).toBe(false);
+      const hash = hashPassword(PASSWORD_1);
+      expect(verifyPassword(PASSWORD_2, hash)).toBe(false);
     });
 
     it("generates unique salts per hash", () => {
-      const hash1 = hashPassword("same-password");
-      const hash2 = hashPassword("same-password");
+      const hash1 = hashPassword(PASSWORD_1);
+      const hash2 = hashPassword(PASSWORD_1);
       expect(hash1).not.toBe(hash2); // Different salts
     });
 
@@ -163,18 +166,18 @@ describe("share-link-store", () => {
       const link = createShareLink({ contentType: "prompt", contentId: "p1" });
       const updated = updateShareLinkSettings({
         code: link.linkCode,
-        password: "new-pass",
+        password: PASSWORD_2,
       });
 
       expect(updated?.passwordHash).not.toBeNull();
-      expect(verifyPassword("new-pass", updated?.passwordHash ?? null)).toBe(true);
+      expect(verifyPassword(PASSWORD_2, updated?.passwordHash ?? null)).toBe(true);
     });
 
     it("removes password when set to null", () => {
       const link = createShareLink({
         contentType: "prompt",
         contentId: "p1",
-        password: "old-pass",
+        password: PASSWORD_1,
       });
 
       const updated = updateShareLinkSettings({
