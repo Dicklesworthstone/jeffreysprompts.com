@@ -80,6 +80,15 @@ pub fn export_jsonl(db: &Database, path: &Path) -> Result<usize> {
     }
 
     // Atomic rename
+    //
+    // On Windows, std::fs::rename fails if destination already exists.
+    // Remove existing file first so repeated exports succeed across platforms.
+    #[cfg(windows)]
+    if path.exists() {
+        fs::remove_file(path)
+            .with_context(|| format!("Failed to replace existing JSONL file: {:?}", path))?;
+    }
+
     fs::rename(&temp_path, path)
         .with_context(|| format!("Failed to rename {:?} to {:?}", temp_path, path))?;
 
@@ -94,8 +103,8 @@ pub fn export_jsonl(db: &Database, path: &Path) -> Result<usize> {
 /// Replaces all prompts in database with contents of JSONL file.
 /// Uses transaction for atomicity.
 pub fn import_jsonl(db: &mut Database, path: &Path) -> Result<usize> {
-    let file = File::open(path)
-        .with_context(|| format!("Failed to open JSONL file: {:?}", path))?;
+    let file =
+        File::open(path).with_context(|| format!("Failed to open JSONL file: {:?}", path))?;
     let reader = BufReader::new(file);
 
     let mut prompts = Vec::new();
@@ -118,8 +127,10 @@ pub fn import_jsonl(db: &mut Database, path: &Path) -> Result<usize> {
             let parsed_first_line = serde_json::from_str::<Value>(trimmed)
                 .with_context(|| format!("Failed to parse JSON at line {}", line_num))?;
             if parsed_first_line.get("_meta").is_some() {
-                let _meta: JsonlMeta = serde_json::from_value(parsed_first_line)
-                    .with_context(|| format!("Failed to parse JSONL metadata at line {}", line_num))?;
+                let _meta: JsonlMeta =
+                    serde_json::from_value(parsed_first_line).with_context(|| {
+                        format!("Failed to parse JSONL metadata at line {}", line_num)
+                    })?;
                 continue;
             }
         }
@@ -149,7 +160,6 @@ fn get_data_version(db: &Database) -> String {
 fn update_data_version(db: &Database) -> Result<()> {
     db.set_meta("data_version", &Utc::now().to_rfc3339())
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -198,7 +208,10 @@ mod tests {
         // Read first line
         let content = fs::read_to_string(&jsonl_path)?;
         let first_line = content.lines().next().ok_or_else(|| {
-            std::io::Error::new(std::io::ErrorKind::InvalidData, "missing JSONL metadata header")
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "missing JSONL metadata header",
+            )
         })?;
         assert!(first_line.contains("\"_meta\""));
         assert!(first_line.contains("\"exported_at\""));
@@ -226,6 +239,25 @@ mod tests {
         let loaded = db.list_prompts()?;
         assert!(loaded.iter().any(|p| p.id == "first"));
         assert!(loaded.iter().any(|p| p.id == "second"));
+        Ok(())
+    }
+
+    #[test]
+    fn test_export_can_replace_existing_jsonl_file() -> Result<()> {
+        let dir = tempdir()?;
+        let jsonl_path = dir.path().join("prompts.jsonl");
+
+        let mut db = Database::in_memory()?;
+        db.bulk_upsert_prompts(&[Prompt::new("first", "First", "first content")])?;
+        export_jsonl(&db, &jsonl_path)?;
+
+        db.bulk_upsert_prompts(&[Prompt::new("second", "Second", "second content")])?;
+        let exported = export_jsonl(&db, &jsonl_path)?;
+        assert_eq!(exported, 2);
+
+        let mut imported_db = Database::in_memory()?;
+        let imported = import_jsonl(&mut imported_db, &jsonl_path)?;
+        assert_eq!(imported, 2);
         Ok(())
     }
 }

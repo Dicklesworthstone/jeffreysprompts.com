@@ -64,6 +64,36 @@ fn build_safe_export_filename(prompt_id: &str, ext: &str) -> Result<String, Stri
     Ok(format!("{}.{}", id, ext))
 }
 
+fn validate_export_target_path(path: &Path, canonical_dir: &Path) -> Result<(), String> {
+    let parent = path.parent().unwrap_or(canonical_dir);
+    let canonical_parent =
+        fs::canonicalize(parent).map_err(|e| format!("failed to resolve export parent: {e}"))?;
+    if !canonical_parent.starts_with(canonical_dir) {
+        return Err("export path escapes output directory".to_string());
+    }
+
+    if !path.exists() {
+        return Ok(());
+    }
+
+    let metadata =
+        fs::symlink_metadata(path).map_err(|e| format!("failed to inspect export target: {e}"))?;
+    if metadata.file_type().is_symlink() {
+        return Err("refusing to overwrite symlink export target".to_string());
+    }
+    if metadata.is_dir() {
+        return Err("export target is a directory".to_string());
+    }
+
+    let canonical_existing = fs::canonicalize(path)
+        .map_err(|e| format!("failed to resolve existing export target: {e}"))?;
+    if !canonical_existing.starts_with(canonical_dir) {
+        return Err("existing export target resolves outside output directory".to_string());
+    }
+
+    Ok(())
+}
+
 pub fn run(
     ids: Vec<String>,
     format: &str,
@@ -216,31 +246,19 @@ pub fn run(
             };
             let path = dir_path.join(&filename);
 
-            let parent = path.parent().unwrap_or(dir_path);
-            match fs::canonicalize(parent) {
-                Ok(canonical_parent) if canonical_parent == canonical_dir => {}
-                Ok(_) => {
-                    if use_json {
-                        eprintln!(
-                            r#"{{"error": "path_escape_detected", "id": "{}", "file": "{}"}}"#,
-                            prompt.id, filename
-                        );
-                    } else {
-                        eprintln!("Refusing to write '{}' outside output directory", filename);
-                    }
-                    continue;
+            if let Err(err) = validate_export_target_path(&path, &canonical_dir) {
+                if use_json {
+                    eprintln!(
+                        r#"{{"error": "path_escape_detected", "id": "{}", "file": "{}", "message": "{}"}}"#,
+                        prompt.id, filename, err
+                    );
+                } else {
+                    eprintln!(
+                        "Refusing to write '{}' for prompt '{}': {}",
+                        filename, prompt.id, err
+                    );
                 }
-                Err(e) => {
-                    if use_json {
-                        eprintln!(
-                            r#"{{"error": "canonicalize_error", "id": "{}", "message": "{}"}}"#,
-                            prompt.id, e
-                        );
-                    } else {
-                        eprintln!("Error resolving export path for '{}': {}", prompt.id, e);
-                    }
-                    continue;
-                }
+                continue;
             }
 
             let content = format_prompt(prompt, format);
@@ -257,7 +275,10 @@ pub fn run(
                 }
                 Err(e) => {
                     if use_json {
-                        eprintln!(r#"{{"error": "write_error", "id": "{}", "message": "{}"}}"#, prompt.id, e);
+                        eprintln!(
+                            r#"{{"error": "write_error", "id": "{}", "message": "{}"}}"#,
+                            prompt.id, e
+                        );
                     } else {
                         eprintln!("Error writing {}: {}", path.display(), e);
                     }
@@ -357,7 +378,12 @@ fn format_prompt(prompt: &Prompt, format: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::build_safe_export_filename;
+    use std::fs;
+    use std::path::Path;
+
+    use tempfile::tempdir;
+
+    use super::{build_safe_export_filename, validate_export_target_path};
 
     #[test]
     fn build_safe_export_filename_accepts_slug_like_ids() {
@@ -375,5 +401,39 @@ mod tests {
     fn build_safe_export_filename_rejects_unsupported_chars() {
         let err = build_safe_export_filename("bad$id", "md").expect_err("must reject");
         assert!(err.contains("unsupported characters"));
+    }
+
+    #[test]
+    fn validate_export_target_path_allows_regular_file_in_output_dir() {
+        let dir = tempdir().expect("tempdir");
+        let output_dir = dir.path().join("out");
+        fs::create_dir_all(&output_dir).expect("create out");
+        let canonical_dir = fs::canonicalize(&output_dir).expect("canonical out");
+        let target = output_dir.join("prompt.md");
+        fs::write(&target, "ok").expect("write file");
+
+        let result = validate_export_target_path(&target, canonical_dir.as_path());
+        assert!(result.is_ok());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn validate_export_target_path_rejects_symlink_target() {
+        use std::os::unix::fs::symlink;
+
+        let dir = tempdir().expect("tempdir");
+        let output_dir = dir.path().join("out");
+        fs::create_dir_all(&output_dir).expect("create out");
+        let canonical_dir = fs::canonicalize(&output_dir).expect("canonical out");
+
+        let outside = dir.path().join("outside.md");
+        fs::write(&outside, "outside").expect("write outside");
+
+        let link_path = output_dir.join("prompt.md");
+        symlink(&outside, &link_path).expect("symlink");
+
+        let err = validate_export_target_path(Path::new(&link_path), canonical_dir.as_path())
+            .expect_err("symlink target must be rejected");
+        assert!(err.contains("symlink"));
     }
 }

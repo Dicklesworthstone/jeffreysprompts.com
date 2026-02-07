@@ -266,18 +266,16 @@ export async function PUT(request: NextRequest) {
     );
   }
 
-  const replyLimit = await checkMultipleLimits([
-    { limiter: replyIpRateLimiter, key: `ip:${getTrustedClientIp(request)}` },
-    { limiter: replyTicketRateLimiter, key: `ticket:${ticketNumber}` },
-  ]);
-  if (!replyLimit.allowed) {
+  const clientIp = getTrustedClientIp(request);
+  const ipReplyLimit = await replyIpRateLimiter.check(`ip:${clientIp}`);
+  if (!ipReplyLimit.allowed) {
     return NextResponse.json(
       { error: "Too many replies. Please try again later." },
       {
         status: 429,
         headers: {
           ...NO_STORE_HEADERS,
-          "Retry-After": replyLimit.retryAfterSeconds.toString(),
+          "Retry-After": ipReplyLimit.retryAfterSeconds.toString(),
         },
       }
     );
@@ -290,6 +288,21 @@ export async function PUT(request: NextRequest) {
 
   if (ticket.status === "closed") {
     return NextResponse.json({ error: "This ticket is closed." }, { status: 400, headers: NO_STORE_HEADERS });
+  }
+
+  // Apply per-ticket throttling only after the request is authenticated.
+  const ticketReplyLimit = await replyTicketRateLimiter.check(`ticket:${ticketNumber}`);
+  if (!ticketReplyLimit.allowed) {
+    return NextResponse.json(
+      { error: "Too many replies. Please try again later." },
+      {
+        status: 429,
+        headers: {
+          ...NO_STORE_HEADERS,
+          "Retry-After": ticketReplyLimit.retryAfterSeconds.toString(),
+        },
+      }
+    );
   }
 
   const spamCheck = checkContentForSpam(message);
