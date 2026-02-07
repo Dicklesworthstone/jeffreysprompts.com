@@ -27,6 +27,7 @@ type LocalSupportMessage = {
 
 type LocalSupportTicket = {
   ticketNumber: string;
+  accessToken?: string;
   name: string;
   email: string;
   subject: string;
@@ -80,8 +81,8 @@ export default function SupportTicketsPage() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [replyMessage, setReplyMessage] = useState("");
   const [replyingTicket, setReplyingTicket] = useState<string | null>(null);
-  const [lookupEmail, setLookupEmail] = useState("");
   const [lookupNumber, setLookupNumber] = useState("");
+  const [lookupToken, setLookupToken] = useState("");
   const [lookupResult, setLookupResult] = useState<LocalSupportTicket | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -108,6 +109,10 @@ export default function SupportTicketsPage() {
     if (!replyingTicket || !replyMessage.trim()) return;
     const ticket = tickets.find((item) => item.ticketNumber === replyingTicket);
     if (!ticket) return;
+    if (!ticket.accessToken) {
+      error("This ticket does not have a valid access token. Open a new support request.");
+      return;
+    }
 
     try {
       const response = await fetch("/api/support/tickets", {
@@ -115,7 +120,7 @@ export default function SupportTicketsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ticketNumber: ticket.ticketNumber,
-          email: ticket.email,
+          ticketToken: ticket.accessToken,
           message: replyMessage,
         }),
       });
@@ -152,15 +157,15 @@ export default function SupportTicketsPage() {
   }, [error, replyMessage, replyingTicket, success, tickets, updateLocalTicket]);
 
   const handleLookup = useCallback(async () => {
-    if (!lookupEmail.trim() || !lookupNumber.trim()) {
-      error("Enter both email and ticket number.");
+    if (!lookupNumber.trim() || !lookupToken.trim()) {
+      error("Enter both ticket number and ticket token.");
       return;
     }
 
     try {
       const params = new URLSearchParams({
-        email: lookupEmail.trim().toLowerCase(),
         ticketNumber: lookupNumber.trim().toUpperCase(),
+        ticketToken: lookupToken.trim(),
       });
       const response = await fetch(`/api/support/tickets?${params.toString()}`);
       const payload = await response.json().catch(() => null);
@@ -180,7 +185,7 @@ export default function SupportTicketsPage() {
     } catch {
       error("Unable to load ticket.");
     }
-  }, [error, lookupEmail, lookupNumber, success]);
+  }, [error, lookupNumber, lookupToken, success]);
 
   const refreshTickets = useCallback(async () => {
     if (tickets.length === 0) return;
@@ -188,9 +193,10 @@ export default function SupportTicketsPage() {
     try {
       const results = await Promise.allSettled(
         tickets.map(async (ticket) => {
+          if (!ticket.accessToken) return ticket;
           const params = new URLSearchParams({
-            email: ticket.email,
             ticketNumber: ticket.ticketNumber,
+            ticketToken: ticket.accessToken,
           });
           const response = await fetch(`/api/support/tickets?${params.toString()}`);
           if (!response.ok) return ticket;
@@ -241,22 +247,21 @@ export default function SupportTicketsPage() {
           <CardContent className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="lookup-email">Email</Label>
-                <Input
-                  id="lookup-email"
-                  type="email"
-                  value={lookupEmail}
-                  onChange={(event) => setLookupEmail(event.target.value)}
-                  placeholder="you@example.com"
-                />
-              </div>
-              <div className="space-y-2">
                 <Label htmlFor="lookup-ticket">Ticket number</Label>
                 <Input
                   id="lookup-ticket"
                   value={lookupNumber}
                   onChange={(event) => setLookupNumber(event.target.value)}
                   placeholder="SUP-20260112-1234"
+                />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="lookup-token">Ticket access token</Label>
+                <Input
+                  id="lookup-token"
+                  value={lookupToken}
+                  onChange={(event) => setLookupToken(event.target.value)}
+                  placeholder="Paste the access token from your ticket confirmation"
                 />
               </div>
             </div>
@@ -298,6 +303,11 @@ export default function SupportTicketsPage() {
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
                         <p className="text-xs text-muted-foreground">{ticket.ticketNumber}</p>
+                        {ticket.accessToken && (
+                          <p className="text-[11px] text-muted-foreground font-mono break-all">
+                            Token: {ticket.accessToken}
+                          </p>
+                        )}
                         <h3 className="text-lg font-semibold text-foreground">{ticket.subject}</h3>
                         <p className="text-xs text-muted-foreground">
                           Last updated {formatDate(ticket.updatedAt)}

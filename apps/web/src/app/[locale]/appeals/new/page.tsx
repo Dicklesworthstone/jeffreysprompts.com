@@ -100,7 +100,9 @@ export default async function NewAppealPage({ searchParams }: NewAppealPageProps
   // Check if already appealed
   const existingAppeal = getAppealByActionId(actionId);
   if (existingAppeal) {
-    redirect(`/appeals/${existingAppeal.id}?email=${encodeURIComponent(email)}`);
+    redirect(
+      `/appeals/${existingAppeal.id}?appealToken=${encodeURIComponent(existingAppeal.accessToken)}`
+    );
   }
 
   // Check if can appeal

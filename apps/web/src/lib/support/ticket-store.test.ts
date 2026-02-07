@@ -61,6 +61,7 @@ describe("ticket-store", () => {
 
       expect(ticket.id).toBeTruthy();
       expect(ticket.ticketNumber).toMatch(/^SUP-/);
+      expect(ticket.accessToken).toMatch(/^[a-f0-9]{64}$/);
       expect(ticket.name).toBe("Jane Doe");
       expect(ticket.email).toBe("jane@example.com"); // normalized
       expect(ticket.subject).toBe("Help with billing");

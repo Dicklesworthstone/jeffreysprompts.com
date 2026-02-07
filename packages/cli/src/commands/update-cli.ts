@@ -25,6 +25,34 @@ export async function internalUpdateCheckCommand() {
 const GITHUB_OWNER = "Dicklesworthstone";
 const GITHUB_REPO = "jeffreysprompts.com";
 const RELEASE_API = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
+const NETWORK_TIMEOUT_MS = 30_000;
+
+async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = NETWORK_TIMEOUT_MS): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const onAbort = () => controller.abort();
+  const upstreamSignal = options.signal ?? undefined;
+
+  if (upstreamSignal) {
+    if (upstreamSignal.aborted) {
+      controller.abort();
+    } else {
+      upstreamSignal.addEventListener("abort", onAbort, { once: true });
+    }
+  }
+
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+    if (upstreamSignal) {
+      upstreamSignal.removeEventListener("abort", onAbort);
+    }
+  }
+}
 
 interface UpdateCliOptions {
   check?: boolean;
@@ -70,7 +98,7 @@ function getBinaryName(): string {
 }
 
 async function fetchLatestRelease(): Promise<GithubRelease> {
-  const response = await fetch(RELEASE_API, {
+  const response = await fetchWithTimeout(RELEASE_API, {
     headers: {
       Accept: "application/vnd.github.v3+json",
       "User-Agent": `jfp-cli/${version}`,
@@ -91,7 +119,7 @@ async function fetchLatestRelease(): Promise<GithubRelease> {
 }
 
 async function downloadFile(url: string, destPath: string, expectedSize?: number): Promise<void> {
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     headers: { "User-Agent": `jfp-cli/${version}` },
   });
 
@@ -152,7 +180,7 @@ async function fetchChecksumForAsset(
 ): Promise<string | null> {
   const sumsAsset = release.assets.find((asset) => asset.name === "SHA256SUMS.txt");
   if (sumsAsset) {
-    const response = await fetch(sumsAsset.browser_download_url, {
+    const response = await fetchWithTimeout(sumsAsset.browser_download_url, {
       headers: { "User-Agent": `jfp-cli/${version}` },
     });
     if (response.ok) {
@@ -173,7 +201,7 @@ async function fetchChecksumForAsset(
 
   const directAsset = release.assets.find((asset) => asset.name === `${assetName}.sha256`);
   if (directAsset) {
-    const response = await fetch(directAsset.browser_download_url, {
+    const response = await fetchWithTimeout(directAsset.browser_download_url, {
       headers: { "User-Agent": `jfp-cli/${version}` },
     });
     if (response.ok) {

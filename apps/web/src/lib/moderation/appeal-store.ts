@@ -28,6 +28,7 @@ export function getAppealStatusLabel(status: AppealStatus): string {
 
 export interface ModerationAppeal {
   id: string;
+  accessToken: string;
   actionId: string;
   userId: string;
   userEmail?: string | null;
@@ -79,6 +80,10 @@ function getStore(): AppealStore {
 
 function touchAppeal(store: AppealStore, appealId: string) {
   store.order = [appealId, ...store.order.filter((id) => id !== appealId)];
+}
+
+function createAppealAccessToken(): string {
+  return `${crypto.randomUUID()}${crypto.randomUUID()}`.replace(/-/g, "");
 }
 
 export function canAppealAction(actionId: string, actionCreatedAt: string): {
@@ -134,6 +139,7 @@ export function createAppeal(input: {
 
   const appeal: ModerationAppeal = {
     id: crypto.randomUUID(),
+    accessToken: createAppealAccessToken(),
     actionId: input.actionId,
     userId: input.userId,
     userEmail: input.userEmail ?? null,

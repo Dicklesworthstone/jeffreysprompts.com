@@ -2,6 +2,13 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getReviewById, reportReview } from "@/lib/reviews/review-store";
 import { getOrCreateUserId } from "@/lib/user-id";
+import { createRateLimiter } from "@/lib/rate-limit";
+
+const reviewReportRateLimiter = createRateLimiter({
+  name: "review-report",
+  windowMs: 60 * 1000, // 1 minute
+  maxRequests: 10,
+});
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -41,6 +48,23 @@ export async function POST(request: NextRequest, context: RouteParams) {
 
   const reason = typeof payload.reason === "string" ? payload.reason.trim() : undefined;
   const { userId, cookie } = getOrCreateUserId(request);
+
+  const reportRateLimit = await reviewReportRateLimiter.check(`user:${userId}`);
+  if (!reportRateLimit.allowed) {
+    const response = NextResponse.json(
+      { error: "Too many report requests. Please try again later." },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(reportRateLimit.retryAfterSeconds),
+        },
+      }
+    );
+    if (cookie) {
+      response.cookies.set(cookie.name, cookie.value, cookie.options);
+    }
+    return response;
+  }
 
   // Prevent self-reporting
   if (review.userId === userId) {

@@ -7,6 +7,7 @@ import {
   recordShareLinkView,
   verifyPassword,
 } from "@/lib/share-links/share-link-store";
+import { getTrustedClientIp } from "@/lib/rate-limit";
 
 // Rate limiting for password verification to prevent brute-force attacks
 // More restrictive than general reports: 5 attempts per 15 minutes per IP+code combo
@@ -20,14 +21,9 @@ type RateLimitBucket = {
 
 const rateLimitBuckets = new Map<string, RateLimitBucket>();
 
-function getClientIp(request: NextRequest): string | null {
-  const forwardedFor = request.headers.get("x-forwarded-for");
-  return forwardedFor?.split(",")[0]?.trim() || request.headers.get("x-real-ip");
-}
-
-function getRateLimitKey(ip: string | null, code: string): string {
+function getRateLimitKey(ip: string, code: string): string {
   // Rate limit per IP + share code combination to prevent targeted attacks
-  return `${ip ?? "unknown"}:${code}`;
+  return `${ip}:${code}`;
 }
 
 function getRateLimitBucket(key: string, now: number): RateLimitBucket {
@@ -82,7 +78,7 @@ export async function POST(
   const now = Date.now();
   pruneExpiredBuckets(now);
 
-  const clientIp = getClientIp(request);
+  const clientIp = getTrustedClientIp(request);
   const rateLimitKey = getRateLimitKey(clientIp, code);
   const bucket = getRateLimitBucket(rateLimitKey, now);
   bucket.count += 1;
@@ -136,7 +132,7 @@ export async function POST(
 
   recordShareLinkView({
     linkId: link.id,
-    ip: getClientIp(request),
+    ip: getTrustedClientIp(request),
     userAgent: request.headers.get("user-agent"),
   });
 

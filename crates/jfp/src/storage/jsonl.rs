@@ -12,6 +12,7 @@ use std::path::Path;
 use anyhow::{Context, Result};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use super::Database;
 use crate::types::Prompt;
@@ -99,24 +100,32 @@ pub fn import_jsonl(db: &mut Database, path: &Path) -> Result<usize> {
 
     let mut prompts = Vec::new();
     let mut line_num = 0;
+    let mut saw_first_non_empty = false;
 
     for line in reader.lines() {
         line_num += 1;
         let line = line.with_context(|| format!("Failed to read line {}", line_num))?;
 
-        if line.trim().is_empty() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
             continue;
         }
 
-        // First line is metadata - skip it
-        if line_num == 1 && line.contains("\"_meta\"") {
-            let _meta: JsonlMeta = serde_json::from_str(&line)
-                .with_context(|| "Failed to parse JSONL metadata")?;
-            continue;
+        // The first non-empty line may be metadata. Only treat it as metadata
+        // when it is an object with a top-level "_meta" key.
+        if !saw_first_non_empty {
+            saw_first_non_empty = true;
+            let parsed_first_line = serde_json::from_str::<Value>(trimmed)
+                .with_context(|| format!("Failed to parse JSON at line {}", line_num))?;
+            if parsed_first_line.get("_meta").is_some() {
+                let _meta: JsonlMeta = serde_json::from_value(parsed_first_line)
+                    .with_context(|| format!("Failed to parse JSONL metadata at line {}", line_num))?;
+                continue;
+            }
         }
 
         // Parse prompt
-        let prompt: Prompt = serde_json::from_str(&line)
+        let prompt: Prompt = serde_json::from_str(trimmed)
             .with_context(|| format!("Failed to parse prompt at line {}", line_num))?;
         prompts.push(prompt);
     }
@@ -193,6 +202,30 @@ mod tests {
         })?;
         assert!(first_line.contains("\"_meta\""));
         assert!(first_line.contains("\"exported_at\""));
+        Ok(())
+    }
+
+    #[test]
+    fn test_import_does_not_skip_first_prompt_with_meta_in_content() -> Result<()> {
+        let dir = tempdir()?;
+        let jsonl_path = dir.path().join("prompts.jsonl");
+        let first_prompt = Prompt::new(
+            "first",
+            "First",
+            r#"content mentioning "_meta" should still import"#,
+        );
+        let second_prompt = Prompt::new("second", "Second", "second content");
+        let first_line = serde_json::to_string(&first_prompt)?;
+        let second_line = serde_json::to_string(&second_prompt)?;
+        fs::write(&jsonl_path, format!("{}\n{}\n", first_line, second_line))?;
+
+        let mut db = Database::in_memory()?;
+        let imported = import_jsonl(&mut db, &jsonl_path)?;
+        assert_eq!(imported, 2);
+
+        let loaded = db.list_prompts()?;
+        assert!(loaded.iter().any(|p| p.id == "first"));
+        assert!(loaded.iter().any(|p| p.id == "second"));
         Ok(())
     }
 }

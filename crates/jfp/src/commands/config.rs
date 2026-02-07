@@ -5,6 +5,7 @@
 //! - Reads/writes config file at XDG config path
 
 use std::fs;
+use std::io::Write;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
@@ -53,6 +54,22 @@ fn parse_config_table(content: &str) -> Result<toml::map::Map<String, toml::Valu
     content
         .parse::<toml::Table>()
         .map_err(|e| format!("parse_error: {}", e))
+}
+
+fn write_config_atomically(path: &PathBuf, content: &str) -> Result<(), std::io::Error> {
+    let temp_path = path.with_extension("toml.tmp");
+    let mut temp_file = fs::File::create(&temp_path)?;
+    temp_file.write_all(content.as_bytes())?;
+    temp_file.sync_all()?;
+    fs::rename(&temp_path, path)?;
+
+    if let Some(parent) = path.parent() {
+        if let Ok(dir_handle) = fs::File::open(parent) {
+            let _ = dir_handle.sync_all();
+        }
+    }
+
+    Ok(())
 }
 
 pub fn run(action: &str, key: Option<String>, value: Option<String>, use_json: bool) -> ExitCode {
@@ -353,7 +370,7 @@ fn set_config(key: &str, value: &str, use_json: bool) -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
-    if let Err(e) = fs::write(&path, content) {
+    if let Err(e) = write_config_atomically(&path, &content) {
         if use_json {
             println!(r#"{{"error": "write_error", "message": "{}"}}"#, e);
         } else {
@@ -381,7 +398,10 @@ fn set_config(key: &str, value: &str, use_json: bool) -> ExitCode {
 
 #[cfg(test)]
 mod tests {
-    use super::parse_config_table;
+    use std::fs;
+
+    use super::{parse_config_table, write_config_atomically};
+    use tempfile::tempdir;
 
     #[test]
     fn parse_config_table_accepts_table_root() {
@@ -394,6 +414,18 @@ mod tests {
     fn parse_config_table_rejects_invalid_toml() {
         let err = parse_config_table("foo = [").expect_err("invalid TOML should fail");
         assert!(err.starts_with("parse_error: "));
+    }
+
+    #[test]
+    fn write_config_atomically_replaces_existing_file() {
+        let dir = tempdir().expect("temp dir");
+        let path = dir.path().join("config.toml");
+        fs::write(&path, "foo = 1\n").expect("seed config");
+
+        write_config_atomically(&path, "foo = 2\nbar = true\n").expect("atomic write should succeed");
+
+        let content = fs::read_to_string(&path).expect("read updated config");
+        assert_eq!(content, "foo = 2\nbar = true\n");
     }
 
 }

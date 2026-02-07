@@ -153,6 +153,35 @@ function debugLog(message: string, env = process.env): void {
   }
 }
 
+const AUTH_REQUEST_TIMEOUT_MS = 30_000;
+
+function createTimedSignal(timeoutMs: number, upstream?: AbortSignal): {
+  signal: AbortSignal;
+  cleanup: () => void;
+} {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const onAbort = () => controller.abort();
+
+  if (upstream) {
+    if (upstream.aborted) {
+      controller.abort();
+    } else {
+      upstream.addEventListener("abort", onAbort, { once: true });
+    }
+  }
+
+  return {
+    signal: controller.signal,
+    cleanup: () => {
+      clearTimeout(timeoutId);
+      if (upstream) {
+        upstream.removeEventListener("abort", onAbort);
+      }
+    },
+  };
+}
+
 /**
  * Attempt to refresh the access token using the refresh token
  * Returns new credentials on success, null on failure
@@ -163,11 +192,13 @@ async function refreshAccessToken(refreshToken: string, env = process.env): Prom
     env.JFP_PREMIUM_API_URL ??
     (env.JFP_PREMIUM_URL ? `${env.JFP_PREMIUM_URL.replace(/\/$/, "")}/api` : "https://pro.jeffreysprompts.com/api");
   const refreshUrl = `${apiBase.replace(/\/$/, "")}/cli/token/refresh`;
+  const { signal, cleanup } = createTimedSignal(AUTH_REQUEST_TIMEOUT_MS);
 
   try {
     const response = await fetch(refreshUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      signal,
       body: JSON.stringify({
         refresh_token: refreshToken,
         client_id: "jfp-cli",
@@ -205,6 +236,8 @@ async function refreshAccessToken(refreshToken: string, env = process.env): Prom
     // Network error - return null to fail gracefully
     debugLog(`Refresh error: ${err instanceof Error ? err.message : String(err)}`, env);
     return null;
+  } finally {
+    cleanup();
   }
 }
 
@@ -301,9 +334,14 @@ export async function authenticatedFetch(
 
   const headers = new Headers(options.headers);
   headers.set("Authorization", `Bearer ${token}`);
-
-  return fetch(url, {
-    ...options,
-    headers,
-  });
+  const { signal, cleanup } = createTimedSignal(AUTH_REQUEST_TIMEOUT_MS, options.signal ?? undefined);
+  try {
+    return await fetch(url, {
+      ...options,
+      headers,
+      signal,
+    });
+  } finally {
+    cleanup();
+  }
 }

@@ -6,76 +6,26 @@ import {
   isReportContentType,
   isReportReason,
 } from "@/lib/reporting/report-store";
+import { createRateLimiter, getTrustedClientIp } from "@/lib/rate-limit";
 
 const MAX_DETAILS_LENGTH = 500;
 const MAX_TITLE_LENGTH = 140;
-const MAX_REPORTS_PER_WINDOW = 10;
 const RATE_LIMIT_WINDOW_MS = 24 * 60 * 60 * 1000;
-
-type RateLimitBucket = {
-  count: number;
-  resetAt: number;
-};
-
-/**
- * In-memory rate limit storage.
- *
- * IMPORTANT: This resets on serverless cold starts, providing only
- * per-instance protection. For production with multiple instances or
- * serverless environments, consider using Redis/Upstash for durable
- * rate limiting. The content-level deduplication via hasRecentReport()
- * provides additional protection against spam.
- */
-const rateLimitBuckets = new Map<string, RateLimitBucket>();
-
-// Log warning once at startup in production
-if (process.env.NODE_ENV === "production" && !process.env.RATE_LIMIT_WARNED) {
-  console.warn(
-    "[Reports API] Using in-memory rate limiting. " +
-    "Consider Redis for production multi-instance deployments."
-  );
-  (process.env as Record<string, string>).RATE_LIMIT_WARNED = "1";
-}
-
-function getClientKey(request: NextRequest) {
-  const forwardedFor = request.headers.get("x-forwarded-for");
-  const ip = forwardedFor?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "unknown";
-  return ip;
-}
-
-function getRateLimitBucket(key: string, now: number) {
-  const existing = rateLimitBuckets.get(key);
-  if (!existing || now > existing.resetAt) {
-    const bucket = { count: 0, resetAt: now + RATE_LIMIT_WINDOW_MS };
-    rateLimitBuckets.set(key, bucket);
-    return bucket;
-  }
-  return existing;
-}
-
-function pruneExpiredBuckets(now: number) {
-  for (const [key, bucket] of rateLimitBuckets) {
-    if (bucket.resetAt <= now) {
-      rateLimitBuckets.delete(key);
-    }
-  }
-}
+const reportRateLimiter = createRateLimiter({
+  name: "reports",
+  windowMs: RATE_LIMIT_WINDOW_MS,
+  maxRequests: 10,
+});
 
 export async function POST(request: NextRequest) {
-  const now = Date.now();
-  pruneExpiredBuckets(now);
-
-  const key = getClientKey(request);
-  const bucket = getRateLimitBucket(key, now);
-  bucket.count += 1;
-
-  if (bucket.count > MAX_REPORTS_PER_WINDOW) {
-    const retryAfterSeconds = Math.max(1, Math.ceil((bucket.resetAt - now) / 1000));
+  const key = getTrustedClientIp(request);
+  const rateLimit = await reportRateLimiter.check(key);
+  if (!rateLimit.allowed) {
     return NextResponse.json(
       { error: "Report limit reached. Please try again later." },
       {
         status: 429,
-        headers: { "Retry-After": retryAfterSeconds.toString() },
+        headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
       }
     );
   }

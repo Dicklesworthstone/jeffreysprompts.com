@@ -80,7 +80,9 @@ export function AppealForm({
 
       toast.success("Appeal Submitted", "Your appeal has been submitted and will be reviewed.");
       onSuccess?.();
-      router.push(`/appeals/${data.appeal.id}?email=${encodeURIComponent(userEmail)}`);
+      router.push(
+        `/appeals/${data.appeal.id}?appealToken=${encodeURIComponent(data.appeal.accessToken)}`
+      );
     } catch {
       setError("An unexpected error occurred. Please try again.");
       toast.error("Error", "An unexpected error occurred. Please try again.");

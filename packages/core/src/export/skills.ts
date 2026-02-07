@@ -150,6 +150,23 @@ export function getUniqueDelimiter(content: string, base: string = "JFP_SKILL"):
   return delimiter;
 }
 
+const SAFE_SKILL_PATH_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$/;
+
+function getSafeSkillPathId(promptId: string): string {
+  const trimmed = promptId.trim();
+  if (SAFE_SKILL_PATH_ID.test(trimmed)) {
+    return trimmed;
+  }
+
+  // Fallback: deterministic sanitization for shell/file path safety.
+  const sanitized = trimmed
+    .replace(/[^A-Za-z0-9._-]+/g, "-")
+    .replace(/^-+/, "")
+    .replace(/-+$/, "")
+    .slice(0, 200);
+  return sanitized || "skill";
+}
+
 /**
  * Generate a shell install script for a list of prompts
  * Creates HEREDOC-based installation that does not require downloading
@@ -171,7 +188,8 @@ export function generateInstallScript(prompts: Prompt[], targetDir?: string): st
   ];
 
   for (const prompt of prompts) {
-    const skillDir = `\$SKILLS_DIR/${prompt.id}`;
+    const safePromptId = getSafeSkillPathId(prompt.id);
+    const skillDir = `\$SKILLS_DIR/${safePromptId}`;
     const skillContent = generateSkillMd(prompt);
     // Use a unique delimiter for each prompt to avoid conflicts
     const delimiter = getUniqueDelimiter(skillContent);
@@ -183,7 +201,7 @@ export function generateInstallScript(prompts: Prompt[], targetDir?: string): st
     lines.push(`cat > "${skillDir}/SKILL.md" << '${delimiter}'`);
     lines.push(skillContent);
     lines.push(delimiter);
-    lines.push(`echo "  ✓ Installed ${prompt.id}"`);
+    lines.push(`echo "  ✓ Installed ${safePromptId}"`);
     lines.push("");
   }
 
@@ -202,7 +220,7 @@ export function generateInstallScript(prompts: Prompt[], targetDir?: string): st
 export function generateInstallOneLiner(prompt: Prompt, options: { project?: boolean } = {}): string {
   const skillContent = generateSkillMd(prompt);
   const baseDir = options.project ? ".claude/skills" : "$HOME/.config/claude/skills";
-  const skillDir = `${baseDir}/${prompt.id}`;
+  const skillDir = `${baseDir}/${getSafeSkillPathId(prompt.id)}`;
   const delimiter = getUniqueDelimiter(skillContent);
 
   return `mkdir -p "${skillDir}" && cat > "${skillDir}/SKILL.md" << '${delimiter}'\n${skillContent}\n${delimiter}`;
@@ -214,7 +232,7 @@ export function generateInstallOneLiner(prompt: Prompt, options: { project?: boo
  */
 export function generateSkillEntries(prompts: Prompt[]): Array<{ path: string; content: string }> {
   return prompts.map((prompt) => ({
-    path: `${prompt.id}/SKILL.md`,
+    path: `${getSafeSkillPathId(prompt.id)}/SKILL.md`,
     content: generateSkillMd(prompt),
   }));
 }

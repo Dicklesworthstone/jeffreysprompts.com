@@ -2,6 +2,13 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getReviewById, voteReview, getVote } from "@/lib/reviews/review-store";
 import { getOrCreateUserId, getUserIdFromRequest } from "@/lib/user-id";
+import { createRateLimiter } from "@/lib/rate-limit";
+
+const reviewVoteRateLimiter = createRateLimiter({
+  name: "review-vote",
+  windowMs: 60 * 1000, // 1 minute
+  maxRequests: 30,
+});
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -71,6 +78,23 @@ export async function POST(request: NextRequest, context: RouteParams) {
   }
 
   const { userId, cookie } = getOrCreateUserId(request);
+
+  const voteRateLimit = await reviewVoteRateLimiter.check(`user:${userId}`);
+  if (!voteRateLimit.allowed) {
+    const response = NextResponse.json(
+      { error: "Too many vote requests. Please try again later." },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(voteRateLimit.retryAfterSeconds),
+        },
+      }
+    );
+    if (cookie) {
+      response.cookies.set(cookie.name, cookie.value, cookie.options);
+    }
+    return response;
+  }
 
   // Prevent self-voting
   if (review.userId === userId) {

@@ -10,6 +10,7 @@ import {
   type ShareLink,
 } from "@/lib/share-links/share-link-store";
 import { getUserIdFromRequest } from "@/lib/user-id";
+import { getTrustedClientIp } from "@/lib/rate-limit";
 
 const MAX_PASSWORD_LENGTH = 64;
 const MAX_EXPIRES_IN_DAYS = 365;
@@ -25,11 +26,6 @@ type RateLimitBucket = {
 };
 
 const rateLimitBuckets = new Map<string, RateLimitBucket>();
-
-function getClientIp(request: NextRequest): string | null {
-  const forwardedFor = request.headers.get("x-forwarded-for");
-  return forwardedFor?.split(",")[0]?.trim() || request.headers.get("x-real-ip");
-}
 
 function getRateLimitBucket(ip: string, now: number): RateLimitBucket {
   const existing = rateLimitBuckets.get(ip);
@@ -53,7 +49,7 @@ function checkRateLimit(request: NextRequest): NextResponse | null {
   const now = Date.now();
   pruneExpiredBuckets(now);
 
-  const clientIp = getClientIp(request) ?? "unknown";
+  const clientIp = getTrustedClientIp(request);
   const bucket = getRateLimitBucket(clientIp, now);
   bucket.count += 1;
 
@@ -154,7 +150,7 @@ export async function GET(
 
   recordShareLinkView({
     linkId: link.id,
-    ip: getClientIp(request),
+    ip: getTrustedClientIp(request),
     userAgent: request.headers.get("user-agent"),
   });
 

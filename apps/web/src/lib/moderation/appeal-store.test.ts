@@ -120,6 +120,7 @@ describe("appeal-store", () => {
       expect("error" in result).toBe(false);
       if (!("error" in result)) {
         expect(result.id).toBeTruthy();
+        expect(result.accessToken).toMatch(/^[a-f0-9]{64}$/);
         expect(result.actionId).toBe("action-1");
         expect(result.userId).toBe("user-1");
         expect(result.userEmail).toBe("user@example.com");

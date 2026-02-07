@@ -50,8 +50,23 @@ function writeJsonFile(path: string, value: unknown): void {
   atomicWriteFileSync(path, content);
 }
 
-function getPromptArray(value: unknown): Prompt[] | null {
-  return Array.isArray(value) ? (value as Prompt[]) : null;
+function validatePromptArray(value: unknown): { prompts: Prompt[]; invalidCount: number; isArray: boolean } {
+  if (!Array.isArray(value)) {
+    return { prompts: [], invalidCount: 0, isArray: false };
+  }
+
+  const prompts: Prompt[] = [];
+  let invalidCount = 0;
+  for (const item of value) {
+    const result = PromptSchema.safeParse(item);
+    if (result.success) {
+      prompts.push(result.data as Prompt);
+    } else {
+      invalidCount += 1;
+    }
+  }
+
+  return { prompts, invalidCount, isArray: true };
 }
 
 function mergePrompts(base: Prompt[], extras: Prompt[]): Prompt[] {
@@ -171,7 +186,8 @@ export async function loadRegistry(): Promise<LoadedRegistry> {
   const config = loadConfig();
   const cachedPayload = readJsonFile<RegistryPayloadLike>(config.registry.cachePath);
   const cachedMeta = readJsonFile<RegistryMeta>(config.registry.metaPath);
-  const cachedPrompts = getPromptArray(cachedPayload?.prompts);
+  const cachedPromptValidation = validatePromptArray(cachedPayload?.prompts);
+  const cachedPrompts = cachedPromptValidation.prompts;
   const cachedBundles = Array.isArray(cachedPayload?.bundles) ? cachedPayload.bundles : [];
   const cachedWorkflows = Array.isArray(cachedPayload?.workflows) ? cachedPayload.workflows : [];
   
@@ -204,17 +220,24 @@ export async function loadRegistry(): Promise<LoadedRegistry> {
     cachedMeta?.etag ?? null
   );
 
-  const remotePrompts = getPromptArray(remote.payload?.prompts);
-  if (remote.payload && remote.meta && remotePrompts) {
-    writeJsonFile(config.registry.cachePath, remote.payload);
+  const remotePromptValidation = validatePromptArray(remote.payload?.prompts);
+  const remotePrompts = remotePromptValidation.prompts;
+  if (remote.payload && remote.meta && remotePromptValidation.isArray) {
+    const sanitizedPayload: RegistryPayloadLike = {
+      ...remote.payload,
+      prompts: remotePrompts,
+      bundles: Array.isArray(remote.payload.bundles) ? remote.payload.bundles : [],
+      workflows: Array.isArray(remote.payload.workflows) ? remote.payload.workflows : [],
+    };
+    writeJsonFile(config.registry.cachePath, sanitizedPayload);
     writeJsonFile(config.registry.metaPath, remote.meta);
     
     const merged = mergePrompts(offlinePrompts, remotePrompts);
     const withPacks = mergePrompts(merged, packPrompts);
     return {
       prompts: mergePrompts(withPacks, localPrompts),
-      bundles: remote.payload.bundles || [],
-      workflows: remote.payload.workflows || [],
+      bundles: sanitizedPayload.bundles || [],
+      workflows: sanitizedPayload.workflows || [],
       meta: remote.meta,
       source: "remote",
     };
@@ -239,7 +262,8 @@ export async function refreshRegistry(): Promise<LoadedRegistry> {
   const config = loadConfig();
   const cachedPayload = readJsonFile<RegistryPayloadLike>(config.registry.cachePath);
   const cachedMeta = readJsonFile<RegistryMeta>(config.registry.metaPath);
-  const cachedPrompts = getPromptArray(cachedPayload?.prompts);
+  const cachedPromptValidation = validatePromptArray(cachedPayload?.prompts);
+  const cachedPrompts = cachedPromptValidation.prompts;
   const cachedBundles = Array.isArray(cachedPayload?.bundles) ? cachedPayload.bundles : [];
   const cachedWorkflows = Array.isArray(cachedPayload?.workflows) ? cachedPayload.workflows : [];
   
@@ -275,17 +299,24 @@ export async function refreshRegistry(): Promise<LoadedRegistry> {
     };
   }
 
-  const remotePrompts = getPromptArray(remote.payload?.prompts);
-  if (remote.payload && remote.meta && remotePrompts) {
-    writeJsonFile(config.registry.cachePath, remote.payload);
+  const remotePromptValidation = validatePromptArray(remote.payload?.prompts);
+  const remotePrompts = remotePromptValidation.prompts;
+  if (remote.payload && remote.meta && remotePromptValidation.isArray) {
+    const sanitizedPayload: RegistryPayloadLike = {
+      ...remote.payload,
+      prompts: remotePrompts,
+      bundles: Array.isArray(remote.payload.bundles) ? remote.payload.bundles : [],
+      workflows: Array.isArray(remote.payload.workflows) ? remote.payload.workflows : [],
+    };
+    writeJsonFile(config.registry.cachePath, sanitizedPayload);
     writeJsonFile(config.registry.metaPath, remote.meta);
     
     const merged = mergePrompts(offlinePrompts, remotePrompts);
     const withPacks = mergePrompts(merged, packPrompts);
     return {
       prompts: mergePrompts(withPacks, localPrompts),
-      bundles: remote.payload.bundles || [],
-      workflows: remote.payload.workflows || [],
+      bundles: sanitizedPayload.bundles || [],
+      workflows: sanitizedPayload.workflows || [],
       meta: remote.meta,
       source: "remote",
     };

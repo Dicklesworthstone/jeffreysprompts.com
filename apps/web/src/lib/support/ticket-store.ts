@@ -24,6 +24,7 @@ export interface SupportTicketNote {
 export interface SupportTicket {
   id: string;
   ticketNumber: string;
+  accessToken: string;
   name: string;
   email: string;
   subject: string;
@@ -80,6 +81,10 @@ function createTicketNumber(store: SupportTicketStore): string {
   return ticketNumber;
 }
 
+function createTicketAccessToken(): string {
+  return `${crypto.randomUUID()}${crypto.randomUUID()}`.replace(/-/g, "");
+}
+
 function touchTicket(store: SupportTicketStore, ticketNumber: string) {
   store.order = [ticketNumber, ...store.order.filter((id) => id !== ticketNumber)];
 }
@@ -100,6 +105,7 @@ export function createSupportTicket(input: {
   const ticket: SupportTicket = {
     id: crypto.randomUUID(),
     ticketNumber,
+    accessToken: createTicketAccessToken(),
     name: input.name.trim(),
     email: normalizeEmail(input.email),
     subject: input.subject.trim(),

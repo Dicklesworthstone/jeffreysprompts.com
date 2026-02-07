@@ -23,6 +23,7 @@ import {
   formatSyncAge,
   acquireSyncLock,
   releaseSyncLock,
+  parseSyncedPromptArray,
 } from "../lib/offline";
 
 export interface SyncOptions {
@@ -215,26 +216,69 @@ export async function syncCommand(options: SyncOptions = {}): Promise<void> {
       process.exit(1);
     }
 
-    const data = response.data!;
+    const data = response.data;
+    if (!data || typeof data !== "object") {
+      spinner?.fail("Sync failed");
+      releaseSyncLock();
+      if (shouldOutputJson(options)) {
+        writeJsonError("invalid_sync_payload", "Sync response payload is invalid.");
+      } else {
+        console.error(chalk.red("Sync failed:"), "Sync response payload is invalid.");
+      }
+      process.exit(1);
+    }
+
+    const parsedIncoming = parseSyncedPromptArray((data as SyncResponse).prompts);
+    if (!parsedIncoming.isArray) {
+      spinner?.fail("Sync failed");
+      releaseSyncLock();
+      if (shouldOutputJson(options)) {
+        writeJsonError("invalid_sync_payload", "Sync response is missing prompts array.");
+      } else {
+        console.error(chalk.red("Sync failed:"), "Sync response is missing prompts array.");
+      }
+      process.exit(1);
+    }
+    if (parsedIncoming.invalidCount > 0) {
+      spinner?.fail("Sync failed");
+      releaseSyncLock();
+      if (shouldOutputJson(options)) {
+        writeJsonError(
+          "invalid_sync_payload",
+          `Sync response contains ${parsedIncoming.invalidCount} invalid prompt(s).`
+        );
+      } else {
+        console.error(
+          chalk.red("Sync failed:"),
+          `Sync response contains ${parsedIncoming.invalidCount} invalid prompt(s).`
+        );
+      }
+      process.exit(1);
+    }
+    const incomingPrompts = parsedIncoming.prompts;
 
     // Merge with existing prompts for incremental sync
     let allPrompts: SyncedPrompt[];
     if (options.force) {
-      allPrompts = data.prompts;
+      allPrompts = incomingPrompts;
     } else {
       const existing = readOfflineLibrary();
       // Create a map of server prompts for efficient lookup
-      const serverPromptMap = new Map(data.prompts.map((p) => [p.id, p]));
+      const serverPromptMap = new Map(incomingPrompts.map((p) => [p.id, p]));
       // Update existing prompts with server versions, keep others unchanged
       const mergedExisting = existing.map((p) => serverPromptMap.get(p.id) ?? p);
       // Add any new prompts that weren't in existing
       const existingIds = new Set(existing.map((p) => p.id));
-      const newPrompts = data.prompts.filter((p) => !existingIds.has(p.id));
+      const newPrompts = incomingPrompts.filter((p) => !existingIds.has(p.id));
       allPrompts = [...mergedExisting, ...newPrompts];
     }
 
     // Save to local cache
-    const syncedAt = data.last_modified || new Date().toISOString();
+    const syncedAt =
+      typeof (data as SyncResponse).last_modified === "string" &&
+      (data as SyncResponse).last_modified.trim()
+        ? (data as SyncResponse).last_modified
+        : new Date().toISOString();
     writeLibrary(allPrompts);
     writeMeta({
       lastSync: syncedAt,
@@ -247,7 +291,7 @@ export async function syncCommand(options: SyncOptions = {}): Promise<void> {
     if (shouldOutputJson(options)) {
       writeJson({
         synced: true,
-        newPrompts: data.prompts.length,
+        newPrompts: incomingPrompts.length,
         totalPrompts: allPrompts.length,
         force: options.force ?? false,
         syncedAt,
@@ -255,10 +299,10 @@ export async function syncCommand(options: SyncOptions = {}): Promise<void> {
     } else {
       if (options.force) {
         console.log(chalk.green(`\nDownloaded ${allPrompts.length} prompts to local library`));
-      } else if (data.prompts.length === 0) {
+      } else if (incomingPrompts.length === 0) {
         console.log(chalk.dim("\nLibrary is already up to date"));
       } else {
-        console.log(chalk.green(`\nSynced ${data.prompts.length} prompts (${allPrompts.length} total)`));
+        console.log(chalk.green(`\nSynced ${incomingPrompts.length} prompts (${allPrompts.length} total)`));
       }
       console.log(chalk.dim(`Location: ${getLibraryDir()}`));
     }

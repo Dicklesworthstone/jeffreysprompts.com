@@ -27,6 +27,69 @@ export interface SyncMeta {
   version: string;
 }
 
+const SAFE_SYNCED_PROMPT_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$/;
+
+function normalizeOptionalString(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+function normalizeTags(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const tags = value.filter((tag): tag is string => typeof tag === "string");
+  return tags.length ? tags : [];
+}
+
+function normalizeSyncedPrompt(value: unknown): SyncedPrompt | null {
+  if (!value || typeof value !== "object") return null;
+  const candidate = value as Record<string, unknown>;
+
+  if (typeof candidate.id !== "string" || !SAFE_SYNCED_PROMPT_ID.test(candidate.id)) {
+    return null;
+  }
+  if (typeof candidate.title !== "string" || candidate.title.trim().length === 0) {
+    return null;
+  }
+  if (typeof candidate.content !== "string" || candidate.content.trim().length === 0) {
+    return null;
+  }
+  if (typeof candidate.saved_at !== "string" || candidate.saved_at.trim().length === 0) {
+    return null;
+  }
+
+  return {
+    id: candidate.id,
+    title: candidate.title,
+    content: candidate.content,
+    saved_at: candidate.saved_at,
+    description: normalizeOptionalString(candidate.description),
+    category: normalizeOptionalString(candidate.category),
+    tags: normalizeTags(candidate.tags),
+  };
+}
+
+export function parseSyncedPromptArray(input: unknown): {
+  prompts: SyncedPrompt[];
+  invalidCount: number;
+  isArray: boolean;
+} {
+  if (!Array.isArray(input)) {
+    return { prompts: [], invalidCount: 0, isArray: false };
+  }
+
+  const prompts: SyncedPrompt[] = [];
+  let invalidCount = 0;
+  for (const item of input) {
+    const normalized = normalizeSyncedPrompt(item);
+    if (normalized) {
+      prompts.push(normalized);
+    } else {
+      invalidCount += 1;
+    }
+  }
+
+  return { prompts, invalidCount, isArray: true };
+}
+
 const promptCategoryValues: PromptCategory[] = [
   "ideation",
   "documentation",
@@ -134,8 +197,8 @@ export function acquireSyncLock(): boolean {
       }
       return false;
     }
-    // Some other error (permissions, etc), proceed without lock
-    return true;
+    // Any non-EEXIST error means we failed to acquire a lock.
+    return false;
   }
 }
 
@@ -180,7 +243,8 @@ export function readOfflineLibrary(): SyncedPrompt[] {
   const libraryPath = getLibraryPath();
   if (!existsSync(libraryPath)) return [];
   try {
-    return JSON.parse(readFileSync(libraryPath, "utf-8")) as SyncedPrompt[];
+    const parsed = JSON.parse(readFileSync(libraryPath, "utf-8")) as unknown;
+    return parseSyncedPromptArray(parsed).prompts;
   } catch {
     return [];
   }

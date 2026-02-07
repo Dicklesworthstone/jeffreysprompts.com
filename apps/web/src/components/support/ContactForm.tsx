@@ -37,6 +37,7 @@ type LocalSupportMessage = {
 
 type LocalSupportTicket = {
   ticketNumber: string;
+  accessToken: string;
   name: string;
   email: string;
   subject: string;
@@ -133,6 +134,7 @@ export function ContactForm() {
       const createdAt = payload?.ticket?.createdAt ?? new Date().toISOString();
       const localTicket: LocalSupportTicket = {
         ticketNumber: payload?.ticket?.ticketNumber ?? "",
+        accessToken: payload?.ticket?.accessToken ?? "",
         name: name.trim(),
         email: email.trim().toLowerCase(),
         subject: subject.trim(),
@@ -189,6 +191,9 @@ export function ContactForm() {
             <p className="text-sm text-emerald-800/90 dark:text-emerald-200/90">
               Ticket <span className="font-mono">{ticketInfo.ticketNumber}</span> is now open.
               A confirmation email will follow shortly.
+            </p>
+            <p className="text-xs text-emerald-900/80 dark:text-emerald-100/80">
+              Access token: <span className="font-mono break-all">{ticketInfo.accessToken}</span>
             </p>
             <div className="flex flex-wrap gap-2">
               <Badge variant="secondary">{getSupportCategoryLabel(ticketInfo.category)}</Badge>

@@ -3,11 +3,11 @@ import type { NextRequest } from "next/server";
 import {
   createAppeal,
   canAppealAction,
-  getUserAppeals,
   getAppeal,
 } from "@/lib/moderation/appeal-store";
 import { getModerationAction } from "@/lib/moderation/action-store";
 import { checkContentForSpam } from "@/lib/moderation/spam-check";
+import { getUserIdFromRequest } from "@/lib/user-id";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_EXPLANATION_LENGTH = 2000;
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Validate required fields
-  if (!actionId || !userId || !userEmail || !explanation) {
+  if (!actionId || !userEmail || !explanation) {
     return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
   }
 
@@ -81,9 +81,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Moderation action not found." }, { status: 404 });
   }
 
-  // Verify the user owns this action
-  if (action.userId !== userId) {
+  // Authorize with signed user cookie to avoid trusting client-submitted userId.
+  const requesterUserId = getUserIdFromRequest(request);
+  if (!requesterUserId) {
+    return NextResponse.json({ error: "Authentication required to submit an appeal." }, { status: 401 });
+  }
+  if (requesterUserId !== action.userId) {
     return NextResponse.json({ error: "You cannot appeal this action." }, { status: 403 });
+  }
+  if (userId && userId !== requesterUserId) {
+    return NextResponse.json({ error: "User identity mismatch." }, { status: 403 });
   }
 
   // Check if appeal is allowed
@@ -110,7 +117,7 @@ export async function POST(request: NextRequest) {
   // Create the appeal
   const result = createAppeal({
     actionId,
-    userId,
+    userId: requesterUserId,
     userEmail,
     userName: userName || null,
     explanation,
@@ -124,6 +131,7 @@ export async function POST(request: NextRequest) {
     success: true,
     appeal: {
       id: result.id,
+      accessToken: result.accessToken,
       actionId: result.actionId,
       status: result.status,
       submittedAt: result.submittedAt,
@@ -139,29 +147,32 @@ export async function POST(request: NextRequest) {
  *
  * Query params:
  * - appealId: Get a specific appeal
- * - userId: Get all appeals for a user
- * - email: Required for verification
+ * - appealToken: Required access token for the appeal
  */
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const appealId = searchParams.get("appealId")?.trim() ?? "";
-  const userId = searchParams.get("userId")?.trim() ?? "";
-  const email = searchParams.get("email")?.trim().toLowerCase() ?? "";
+  const appealToken = searchParams.get("appealToken")?.trim() ?? "";
 
-  if (!email || !EMAIL_REGEX.test(email)) {
-    return NextResponse.json({ error: "Valid email is required." }, { status: 400 });
+  if (!appealId || !appealToken) {
+    return NextResponse.json(
+      { error: "appealId and appealToken are required." },
+      { status: 400, headers: { "Cache-Control": "no-store, max-age=0" } }
+    );
   }
 
-  // Get specific appeal
-  if (appealId) {
-    const appeal = getAppeal(appealId);
-    if (!appeal || appeal.userEmail !== email) {
-      return NextResponse.json({ error: "Appeal not found." }, { status: 404 });
-    }
+  const appeal = getAppeal(appealId);
+  if (!appeal || appeal.accessToken !== appealToken) {
+    return NextResponse.json(
+      { error: "Appeal not found." },
+      { status: 404, headers: { "Cache-Control": "no-store, max-age=0" } }
+    );
+  }
 
-    const action = getModerationAction(appeal.actionId);
+  const action = getModerationAction(appeal.actionId);
 
-    return NextResponse.json({
+  return NextResponse.json(
+    {
       appeal: {
         id: appeal.id,
         actionId: appeal.actionId,
@@ -180,24 +191,7 @@ export async function GET(request: NextRequest) {
             }
           : null,
       },
-    });
-  }
-
-  // Get all appeals for user
-  if (!userId) {
-    return NextResponse.json({ error: "userId or appealId is required." }, { status: 400 });
-  }
-
-  const appeals = getUserAppeals(userId)
-    .filter((appeal) => appeal.userEmail === email)
-    .map((appeal) => ({
-      id: appeal.id,
-      actionId: appeal.actionId,
-      status: appeal.status,
-      submittedAt: appeal.submittedAt,
-      deadlineAt: appeal.deadlineAt,
-      reviewedAt: appeal.reviewedAt,
-    }));
-
-  return NextResponse.json({ appeals });
+    },
+    { headers: { "Cache-Control": "no-store, max-age=0" } }
+  );
 }

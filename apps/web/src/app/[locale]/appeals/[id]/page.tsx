@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 
 interface AppealStatusPageProps {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ email?: string }>;
+  searchParams: Promise<{ appealToken?: string }>;
 }
 
 export default async function AppealStatusPage({
@@ -26,19 +26,18 @@ export default async function AppealStatusPage({
   searchParams,
 }: AppealStatusPageProps) {
   const { id } = await params;
-  const { email } = await searchParams;
+  const { appealToken } = await searchParams;
 
-  // Validate email parameter
-  if (!email) {
+  // Validate access token parameter
+  if (!appealToken) {
     return (
       <div className="container max-w-2xl py-12">
         <Card className="border-amber-200 dark:border-amber-500/30">
           <CardContent className="pt-6 text-center">
             <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold mb-2">Email Required</h2>
+            <h2 className="text-xl font-bold mb-2">Access Token Required</h2>
             <p className="text-muted-foreground mb-4">
-              To view your appeal status, please use the link from your confirmation email
-              or provide your email address.
+              To view your appeal status, please use the link from your appeal confirmation.
             </p>
             <Button variant="outline" asChild>
               <Link href="/appeals">Go to Appeals</Link>
@@ -72,8 +71,7 @@ export default async function AppealStatusPage({
     );
   }
 
-  // Verify the email matches
-  if (appeal.userEmail !== email.toLowerCase()) {
+  if (appeal.accessToken !== appealToken) {
     return (
       <div className="container max-w-2xl py-12">
         <Card className="border-red-200 dark:border-red-500/30">

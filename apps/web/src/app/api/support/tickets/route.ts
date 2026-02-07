@@ -10,10 +10,9 @@ import {
   addSupportTicketNote,
   createSupportTicket,
   getSupportTicket,
-  getSupportTicketsForEmail,
 } from "@/lib/support/ticket-store";
 import { checkContentForSpam } from "@/lib/moderation/spam-check";
-import { createRateLimiter, checkMultipleLimits } from "@/lib/rate-limit";
+import { createRateLimiter, checkMultipleLimits, getTrustedClientIp } from "@/lib/rate-limit";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_NAME_LENGTH = 80;
@@ -41,10 +40,27 @@ const emailRateLimiter = createRateLimiter({
   maxRequests: 5,
 });
 
-function getClientIp(request: NextRequest): string {
-  const forwardedFor = request.headers.get("x-forwarded-for");
-  return forwardedFor?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "unknown";
-}
+const lookupRateLimiter = createRateLimiter({
+  name: "support-lookup-ip",
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  maxRequests: 40,
+});
+
+const replyIpRateLimiter = createRateLimiter({
+  name: "support-reply-ip",
+  windowMs: 60 * 60 * 1000, // 1 hour
+  maxRequests: 20,
+});
+
+const replyTicketRateLimiter = createRateLimiter({
+  name: "support-reply-ticket",
+  windowMs: 60 * 60 * 1000, // 1 hour
+  maxRequests: 15,
+});
+
+const NO_STORE_HEADERS = {
+  "Cache-Control": "no-store, max-age=0",
+};
 
 function normalizeText(value: string) {
   return value.replace(/\s+/g, " ").trim();
@@ -106,7 +122,7 @@ export async function POST(request: NextRequest) {
   }
 
   const rateLimitResult = await checkMultipleLimits([
-    { limiter: ipRateLimiter, key: `ip:${getClientIp(request)}` },
+    { limiter: ipRateLimiter, key: `ip:${getTrustedClientIp(request)}` },
     { limiter: emailRateLimiter, key: `email:${email}` },
   ]);
 
@@ -159,6 +175,7 @@ export async function POST(request: NextRequest) {
     success: true,
     ticket: {
       ticketNumber: ticket.ticketNumber,
+      accessToken: ticket.accessToken,
       status: ticket.status,
       category: ticket.category,
       priority: ticket.priority,
@@ -172,24 +189,39 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
-  const email = searchParams.get("email")?.trim().toLowerCase() ?? "";
   const ticketNumber = searchParams.get("ticketNumber")?.trim().toUpperCase() ?? "";
+  const ticketToken = searchParams.get("ticketToken")?.trim() ?? "";
 
-  if (!email || !EMAIL_REGEX.test(email)) {
-    return NextResponse.json({ error: "Valid email is required." }, { status: 400 });
+  const lookupLimit = await lookupRateLimiter.check(`ip:${getTrustedClientIp(request)}`);
+  if (!lookupLimit.allowed) {
+    return NextResponse.json(
+      { error: "Too many lookup requests. Please try again later." },
+      {
+        status: 429,
+        headers: {
+          ...NO_STORE_HEADERS,
+          "Retry-After": lookupLimit.retryAfterSeconds.toString(),
+        },
+      }
+    );
   }
 
-  if (ticketNumber) {
-    const ticket = getSupportTicket(ticketNumber);
-    if (!ticket || ticket.email !== email) {
-      return NextResponse.json({ error: "Ticket not found." }, { status: 404 });
-    }
+  if (!ticketNumber || !ticketToken) {
+    return NextResponse.json(
+      { error: "ticketNumber and ticketToken are required." },
+      { status: 400, headers: NO_STORE_HEADERS }
+    );
+  }
 
-    return NextResponse.json({
+  const ticket = getSupportTicket(ticketNumber);
+  if (!ticket || ticket.accessToken !== ticketToken) {
+    return NextResponse.json({ error: "Ticket not found." }, { status: 404, headers: NO_STORE_HEADERS });
+  }
+
+  return NextResponse.json(
+    {
       ticket: {
         ticketNumber: ticket.ticketNumber,
-        name: ticket.name,
-        email: ticket.email,
         status: ticket.status,
         category: ticket.category,
         priority: ticket.priority,
@@ -198,28 +230,15 @@ export async function GET(request: NextRequest) {
         updatedAt: ticket.updatedAt,
         messages: ticket.messages.filter((msg) => !msg.internal),
       },
-    });
-  }
-
-  const tickets = getSupportTicketsForEmail(email).map((ticket) => ({
-    ticketNumber: ticket.ticketNumber,
-    name: ticket.name,
-    email: ticket.email,
-    status: ticket.status,
-    category: ticket.category,
-    priority: ticket.priority,
-    subject: ticket.subject,
-    createdAt: ticket.createdAt,
-    updatedAt: ticket.updatedAt,
-  }));
-
-  return NextResponse.json({ tickets });
+    },
+    { headers: NO_STORE_HEADERS }
+  );
 }
 
 export async function PUT(request: NextRequest) {
   let payload: {
     ticketNumber?: string;
-    email?: string;
+    ticketToken?: string;
     message?: string;
   };
 
@@ -230,31 +249,47 @@ export async function PUT(request: NextRequest) {
   }
 
   const ticketNumber = payload.ticketNumber?.trim().toUpperCase() ?? "";
-  const email = payload.email?.trim().toLowerCase() ?? "";
+  const ticketToken = payload.ticketToken?.trim() ?? "";
   const message = normalizeText(payload.message ?? "");
 
-  if (!ticketNumber || !email || !message) {
-    return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
-  }
-
-  if (!EMAIL_REGEX.test(email)) {
-    return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 });
+  if (!ticketNumber || !ticketToken || !message) {
+    return NextResponse.json(
+      { error: "Missing required fields." },
+      { status: 400, headers: NO_STORE_HEADERS }
+    );
   }
 
   if (message.length > MAX_MESSAGE_LENGTH) {
     return NextResponse.json(
       { error: `Message must be ${MAX_MESSAGE_LENGTH} characters or fewer.` },
-      { status: 400 }
+      { status: 400, headers: NO_STORE_HEADERS }
+    );
+  }
+
+  const replyLimit = await checkMultipleLimits([
+    { limiter: replyIpRateLimiter, key: `ip:${getTrustedClientIp(request)}` },
+    { limiter: replyTicketRateLimiter, key: `ticket:${ticketNumber}` },
+  ]);
+  if (!replyLimit.allowed) {
+    return NextResponse.json(
+      { error: "Too many replies. Please try again later." },
+      {
+        status: 429,
+        headers: {
+          ...NO_STORE_HEADERS,
+          "Retry-After": replyLimit.retryAfterSeconds.toString(),
+        },
+      }
     );
   }
 
   const ticket = getSupportTicket(ticketNumber);
-  if (!ticket || ticket.email !== email) {
-    return NextResponse.json({ error: "Ticket not found." }, { status: 404 });
+  if (!ticket || ticket.accessToken !== ticketToken) {
+    return NextResponse.json({ error: "Ticket not found." }, { status: 404, headers: NO_STORE_HEADERS });
   }
 
   if (ticket.status === "closed") {
-    return NextResponse.json({ error: "This ticket is closed." }, { status: 400 });
+    return NextResponse.json({ error: "This ticket is closed." }, { status: 400, headers: NO_STORE_HEADERS });
   }
 
   const spamCheck = checkContentForSpam(message);
@@ -264,7 +299,7 @@ export async function PUT(request: NextRequest) {
         error: "Your message was flagged as potential spam. Please remove links or excessive formatting and try again.",
         reasons: spamCheck.reasons,
       },
-      { status: 400 }
+      { status: 400, headers: NO_STORE_HEADERS }
     );
   }
 
@@ -275,7 +310,7 @@ export async function PUT(request: NextRequest) {
   });
 
   if (!updated) {
-    return NextResponse.json({ error: "Unable to update ticket." }, { status: 400 });
+    return NextResponse.json({ error: "Unable to update ticket." }, { status: 400, headers: NO_STORE_HEADERS });
   }
 
   if (spamCheck.requiresReview) {
@@ -286,13 +321,16 @@ export async function PUT(request: NextRequest) {
     });
   }
 
-  return NextResponse.json({
-    success: true,
-    ticket: {
-      ticketNumber: updated.ticketNumber,
-      status: updated.status,
-      updatedAt: updated.updatedAt,
-      messages: updated.messages.filter((msg) => !msg.internal),
+  return NextResponse.json(
+    {
+      success: true,
+      ticket: {
+        ticketNumber: updated.ticketNumber,
+        status: updated.status,
+        updatedAt: updated.updatedAt,
+        messages: updated.messages.filter((msg) => !msg.internal),
+      },
     },
-  });
+    { headers: NO_STORE_HEADERS }
+  );
 }

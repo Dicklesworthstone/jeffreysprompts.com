@@ -6,7 +6,7 @@
 //! - Export single, multiple, or all prompts
 
 use std::fs;
-use std::path::Path;
+use std::path::{Component, Path};
 use std::process::ExitCode;
 
 use serde::Serialize;
@@ -29,6 +29,39 @@ struct ExportedPrompt {
     id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     file: Option<String>,
+}
+
+fn build_safe_export_filename(prompt_id: &str, ext: &str) -> Result<String, String> {
+    let id = prompt_id.trim();
+
+    if id.is_empty() {
+        return Err("prompt id is empty".to_string());
+    }
+
+    let mut components = Path::new(id).components();
+    match (components.next(), components.next()) {
+        (Some(Component::Normal(_)), None) => {}
+        _ => {
+            return Err(
+                "prompt id must be a single path segment (no separators or relative segments)"
+                    .to_string(),
+            )
+        }
+    }
+
+    let is_safe_char = |ch: char| ch.is_ascii_alphanumeric() || ch == '-' || ch == '_' || ch == '.';
+    if !id.chars().all(is_safe_char) {
+        return Err(
+            "prompt id contains unsupported characters (allowed: a-z, A-Z, 0-9, -, _, .)"
+                .to_string(),
+        );
+    }
+
+    if id == "." || id == ".." {
+        return Err("prompt id cannot be '.' or '..'".to_string());
+    }
+
+    Ok(format!("{}.{}", id, ext))
 }
 
 pub fn run(
@@ -153,10 +186,62 @@ pub fn run(
             }
         }
 
+        let canonical_dir = match fs::canonicalize(dir_path) {
+            Ok(path) => path,
+            Err(e) => {
+                if use_json {
+                    eprintln!(r#"{{"error": "canonicalize_error", "message": "{}"}}"#, e);
+                } else {
+                    eprintln!("Error resolving output directory: {}", e);
+                }
+                return ExitCode::FAILURE;
+            }
+        };
+
         for prompt in &prompts {
             let ext = if format == "skill" { "md" } else { "md" };
-            let filename = format!("{}.{}", prompt.id, ext);
+            let filename = match build_safe_export_filename(&prompt.id, ext) {
+                Ok(name) => name,
+                Err(err) => {
+                    if use_json {
+                        eprintln!(
+                            r#"{{"error": "invalid_prompt_id", "id": "{}", "message": "{}"}}"#,
+                            prompt.id, err
+                        );
+                    } else {
+                        eprintln!("Skipping unsafe prompt id '{}': {}", prompt.id, err);
+                    }
+                    continue;
+                }
+            };
             let path = dir_path.join(&filename);
+
+            let parent = path.parent().unwrap_or(dir_path);
+            match fs::canonicalize(parent) {
+                Ok(canonical_parent) if canonical_parent == canonical_dir => {}
+                Ok(_) => {
+                    if use_json {
+                        eprintln!(
+                            r#"{{"error": "path_escape_detected", "id": "{}", "file": "{}"}}"#,
+                            prompt.id, filename
+                        );
+                    } else {
+                        eprintln!("Refusing to write '{}' outside output directory", filename);
+                    }
+                    continue;
+                }
+                Err(e) => {
+                    if use_json {
+                        eprintln!(
+                            r#"{{"error": "canonicalize_error", "id": "{}", "message": "{}"}}"#,
+                            prompt.id, e
+                        );
+                    } else {
+                        eprintln!("Error resolving export path for '{}': {}", prompt.id, e);
+                    }
+                    continue;
+                }
+            }
 
             let content = format_prompt(prompt, format);
 
@@ -268,4 +353,27 @@ fn format_prompt(prompt: &Prompt, format: &str) -> String {
     }
 
     output
+}
+
+#[cfg(test)]
+mod tests {
+    use super::build_safe_export_filename;
+
+    #[test]
+    fn build_safe_export_filename_accepts_slug_like_ids() {
+        let name = build_safe_export_filename("idea-wizard_2.0", "md").expect("valid id");
+        assert_eq!(name, "idea-wizard_2.0.md");
+    }
+
+    #[test]
+    fn build_safe_export_filename_rejects_path_segments() {
+        let err = build_safe_export_filename("../../etc/passwd", "md").expect_err("must reject");
+        assert!(err.contains("single path segment"));
+    }
+
+    #[test]
+    fn build_safe_export_filename_rejects_unsupported_chars() {
+        let err = build_safe_export_filename("bad$id", "md").expect_err("must reject");
+        assert!(err.contains("unsupported characters"));
+    }
 }

@@ -5,6 +5,13 @@ import {
   getFeature,
 } from "@/lib/roadmap/roadmap-store";
 import { getOrCreateUserId } from "@/lib/user-id";
+import { createRateLimiter } from "@/lib/rate-limit";
+
+const roadmapVoteRateLimiter = createRateLimiter({
+  name: "roadmap-vote",
+  windowMs: 60 * 1000, // 1 minute
+  maxRequests: 20,
+});
 
 /**
  * POST /api/roadmap/[id]/vote
@@ -20,6 +27,20 @@ export async function POST(
   const { id } = await context.params;
 
   const { userId, cookie } = getOrCreateUserId(request);
+  const voteRateLimit = await roadmapVoteRateLimiter.check(`user:${userId}`);
+  if (!voteRateLimit.allowed) {
+    const response = NextResponse.json(
+      { error: "Too many vote requests. Please try again later." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(voteRateLimit.retryAfterSeconds) },
+      }
+    );
+    if (cookie) {
+      response.cookies.set(cookie.name, cookie.value, cookie.options);
+    }
+    return response;
+  }
 
   const feature = getFeature(id);
   if (!feature) {
@@ -64,6 +85,20 @@ export async function DELETE(
   const { id } = await context.params;
 
   const { userId, cookie } = getOrCreateUserId(request);
+  const voteRateLimit = await roadmapVoteRateLimiter.check(`user:${userId}`);
+  if (!voteRateLimit.allowed) {
+    const response = NextResponse.json(
+      { error: "Too many vote requests. Please try again later." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(voteRateLimit.retryAfterSeconds) },
+      }
+    );
+    if (cookie) {
+      response.cookies.set(cookie.name, cookie.value, cookie.options);
+    }
+    return response;
+  }
 
   const feature = getFeature(id);
   if (!feature) {
