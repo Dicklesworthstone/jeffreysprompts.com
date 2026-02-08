@@ -334,6 +334,18 @@ html.theme-transitioning *::after {
 }
 
 /* ============================================================================
+   3D PERSPECTIVE UTILITIES
+   ============================================================================ */
+@layer utilities {
+  .perspective-500 { perspective: 500px; }
+  .perspective-1000 { perspective: 1000px; }
+  .perspective-2000 { perspective: 2000px; }
+  .transform-style-3d { transform-style: preserve-3d; }
+  .backface-visible { backface-visibility: visible; }
+  .backface-hidden { backface-visibility: hidden; }
+}
+
+/* ============================================================================
    ROOT VARIABLES
    ============================================================================ */
 

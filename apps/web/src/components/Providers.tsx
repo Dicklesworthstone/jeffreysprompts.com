@@ -17,9 +17,9 @@ import { FirstVisitWelcome } from "@/components/onboarding";
 import { BottomTabBar } from "@/components/mobile/BottomTabBar";
 import { AnalyticsProvider } from "@/components/AnalyticsProvider";
 import { OfflineBanner } from "@/components/offline-banner";
+import { MouseSpotlight } from "@/components/desktop/MouseSpotlight";
 
 // Lazy load SpotlightSearch - it's only needed when user presses Cmd+K
-// This reduces initial bundle size significantly (~100KB+ of search/semantic code)
 const SpotlightSearch = dynamic(
   () => import("./SpotlightSearch").then((mod) => mod.SpotlightSearch),
   { ssr: false }
@@ -30,7 +30,6 @@ interface ProvidersProps {
 }
 
 export function Providers({ children }: ProvidersProps) {
-  // Register service worker for PWA offline support
   const serviceWorker = useServiceWorker();
   const router = useRouter();
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -146,6 +145,7 @@ export function Providers({ children }: ProvidersProps) {
     <ThemeProvider defaultTheme="system">
       <ToastProvider>
         <BasketProvider>
+          <MouseSpotlight />
           <ErrorBoundary variant="default">
             {children}
           </ErrorBoundary>
