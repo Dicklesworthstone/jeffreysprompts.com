@@ -90,6 +90,23 @@ function touchItem(store: FeaturedStore, itemId: string) {
   store.order = [itemId, ...store.order.filter((id) => id !== itemId)];
 }
 
+function listActiveItemsForResource(
+  store: FeaturedStore,
+  resourceType: ResourceType,
+  resourceId: string
+): FeaturedContent[] {
+  return store.order
+    .map((id) => store.items.get(id))
+    .filter((item): item is FeaturedContent => Boolean(item))
+    .filter(
+      (item) =>
+        item.resourceType === resourceType &&
+        item.resourceId === resourceId &&
+        isCurrentlyActive(item)
+    )
+    .sort((a, b) => a.position - b.position);
+}
+
 /**
  * Check if item is within its scheduled time window (ignores isActive flag).
  */
@@ -131,13 +148,15 @@ export function createFeaturedContent(input: {
   const now = new Date().toISOString();
   const resourceKey = makeResourceKey(input.resourceType, input.resourceId);
 
-  // Check if already featured with same type
-  const existingId = store.byResourceKey.get(resourceKey);
-  if (existingId) {
-    const existing = store.items.get(existingId);
-    if (existing && existing.featureType === input.featureType && isCurrentlyActive(existing)) {
-      throw new Error(`Resource is already featured as ${input.featureType}`);
-    }
+  // Check if already featured with same type.
+  // We must scan active items, because a single resource can have multiple active feature types.
+  const existingSameType = listActiveItemsForResource(
+    store,
+    input.resourceType,
+    input.resourceId
+  ).find((item) => item.featureType === input.featureType);
+  if (existingSameType) {
+    throw new Error(`Resource is already featured as ${input.featureType}`);
   }
 
   const item: FeaturedContent = {
@@ -174,11 +193,29 @@ export function getFeaturedByResource(
 ): FeaturedContent | null {
   const store = getStore();
   const resourceKey = makeResourceKey(resourceType, resourceId);
-  const itemId = store.byResourceKey.get(resourceKey);
-  if (!itemId) return null;
-  const item = store.items.get(itemId);
-  if (!item || !isCurrentlyActive(item)) return null;
-  return item;
+  const mappedItemId = store.byResourceKey.get(resourceKey);
+  if (mappedItemId) {
+    const mappedItem = store.items.get(mappedItemId);
+    if (
+      mappedItem &&
+      mappedItem.resourceType === resourceType &&
+      mappedItem.resourceId === resourceId &&
+      isCurrentlyActive(mappedItem)
+    ) {
+      return mappedItem;
+    }
+  }
+
+  // Heal stale/missing key map by deriving the best active item.
+  const activeItems = listActiveItemsForResource(store, resourceType, resourceId);
+  const best = activeItems[0] ?? null;
+  if (best) {
+    store.byResourceKey.set(resourceKey, best.id);
+    return best;
+  }
+
+  store.byResourceKey.delete(resourceKey);
+  return null;
 }
 
 export function listFeaturedContent(filters?: {
@@ -275,7 +312,18 @@ export function removeFeaturedContent(id: string): FeaturedContent | null {
   store.items.set(item.id, item);
 
   const resourceKey = makeResourceKey(item.resourceType, item.resourceId);
-  store.byResourceKey.delete(resourceKey);
+  if (store.byResourceKey.get(resourceKey) === item.id) {
+    const replacement = listActiveItemsForResource(
+      store,
+      item.resourceType,
+      item.resourceId
+    )[0];
+    if (replacement) {
+      store.byResourceKey.set(resourceKey, replacement.id);
+    } else {
+      store.byResourceKey.delete(resourceKey);
+    }
+  }
 
   return item;
 }

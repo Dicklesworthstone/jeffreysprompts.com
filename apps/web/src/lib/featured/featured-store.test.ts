@@ -188,6 +188,30 @@ describe("featured-store", () => {
       ).not.toThrow();
     });
 
+    it("still blocks duplicate same type after adding another active type", () => {
+      createFeaturedContent({
+        resourceType: "prompt",
+        resourceId: "p1",
+        featureType: "staff_pick",
+        featuredBy: "admin",
+      });
+      createFeaturedContent({
+        resourceType: "prompt",
+        resourceId: "p1",
+        featureType: "spotlight",
+        featuredBy: "admin",
+      });
+
+      expect(() =>
+        createFeaturedContent({
+          resourceType: "prompt",
+          resourceId: "p1",
+          featureType: "staff_pick",
+          featuredBy: "admin",
+        })
+      ).toThrow(/already featured/);
+    });
+
     it("allows re-featuring after removal", () => {
       const item = createFeaturedContent({
         resourceType: "prompt",
@@ -256,6 +280,28 @@ describe("featured-store", () => {
         endAt: "2020-02-01T00:00:00.000Z",
       });
       expect(getFeaturedByResource("prompt", "p-expired")).toBeNull();
+    });
+
+    it("returns another active item for the same resource after one is removed", () => {
+      const first = createFeaturedContent({
+        resourceType: "prompt",
+        resourceId: "p1",
+        featureType: "staff_pick",
+        featuredBy: "admin",
+        position: 10,
+      });
+      const second = createFeaturedContent({
+        resourceType: "prompt",
+        resourceId: "p1",
+        featureType: "spotlight",
+        featuredBy: "admin",
+        position: 0,
+      });
+
+      removeFeaturedContent(second.id);
+      const found = getFeaturedByResource("prompt", "p1");
+      expect(found).not.toBeNull();
+      expect(found?.id).toBe(first.id);
     });
   });
 
