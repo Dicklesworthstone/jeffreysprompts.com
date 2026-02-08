@@ -435,7 +435,7 @@ function HomeContent() {
                   </>
                 ) : (
                   <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                    Showing all {prompts.length} prompts
+                    Showing {filteredPrompts.length} prompts
                   </p>
                 )}
               </div>
