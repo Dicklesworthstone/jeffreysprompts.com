@@ -74,8 +74,8 @@ export function searchPrompts(
     // Apply category filter
     if (category && prompt.category !== category) return false;
 
-    // Apply tags filter (match all)
-    if (tags?.length && !tags.every((tag) => prompt.tags.includes(tag))) {
+    // Apply tags filter (match any)
+    if (tags?.length && !tags.some((tag) => prompt.tags.includes(tag))) {
       return false;
     }
 
@@ -85,42 +85,26 @@ export function searchPrompts(
   // 2. Slice FIRST to avoid expensive tokenization on results we won't show
   const topMatches = filteredMatches.slice(0, limit);
 
-  // 3. Map to full results with highlighting (only for survivors)
-  // Use flatMap to safely handle any edge case where prompt might be missing
+  // 3. Map to full results with basic field matching info
   const results: SearchResult[] = topMatches.flatMap(({ id, score }) => {
     const prompt = promptsMap.get(id);
-    // Defensive: skip if prompt somehow doesn't exist (shouldn't happen due to filter)
     if (!prompt) return [];
 
-    // Determine which fields matched (check both original query and expanded synonyms)
+    // Quickly determine which fields matched the query tokens
     const matchedFields: string[] = [];
+    const searchableFields = {
+      id: prompt.id.toLowerCase(),
+      title: prompt.title.toLowerCase(),
+      description: prompt.description.toLowerCase(),
+      tags: prompt.tags.join(" ").toLowerCase(),
+      content: prompt.content.toLowerCase(),
+    };
 
-    // Tokenize fields for accurate matching (aligns with BM25 logic)
-    // We use a Set for O(1) lookups during the check
-    const idTokens = new Set(tokenize(prompt.id));
-    const titleTokens = new Set(tokenize(prompt.title));
-    const descTokens = new Set(tokenize(prompt.description));
-    const tagTokens = new Set(prompt.tags.flatMap(t => tokenize(t)));
-    // Content is large, so we tokenize it lazily or just iterate if needed
-    // But for consistency and performance on small prompts, tokenizing is fine
-    const contentTokens = new Set(tokenize(prompt.content));
-
-    // Check if any search term matches any token in the field
     for (const term of searchTokens) {
-      if (!matchedFields.includes("id") && idTokens.has(term)) {
-        matchedFields.push("id");
-      }
-      if (!matchedFields.includes("title") && titleTokens.has(term)) {
-        matchedFields.push("title");
-      }
-      if (!matchedFields.includes("description") && descTokens.has(term)) {
-        matchedFields.push("description");
-      }
-      if (!matchedFields.includes("tags") && tagTokens.has(term)) {
-        matchedFields.push("tags");
-      }
-      if (!matchedFields.includes("content") && contentTokens.has(term)) {
-        matchedFields.push("content");
+      for (const [fieldName, content] of Object.entries(searchableFields)) {
+        if (!matchedFields.includes(fieldName) && content.includes(term)) {
+          matchedFields.push(fieldName);
+        }
       }
     }
 

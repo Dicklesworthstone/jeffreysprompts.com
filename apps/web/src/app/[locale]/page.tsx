@@ -135,14 +135,16 @@ function HomeContent() {
       const searchResults = searchPrompts(filters.query, {
         category: filters.category ?? undefined,
         tags: filters.tags.length > 0 ? filters.tags : undefined,
-        limit: 50,
+        limit: 40, // Reasonable limit for search results
       });
       results = searchResults.map((r) => r.prompt);
     } else {
       // Exclude featured prompts from the main grid if no filters are active to avoid duplication
-      results = hasActiveFilters 
+      const baseResults = hasActiveFilters 
         ? [...prompts] 
         : prompts.filter(p => !featuredPrompts.some(fp => fp.id === p.id));
+
+      results = baseResults;
 
       if (filters.category) {
         results = results.filter((p) => p.category === filters.category);
@@ -150,8 +152,13 @@ function HomeContent() {
 
       if (filters.tags.length > 0) {
         results = results.filter((p) =>
-          filters.tags.every((tag) => p.tags.includes(tag))
+          filters.tags.some((tag) => p.tags.includes(tag))
         );
+      }
+      
+      // Limit total non-search results to keep grid performant
+      if (!hasActiveFilters) {
+        results = results.slice(0, 48);
       }
     }
 
