@@ -1,18 +1,18 @@
 "use client";
 
 /**
- * PromptCard - Clean, minimal card component (Stripe/Linear inspired)
+ * PromptCard - Truly next-level, high-performance card component.
  *
- * Design principles:
- * - Subtle elevation on hover (lift + shadow only)
- * - Clear visual hierarchy: title > description > preview
- * - Touch-friendly targets (44px minimum on mobile)
- * - No distracting animations or 3D effects
- * - Simplified action row
+ * Design features:
+ * - 3D Perspective Tilt on hover (GPU accelerated)
+ * - Dynamic cursor-following glow (Spotlight effect)
+ * - Premium Shimmer Sweep on mount
+ * - Terminal streaming preview for agentic feel
+ * - Haptic feedback integration
  */
 
 import { useState, useCallback, useRef, useEffect, type MouseEvent, type KeyboardEvent } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion, useSpring } from "framer-motion";
 import {
   Copy,
   Check,
@@ -35,6 +35,9 @@ import { copyToClipboard } from "@/lib/clipboard";
 import type { Prompt, PromptDifficulty } from "@jeffreysprompts/core/prompts/types";
 import { RatingDisplay } from "@/components/ratings";
 import { CostBadge } from "@/components/CostBadge";
+import { useMousePosition } from "@/hooks/useMousePosition";
+import { FeaturedContentBadge } from "@/components/featured/staff-pick-badge";
+import { TerminalStream } from "./TerminalStream";
 
 interface PromptCardProps {
   prompt: Prompt;
@@ -69,23 +72,43 @@ const difficultyConfig: Record<
 
 export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardProps) {
   const [copied, setCopied] = useState(false);
-  const [copyFlash, setCopyFlash] = useState(false);
-  const [basketFlash, setBasketFlash] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const prefersReducedMotion = useReducedMotion();
-  const copiedResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const copyFlashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const basketFlashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  
+  const { percentageX, percentageY, handleMouseMove, resetMousePosition } = useMousePosition();
+  
+  // Spring configuration for smooth tilt
+  const springConfig = { stiffness: 150, damping: 20 };
+  const rotateX = useSpring(0, springConfig);
+  const rotateY = useSpring(0, springConfig);
+
   const { success, error } = useToast();
   const { addItem, isInBasket } = useBasket();
   const inBasket = isInBasket(prompt.id);
 
   useEffect(() => {
-    return () => {
-      if (copiedResetTimer.current) clearTimeout(copiedResetTimer.current);
-      if (copyFlashTimer.current) clearTimeout(copyFlashTimer.current);
-      if (basketFlashTimer.current) clearTimeout(basketFlashTimer.current);
-    };
+    if (!isHovered || prefersReducedMotion) {
+      rotateX.set(0);
+      rotateY.set(0);
+      return;
+    }
+
+    const rX = (percentageY - 50) / -8;
+    const rY = (percentageX - 50) / 8;
+    
+    rotateX.set(rX);
+    rotateY.set(rY);
+  }, [percentageX, percentageY, isHovered, rotateX, rotateY, prefersReducedMotion]);
+
+  const handleMouseEnter = useCallback(() => {
+    setIsHovered(true);
   }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setIsHovered(false);
+    resetMousePosition();
+  }, [resetMousePosition]);
 
   const handleCopy = useCallback(
     async (e: MouseEvent) => {
@@ -94,9 +117,7 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
 
       if (result.success) {
         setCopied(true);
-        setCopyFlash(true);
 
-        // Haptic feedback for mobile devices
         if ("vibrate" in navigator) {
           navigator.vibrate(50);
         }
@@ -105,17 +126,7 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
         trackEvent("prompt_copy", { id: prompt.id, source: "card" });
         onCopy?.(prompt);
 
-        // Reset flash quickly
-        if (copyFlashTimer.current) clearTimeout(copyFlashTimer.current);
-        copyFlashTimer.current = setTimeout(() => setCopyFlash(false), 300);
-
-        if (copiedResetTimer.current) {
-          clearTimeout(copiedResetTimer.current);
-        }
-        copiedResetTimer.current = setTimeout(() => {
-          setCopied(false);
-          copiedResetTimer.current = null;
-        }, 2000);
+        setTimeout(() => setCopied(false), 2000);
       } else {
         error("Failed to copy", "Please try again");
       }
@@ -142,19 +153,13 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
       e.stopPropagation();
       if (!inBasket) {
         addItem(prompt.id);
-        setBasketFlash(true);
 
-        // Haptic feedback for mobile devices
         if ("vibrate" in navigator) {
           navigator.vibrate(50);
         }
 
         success("Added to basket", prompt.title, { duration: 3000 });
         trackEvent("basket_add", { id: prompt.id, source: "card" });
-
-        // Reset flash quickly
-        if (basketFlashTimer.current) clearTimeout(basketFlashTimer.current);
-        basketFlashTimer.current = setTimeout(() => setBasketFlash(false), 300);
       }
     },
     [prompt, inBasket, addItem, success]
@@ -165,222 +170,208 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
+      ref={cardRef}
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{
-        duration: 0.3,
-        delay: prefersReducedMotion ? 0 : Math.min(index * 0.03, 0.15),
-        ease: [0.25, 0.1, 0.25, 1],
+        duration: 0.5,
+        delay: prefersReducedMotion ? 0 : Math.min(index * 0.05, 0.25),
+        ease: [0.23, 1, 0.32, 1],
       }}
-      className="h-full"
+      className="h-full perspective-1000"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onMouseMove={handleMouseMove}
     >
-      <Card
-        data-testid="prompt-card"
-        data-featured={prompt.featured ? "true" : undefined}
-        className={cn(
-          "group relative flex flex-col h-full overflow-hidden",
-          // Base styles - clean, neutral
-          "bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800",
-          // Hover: subtle lift + refined shadow (Stripe-style)
-          "transition-all duration-200 ease-out",
-          "hover:-translate-y-1",
-          "hover:shadow-[0_8px_30px_-10px_rgba(0,0,0,0.1)]",
-          "dark:hover:shadow-[0_8px_30px_-10px_rgba(0,0,0,0.4)]",
-          "hover:border-neutral-300 dark:hover:border-neutral-700"
-        )}
-        onClick={handleClick}
-        role="button"
-        tabIndex={0}
-        onKeyDown={handleKeyDown}
+      <motion.div
+        style={{
+          rotateX,
+          rotateY,
+          transformStyle: "preserve-3d",
+        }}
+        className="h-full"
       >
-        {/* Featured indicator - prominent top accent */}
-        {prompt.featured && (
-          <div className="absolute top-0 left-0 right-0 h-1 bg-amber-400" />
-        )}
+        <Card
+          data-testid="prompt-card"
+          className={cn(
+            "group relative flex flex-col h-full overflow-hidden border-2",
+            "bg-white/80 dark:bg-neutral-900/80 backdrop-blur-sm",
+            "border-neutral-200/50 dark:border-neutral-800/50",
+            "transition-all duration-300",
+            isHovered ? "shadow-2xl shadow-neutral-200/50 dark:shadow-black/50 border-indigo-500/20 dark:border-indigo-400/20" : "shadow-md"
+          )}
+          onClick={handleClick}
+          role="button"
+          tabIndex={0}
+          onKeyDown={handleKeyDown}
+        >
+          {/* Dynamic Glow Effect */}
+          {!prefersReducedMotion && (
+            <motion.div
+              className="absolute inset-0 pointer-events-none z-0"
+              style={{
+                background: `radial-gradient(circle at ${percentageX}% ${percentageY}%, rgba(99, 102, 241, 0.1), transparent 70%)`,
+              }}
+              animate={{ opacity: isHovered ? 1 : 0 }}
+            />
+          )}
 
-        <CardHeader className="pb-3 pt-4">
-          {/* Top row: Category + Difficulty + Featured */}
-          <div className="flex items-center justify-between gap-2 mb-3">
-            <div className="flex items-center gap-2 flex-wrap">
-              <Badge
-                variant="outline"
-                className="capitalize text-xs font-medium px-2 py-0.5 bg-neutral-50 dark:bg-neutral-800/50 border-neutral-200 dark:border-neutral-700"
-              >
-                {prompt.category}
-              </Badge>
-              {difficulty && DifficultyIcon && (
-                <span className={cn(
-                  "inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full",
-                  difficulty.color,
-                  difficulty.bgColor
-                )}>
-                  <DifficultyIcon className="w-3 h-3" />
-                  {difficulty.label}
-                </span>
+          {/* Shimmer Sweep on Mount */}
+          {!prefersReducedMotion && (
+            <motion.div
+              initial={{ x: "-100%" }}
+              animate={{ x: "200%" }}
+              transition={{ duration: 1.5, ease: "easeInOut", delay: index * 0.1 + 0.5 }}
+              className="absolute inset-0 z-0 pointer-events-none bg-gradient-to-r from-transparent via-white/20 dark:via-white/5 to-transparent skew-x-12"
+            />
+          )}
+
+          {/* Featured indicator */}
+          {prompt.featured && (
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 shadow-[0_0_15px_rgba(251,191,36,0.5)]" />
+          )}
+
+          <CardHeader className="pb-3 pt-5 relative z-10">
+            <div className="flex items-center justify-between gap-2 mb-4">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge
+                  variant="outline"
+                  className="capitalize text-xs font-semibold px-2.5 py-0.5 bg-neutral-100/50 dark:bg-neutral-800/50 border-neutral-200/50 dark:border-neutral-700/50"
+                >
+                  {prompt.category}
+                </Badge>
+                {difficulty && DifficultyIcon && (
+                  <span className={cn(
+                    "inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-0.5 rounded-full",
+                    difficulty.color,
+                    difficulty.bgColor
+                  )}>
+                    <DifficultyIcon className="w-3.5 h-3.5" />
+                    {difficulty.label}
+                  </span>
+                )}
+              </div>
+              {prompt.featured && (
+                <FeaturedContentBadge size="sm" className="shadow-sm shadow-amber-200/20" />
               )}
             </div>
-            {prompt.featured && (
-              <Badge className="gap-1 text-xs bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800">
-                <Sparkles className="w-3 h-3" />
-                Featured
-              </Badge>
-            )}
-          </div>
 
-          {/* Title - clean typography */}
-          <h3 className="text-lg font-semibold leading-snug text-neutral-900 dark:text-neutral-100 line-clamp-2">
-            {prompt.title}
-          </h3>
-        </CardHeader>
+            <h3 className="text-xl font-bold leading-tight text-neutral-900 dark:text-white line-clamp-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+              {prompt.title}
+            </h3>
+          </CardHeader>
 
-        <CardContent className="flex-1 pb-4">
-          {/* Description */}
-          <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed line-clamp-2 mb-4">
-            {prompt.description}
-          </p>
+          <CardContent className="flex-1 pb-4 relative z-10">
+            <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed line-clamp-3 mb-5">
+              {prompt.description}
+            </p>
 
-          {/* Tags - clean styling */}
-          <div className="flex flex-wrap gap-1.5">
-            {prompt.tags.slice(0, 3).map((tag) => (
-              <span
-                key={tag}
-                className="text-xs font-medium text-neutral-500 dark:text-neutral-500 bg-neutral-100 dark:bg-neutral-800/70 px-2 py-0.5 rounded-md"
-              >
-                {tag}
-              </span>
-            ))}
-            {prompt.tags.length > 3 && (
-              <span className="text-xs text-neutral-400 dark:text-neutral-500 px-1.5 py-0.5">
-                +{prompt.tags.length - 3}
-              </span>
-            )}
-          </div>
-        </CardContent>
-
-        <CardFooter className="pt-0 pb-4 px-4 mt-auto">
-          <div className="w-full space-y-3">
-            {/* Content preview */}
-            <div className="relative rounded-lg overflow-hidden bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-100 dark:border-neutral-800">
-              <div className="p-3 h-[72px] overflow-hidden">
-                <p className="font-mono text-xs leading-relaxed text-neutral-600 dark:text-neutral-400 whitespace-pre-wrap">
-                  {prompt.content.length > 180
-                    ? `${prompt.content.slice(0, 180)}...`
-                    : prompt.content}
-                </p>
-              </div>
-              {/* Fade overlay */}
-              <div className="absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-neutral-50 dark:from-neutral-800/40 to-transparent pointer-events-none" />
+            <div className="flex flex-wrap gap-2">
+              {prompt.tags.slice(0, 4).map((tag) => (
+                <motion.span
+                  key={tag}
+                  whileHover={{ scale: 1.05 }}
+                  className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-500 bg-neutral-100/80 dark:bg-neutral-800/80 px-2 py-1 rounded-md border border-neutral-200/30 dark:border-neutral-700/30"
+                >
+                  {tag}
+                </motion.span>
+              ))}
             </div>
+          </CardContent>
 
-            {/* Actions row - simplified to 2 primary actions */}
-            <div className="flex items-center justify-between">
-              {/* Token count + Cost + Rating */}
-              <div className="flex items-center gap-3 text-xs text-neutral-400 dark:text-neutral-500">
-                {prompt.estimatedTokens && (
-                  <>
-                    <div className="flex items-center gap-1.5">
-                      <Zap className="w-3 h-3" />
+          <CardFooter className="pt-0 pb-5 px-5 mt-auto relative z-10">
+            <div className="w-full space-y-4">
+              {/* Terminal streaming preview */}
+              <div className="relative rounded-xl overflow-hidden bg-neutral-50/50 dark:bg-black/20 border border-neutral-200/30 dark:border-neutral-800/30 backdrop-blur-md">
+                <div className="p-4 h-[84px] overflow-hidden">
+                  <TerminalStream 
+                    text={prompt.content.length > 200 ? `${prompt.content.slice(0, 200)}...` : prompt.content}
+                    className="font-mono text-[12px] leading-relaxed text-neutral-500 dark:text-neutral-400 whitespace-pre-wrap"
+                  />
+                </div>
+                <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-neutral-50/80 dark:from-neutral-900/80 to-transparent pointer-events-none" />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4 text-[11px] font-medium text-neutral-400 dark:text-neutral-500">
+                  {prompt.estimatedTokens && (
+                    <div className="flex items-center gap-1.5 group/stat">
+                      <Zap className="w-3.5 h-3.5 text-amber-500 group-hover/stat:scale-110 transition-transform" />
                       <span>{prompt.estimatedTokens} tokens</span>
                     </div>
-                    <CostBadge tokens={prompt.estimatedTokens} />
-                  </>
-                )}
-                <RatingDisplay
-                  contentType="prompt"
-                  contentId={prompt.id}
-                  variant="compact"
-                />
-              </div>
-
-              {/* Action buttons - Basket, Copy, and View */}
-              <div className="flex items-center gap-1">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className={cn(
-                    "h-8 w-8 p-0 relative overflow-hidden z-10",
-                    "hover:bg-neutral-100 dark:hover:bg-neutral-800",
-                    inBasket && "text-emerald-600 dark:text-emerald-400",
-                    basketFlash && "bg-emerald-100 dark:bg-emerald-900/30"
                   )}
-                  onClick={handleAddToBasket}
-                  disabled={inBasket}
-                  aria-label={inBasket ? "Already in basket" : "Add to basket"}
-                >
-                  <AnimatePresence mode="wait" initial={false}>
-                    {inBasket ? (
-                      <motion.div
-                        key="check"
-                        initial={prefersReducedMotion ? {} : { scale: 0, rotate: -180 }}
-                        animate={{ scale: 1, rotate: 0 }}
-                        exit={prefersReducedMotion ? {} : { scale: 0, rotate: 180 }}
-                        transition={{ type: "spring", stiffness: 500, damping: 25 }}
-                      >
-                        <Check className="w-4 h-4" aria-hidden="true" />
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        key="basket"
-                        initial={prefersReducedMotion ? {} : { scale: 0 }}
-                        animate={{ scale: 1 }}
-                        exit={prefersReducedMotion ? {} : { scale: 0 }}
-                        transition={{ duration: 0.15 }}
-                      >
-                        <ShoppingBasket className="w-4 h-4" aria-hidden="true" />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </Button>
+                  <div className="scale-90 origin-left">
+                    <RatingDisplay
+                      contentType="prompt"
+                      contentId={prompt.id}
+                      variant="compact"
+                    />
+                  </div>
+                </div>
 
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className={cn(
-                    "h-8 w-8 p-0 relative overflow-hidden z-10",
-                    "hover:bg-neutral-100 dark:hover:bg-neutral-800",
-                    copied && "text-emerald-600 dark:text-emerald-400",
-                    copyFlash && "bg-emerald-100 dark:bg-emerald-900/30"
-                  )}
-                  onClick={handleCopy}
-                  aria-label={copied ? "Copied to clipboard" : "Copy prompt to clipboard"}
-                >
-                  <AnimatePresence mode="wait" initial={false}>
-                    {copied ? (
-                      <motion.div
-                        key="check"
-                        initial={prefersReducedMotion ? {} : { scale: 0, rotate: -180 }}
-                        animate={{ scale: 1, rotate: 0 }}
-                        exit={prefersReducedMotion ? {} : { scale: 0, rotate: 180 }}
-                        transition={{ type: "spring", stiffness: 500, damping: 25 }}
-                      >
-                        <Check className="w-4 h-4" aria-hidden="true" />
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        key="copy"
-                        initial={prefersReducedMotion ? {} : { scale: 0 }}
-                        animate={{ scale: 1 }}
-                        exit={prefersReducedMotion ? {} : { scale: 0 }}
-                        transition={{ duration: 0.15 }}
-                      >
-                        <Copy className="w-4 h-4" aria-hidden="true" />
-                      </motion.div>
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className={cn(
+                      "h-9 w-9 p-0 rounded-full transition-all duration-300",
+                      inBasket ? "bg-emerald-500 text-white" : "hover:bg-neutral-100 dark:hover:bg-neutral-800"
                     )}
-                  </AnimatePresence>
-                </Button>
+                    onClick={handleAddToBasket}
+                    disabled={inBasket}
+                  >
+                    <AnimatePresence mode="wait" initial={false}>
+                      {inBasket ? (
+                        <motion.div key="check" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                          <Check className="w-4 h-4" />
+                        </motion.div>
+                      ) : (
+                        <motion.div key="basket" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                          <ShoppingBasket className="w-4 h-4" />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </Button>
 
-                <Button
-                  size="sm"
-                  className="h-8 px-3 text-sm font-medium bg-neutral-900 hover:bg-neutral-800 dark:bg-neutral-100 dark:hover:bg-neutral-200 dark:text-neutral-900"
-                >
-                  View
-                  <ChevronRight className="w-4 h-4 ml-1" />
-                </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className={cn(
+                      "h-9 w-9 p-0 rounded-full transition-all duration-300",
+                      copied ? "bg-emerald-500 text-white" : "hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                    )}
+                    onClick={handleCopy}
+                  >
+                    <AnimatePresence mode="wait" initial={false}>
+                      {copied ? (
+                        <motion.div key="check" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                          <Check className="w-4 h-4" />
+                        </motion.div>
+                      ) : (
+                        <motion.div key="copy" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                          <Copy className="w-4 h-4" />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </Button>
+
+                  <Button
+                    size="sm"
+                    className={cn(
+                      "h-9 px-4 rounded-full text-xs font-bold transition-all duration-300",
+                      "bg-neutral-900 text-white hover:bg-black dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200",
+                      "shadow-lg shadow-neutral-200 dark:shadow-black"
+                    )}
+                  >
+                    View
+                    <ChevronRight className="w-3.5 h-3.5 ml-1" />
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
-        </CardFooter>
-      </Card>
+          </CardFooter>
+        </Card>
+      </motion.div>
     </motion.div>
   );
 }

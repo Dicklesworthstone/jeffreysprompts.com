@@ -23,6 +23,7 @@ import {
   Terminal,
   Sparkles,
   FileText,
+  Zap,
 } from "lucide-react";
 import {
   Dialog,
@@ -245,41 +246,47 @@ export function PromptDetailModal({
 
   // Modal content (shared between Dialog and BottomSheet)
   const modalContent = (
-    <div className="space-y-6">
+    <div className="space-y-10">
       {/* Header info */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2 flex-wrap">
-          <Badge variant="outline" className="capitalize text-xs font-medium px-2.5 py-0.5 bg-neutral-50 dark:bg-neutral-800/50">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="space-y-6"
+      >
+        <div className="flex items-center gap-3 flex-wrap">
+          <Badge variant="outline" className="capitalize text-xs font-bold px-3 py-1 bg-neutral-100 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700">
             {prompt.category}
           </Badge>
           {prompt.featured && (
-            <Badge className="gap-1.5 text-xs bg-gradient-to-r from-amber-500/15 to-orange-500/15 text-amber-600 dark:text-amber-400 border-amber-400/30 dark:border-amber-500/30">
-              <Sparkles className="w-3 h-3" />
+            <Badge className="gap-2 text-xs font-bold bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-600 dark:text-amber-400 border-amber-400/30 dark:border-amber-500/30 px-3 py-1">
+              <Sparkles className="w-3.5 h-3.5" />
               Featured
             </Badge>
           )}
           {prompt.estimatedTokens && (
-            <>
-              <span className="text-xs text-muted-foreground/70 font-medium">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-neutral-500">
+                <Zap className="w-3.5 h-3.5 text-amber-500" />
                 {prompt.estimatedTokens} tokens
-              </span>
+              </div>
               <CostBadge
                 tokens={prompt.estimatedTokens}
                 variant="compact"
-                className="font-medium"
+                className="font-bold"
               />
-            </>
+            </div>
           )}
         </div>
 
-        <p className="text-sm text-muted-foreground leading-relaxed">{prompt.description}</p>
+        <p className="text-lg text-neutral-600 dark:text-neutral-400 leading-relaxed font-medium">{prompt.description}</p>
 
         {/* Tags */}
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-2">
           {prompt.tags.map((tag) => (
             <span
               key={tag}
-              className="text-xs text-neutral-500 dark:text-neutral-500 bg-neutral-100 dark:bg-neutral-800/70 px-2 py-0.5 rounded-md font-medium"
+              className="text-[10px] uppercase tracking-widest font-bold text-neutral-500 dark:text-neutral-500 bg-neutral-100 dark:bg-neutral-800 px-2.5 py-1 rounded-md border border-neutral-200 dark:border-neutral-700"
             >
               {tag}
             </span>
@@ -294,19 +301,24 @@ export function PromptDetailModal({
             variant="detailed"
           />
         </div>
-      </div>
+      </motion.div>
 
       {/* Variable inputs */}
       {promptVariables.length > 0 && (
-        <div className="space-y-4 p-4 bg-neutral-50/50 dark:bg-neutral-900/30 rounded-xl border border-neutral-200/50 dark:border-neutral-800/50">
-          <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-            Variables
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="space-y-6 p-6 bg-indigo-50/30 dark:bg-indigo-500/5 rounded-2xl border-2 border-indigo-100/50 dark:border-indigo-500/10 backdrop-blur-sm"
+        >
+          <h4 className="text-base font-bold text-neutral-900 dark:text-white flex items-center gap-3">
+            <div className="w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
+            Customize Variables
           </h4>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-6 sm:grid-cols-2">
             {promptVariables.map((variable) => (
-              <div key={variable.name} className="space-y-1.5">
-                <Label htmlFor={`var-${variable.name}`} className="text-xs font-medium text-muted-foreground">
+              <div key={variable.name} className="space-y-2">
+                <Label htmlFor={`var-${variable.name}`} className="text-xs font-bold uppercase tracking-wider text-neutral-500">
                   {variable.label}
                   {variable.required && (
                     <span className="text-rose-500 ml-1">*</span>
@@ -318,14 +330,14 @@ export function PromptDetailModal({
                     value={variableValues[variable.name] ?? variable.default ?? ""}
                     onChange={(e) => updateVariable(variable.name, e.target.value)}
                     placeholder={getVariablePlaceholder(variable.name, variable.type)}
-                    className="h-20 text-sm bg-white dark:bg-neutral-900/50"
+                    className="h-24 text-sm bg-white dark:bg-neutral-950/50 border-neutral-200 dark:border-neutral-800 focus:ring-indigo-500/30"
                   />
                 ) : variable.type === "select" && variable.options?.length ? (
                   <Select
                     value={variableValues[variable.name] ?? variable.default ?? ""}
                     onValueChange={(value) => updateVariable(variable.name, value)}
                   >
-                    <SelectTrigger id={`var-${variable.name}`} className="bg-white dark:bg-neutral-900/50">
+                    <SelectTrigger id={`var-${variable.name}`} className="bg-white dark:bg-neutral-950/50 border-neutral-200 dark:border-neutral-800 h-11">
                       <SelectValue placeholder="Select an option" />
                     </SelectTrigger>
                     <SelectContent>
@@ -342,175 +354,190 @@ export function PromptDetailModal({
                     value={variableValues[variable.name] ?? variable.default ?? ""}
                     onChange={(e) => updateVariable(variable.name, e.target.value)}
                     placeholder={getVariablePlaceholder(variable.name, variable.type)}
-                    className="text-sm bg-white dark:bg-neutral-900/50"
+                    className="h-11 text-sm bg-white dark:bg-neutral-950/50 border-neutral-200 dark:border-neutral-800 focus:ring-indigo-500/30"
                   />
                 )}
                 {variable.description && (
-                  <p className="text-xs text-muted-foreground/70">
+                  <p className="text-xs text-neutral-400 dark:text-neutral-500">
                     {variable.description}
                   </p>
                 )}
               </div>
             ))}
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Context textarea */}
-      <div className="space-y-2">
-        <Label htmlFor="context" className="text-sm font-medium text-foreground">
-          Additional Context <span className="text-muted-foreground/60 font-normal">(optional)</span>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="space-y-3"
+      >
+        <Label htmlFor="context" className="text-sm font-bold text-neutral-900 dark:text-white">
+          Additional Context <span className="text-neutral-400 font-normal ml-1">(Optional)</span>
         </Label>
         <Textarea
           id="context"
           value={context}
           onChange={(e) => setContext(e.target.value)}
-          placeholder="Paste code, file contents, or other context here..."
-          className="h-24 text-sm font-mono bg-neutral-50 dark:bg-neutral-900/50"
+          placeholder="Paste code, file contents, or other context to append..."
+          className="h-28 text-sm font-mono bg-neutral-50 dark:bg-black/20 border-neutral-200 dark:border-neutral-800 focus:ring-indigo-500/30"
         />
-      </div>
+      </motion.div>
 
       {/* Prompt content preview */}
-      <div className="space-y-2">
-        <Label className="text-sm font-medium text-foreground">Rendered Prompt</Label>
-        <div className="relative rounded-xl overflow-hidden border border-neutral-200/80 dark:border-neutral-800/80 bg-neutral-50 dark:bg-neutral-900/50">
-          <pre className="p-4 text-sm font-mono whitespace-pre-wrap break-words max-h-64 overflow-y-auto text-neutral-700 dark:text-neutral-300 leading-relaxed">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        className="space-y-3"
+      >
+        <Label className="text-sm font-bold text-neutral-900 dark:text-white">Live Preview</Label>
+        <div className="relative rounded-2xl overflow-hidden border-2 border-neutral-200 dark:border-neutral-800 bg-neutral-900 shadow-inner">
+          <div className="absolute top-0 left-0 right-0 h-8 bg-neutral-800/50 flex items-center px-4 gap-1.5 border-b border-white/5">
+             <div className="w-2.5 h-2.5 rounded-full bg-rose-500/50" />
+             <div className="w-2.5 h-2.5 rounded-full bg-amber-500/50" />
+             <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/50" />
+             <span className="text-[10px] text-neutral-500 font-mono ml-2 uppercase tracking-widest">prompt.md</span>
+          </div>
+          <pre className="p-6 pt-12 text-sm font-mono whitespace-pre-wrap break-words max-h-80 overflow-y-auto text-neutral-300 leading-relaxed scrollbar-thin">
             {renderedContent}
           </pre>
-          {/* Fade overlay at bottom */}
-          <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-neutral-50 dark:from-neutral-900/50 to-transparent pointer-events-none" />
+          <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-neutral-900 to-transparent pointer-events-none" />
         </div>
-      </div>
+      </motion.div>
 
       {/* When to use / Tips */}
-      {((prompt.whenToUse?.length ?? 0) > 0 || (prompt.tips?.length ?? 0) > 0) && (
-        <div className="grid gap-6 sm:grid-cols-2 text-sm">
-          {(prompt.whenToUse?.length ?? 0) > 0 && (
-            <div className="space-y-3">
-              <h4 className="font-semibold text-foreground flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                When to Use
-              </h4>
-              <ul className="text-muted-foreground space-y-2">
-                {prompt.whenToUse?.map((item, i) => (
-                  <li key={i} className="flex items-start gap-2">
-                    <span className="text-emerald-500 mt-1">•</span>
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {(prompt.tips?.length ?? 0) > 0 && (
-            <div className="space-y-3">
-              <h4 className="font-semibold text-foreground flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                Tips
-              </h4>
-              <ul className="text-muted-foreground space-y-2">
-                {prompt.tips?.map((item, i) => (
-                  <li key={i} className="flex items-start gap-2">
-                    <span className="text-amber-500 mt-1">•</span>
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Action buttons - Mobile: stacked full-width, Desktop: inline */}
-      <div className="pt-4 border-t border-border/50">
-        {/* Primary action - Copy - always full width on mobile for prominence */}
-        <Button
-          onClick={handleCopy}
-          size="lg"
-          className={cn(
-            "w-full font-medium transition-all duration-200 mb-3",
-            "h-12 text-base",
-            copied && "bg-emerald-600 hover:bg-emerald-700",
-            copyFlash && "bg-emerald-500"
-          )}
-        >
-          <AnimatePresence mode="wait" initial={false}>
-            {copied ? (
-              <motion.span
-                key="copied"
-                initial={prefersReducedMotion ? {} : { opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={prefersReducedMotion ? {} : { opacity: 0, scale: 0.8 }}
-                transition={{ duration: 0.15 }}
-                className="flex items-center justify-center"
-              >
-                <motion.span
-                  initial={prefersReducedMotion ? {} : { rotate: -180, scale: 0 }}
-                  animate={{ rotate: 0, scale: 1 }}
-                  transition={{ type: "spring", stiffness: 500, damping: 25 }}
-                >
-                  <Check className="w-5 h-5 mr-2" />
-                </motion.span>
-                Copied!
-              </motion.span>
-            ) : (
-              <motion.span
-                key="copy"
-                initial={prefersReducedMotion ? {} : { opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={prefersReducedMotion ? {} : { opacity: 0, scale: 0.8 }}
-                transition={{ duration: 0.15 }}
-                className="flex items-center justify-center"
-              >
-                <Copy className="w-5 h-5 mr-2" />
-                Copy Prompt
-              </motion.span>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+      >
+        {((prompt.whenToUse?.length ?? 0) > 0 || (prompt.tips?.length ?? 0) > 0) && (
+          <div className="grid gap-10 sm:grid-cols-2 text-sm">
+            {(prompt.whenToUse?.length ?? 0) > 0 && (
+              <div className="space-y-4">
+                <h4 className="font-bold text-neutral-900 dark:text-white flex items-center gap-3">
+                  <div className="w-1.5 h-6 rounded-full bg-emerald-500" />
+                  When to Use
+                </h4>
+                <ul className="text-neutral-600 dark:text-neutral-400 space-y-3">
+                  {prompt.whenToUse?.map((item, i) => (
+                    <li key={i} className="flex items-start gap-3">
+                      <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                      <span className="leading-relaxed font-medium">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
-          </AnimatePresence>
-        </Button>
+            {(prompt.tips?.length ?? 0) > 0 && (
+              <div className="space-y-4">
+                <h4 className="font-bold text-neutral-900 dark:text-white flex items-center gap-3">
+                  <div className="w-1.5 h-6 rounded-full bg-amber-500" />
+                  Expert Tips
+                </h4>
+                <ul className="text-neutral-600 dark:text-neutral-400 space-y-3">
+                  {prompt.tips?.map((item, i) => (
+                    <li key={i} className="flex items-start gap-3">
+                      <Sparkles className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                      <span className="leading-relaxed font-medium">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+      </motion.div>
 
-        {/* Secondary actions - 2x2 grid on mobile, inline on desktop */}
-        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
-          <Button
-            variant="outline"
-            onClick={handleInstall}
-            className="h-11 font-medium hover:bg-neutral-100 dark:hover:bg-neutral-800 sm:flex-1"
-          >
-            <Terminal className="w-4 h-4 mr-2 shrink-0" />
-            <span className="truncate">Install</span>
-          </Button>
-          <Button
-            variant="outline"
-            onClick={handleDownload}
-            className="h-11 font-medium hover:bg-neutral-100 dark:hover:bg-neutral-800 sm:flex-1"
-          >
-            <Download className="w-4 h-4 mr-2 shrink-0" />
-            <span className="truncate">Download</span>
-          </Button>
-          {prompt && (
-            <ReportDialog
-              contentType="prompt"
-              contentId={prompt.id}
-              contentTitle={prompt.title}
-              triggerVariant="outline"
-              triggerSize="default"
-              triggerClassName="h-11 font-medium col-span-2 sm:col-span-1 sm:flex-1"
-              showLabel
-            />
-          )}
+      {/* Action buttons */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.6 }}
+        className="pt-10 border-t border-neutral-100 dark:border-neutral-800"
+      >
+        <div className="flex flex-col gap-4">
+          <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}>
+            <Button
+              onClick={handleCopy}
+              size="lg"
+              className={cn(
+                "w-full font-bold transition-all duration-300 relative overflow-hidden",
+                "h-14 text-lg rounded-2xl shadow-xl",
+                "focus:ring-4 focus:ring-indigo-500/20",
+                copied ? "bg-emerald-500" : "bg-neutral-900 dark:bg-white dark:text-neutral-900"
+              )}
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                {copied ? (
+                  <motion.span
+                    key="copied"
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    className="flex items-center"
+                  >
+                    <Check className="w-6 h-6 mr-3" />
+                    Copied to Clipboard!
+                  </motion.span>
+                ) : (
+                  <motion.span
+                    key="copy"
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    className="flex items-center"
+                  >
+                    <Copy className="w-6 h-6 mr-3" />
+                    Copy Final Prompt
+                  </motion.span>
+                )}
+              </AnimatePresence>
+              
+              {/* Shimmer on copy button */}
+              <motion.div
+                animate={{ x: ["-100%", "200%"] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                className="absolute inset-0 z-0 pointer-events-none bg-gradient-to-r from-transparent via-white/10 dark:via-black/5 to-transparent skew-x-12"
+              />
+            </Button>
+          </motion.div>
+
+          <div className="grid grid-cols-2 sm:flex gap-3">
+            <Button
+              variant="outline"
+              onClick={handleInstall}
+              className="h-12 font-bold rounded-xl flex-1 border-2"
+            >
+              <Terminal className="w-4 h-4 mr-2" />
+              Terminal Install
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleDownload}
+              className="h-12 font-bold rounded-xl flex-1 border-2"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Save .md File
+            </Button>
+          </div>
         </div>
 
-        {/* Rating - allows users to rate this prompt */}
-        <div className="flex items-center justify-center pt-3 border-t border-border/30 mt-3">
+        <div className="flex items-center justify-center pt-6 mt-6 border-t border-neutral-100 dark:border-neutral-800">
           <RatingButton
             contentType="prompt"
             contentId={prompt.id}
             showCount
           />
         </div>
-      </div>
+      </motion.div>
 
       {/* Reviews section */}
-      <div className="pt-2 border-t border-border/50">
+      <div className="pt-6 border-t border-neutral-100 dark:border-neutral-800">
         <ReviewList
           contentType="prompt"
           contentId={prompt.id}
@@ -523,26 +550,51 @@ export function PromptDetailModal({
   if (isMobile) {
     return (
       <BottomSheet open={open} onClose={handleClose} title={prompt.title}>
-        {modalContent}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+        >
+          {modalContent}
+        </motion.div>
       </BottomSheet>
     );
   }
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
-      <DialogContent size="xl" className="max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader separated>
-          <DialogTitle className="flex items-center gap-2">
-            <FileText className="w-5 h-5 text-primary" />
-            {prompt.title}
-          </DialogTitle>
-          <DialogDescription className="sr-only">
-            View and customize the {prompt.title} prompt
-          </DialogDescription>
-        </DialogHeader>
-        <DialogBody scrollable className="flex-1">
-          {modalContent}
-        </DialogBody>
+      <DialogContent 
+        size="xl" 
+        className={cn(
+          "max-h-[90vh] overflow-hidden flex flex-col border-2 p-0 perspective-1000",
+          "bg-white/90 dark:bg-neutral-900/90 backdrop-blur-2xl",
+          "border-neutral-200/50 dark:border-neutral-800/50 shadow-2xl"
+        )}
+      >
+        <motion.div
+          initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.95, rotateX: -5 }}
+          animate={{ opacity: 1, scale: 1, rotateX: 0 }}
+          transition={{ type: "spring", stiffness: 300, damping: 25 }}
+          style={{ transformStyle: "preserve-3d" }}
+          className="h-full flex flex-col"
+        >
+          <DialogHeader separated className="border-b-2 border-neutral-100 dark:border-neutral-800 px-4 sm:px-10 pt-8 pb-6">
+            <DialogTitle className="flex items-center gap-4 text-2xl sm:text-3xl font-bold">
+              <div className="p-3 rounded-2xl bg-indigo-500/10 text-indigo-500 shadow-inner">
+                <Sparkles className="w-7 h-7" />
+              </div>
+              {prompt.title}
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              View and customize the {prompt.title} prompt
+            </DialogDescription>
+          </DialogHeader>
+          <DialogBody scrollable className="flex-1 p-0 px-4 sm:px-10 py-8">
+            <div className="max-w-4xl mx-auto">
+              {modalContent}
+            </div>
+          </DialogBody>
+        </motion.div>
       </DialogContent>
     </Dialog>
   );

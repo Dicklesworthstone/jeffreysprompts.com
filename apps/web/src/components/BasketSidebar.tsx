@@ -13,6 +13,7 @@ import {
   ShoppingBasket,
   Sparkles,
   Search,
+  Terminal,
 } from "lucide-react";
 import { useBasket } from "@/hooks/use-basket";
 import { Button } from "./ui/button";
@@ -40,6 +41,18 @@ const buildInstallCommand = (promptIds: string[]) => {
   const url = query ? `${baseUrl}/install.sh?${query}` : `${baseUrl}/install.sh`;
   return `curl -fsSL "${url}" | bash`;
 };
+
+// Helper functions
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 
 export function BasketSidebar({ isOpen, onClose }: BasketSidebarProps) {
   const { items, removeItem, clearBasket } = useBasket();
@@ -195,194 +208,201 @@ export function BasketSidebar({ isOpen, onClose }: BasketSidebarProps) {
   if (!isMounted) return null;
 
   return createPortal(
-    <>
-      {/* Backdrop */}
-      <div
-        className={cn(
-          "fixed inset-0 bg-black/50 z-[9998] transition-opacity duration-300",
-          isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-        )}
-        onClick={onClose}
-        aria-hidden="true"
-      />
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9998]"
+            onClick={onClose}
+            aria-hidden="true"
+          />
 
-      {/* Sidebar */}
-      <aside
-        className={cn(
-          "fixed right-0 top-0 h-full w-80 max-w-full border-l border-border z-[9999] transform transition-transform duration-300 ease-in-out flex flex-col",
-          // Solid background with fallback for CSS variable issues
-          "bg-white dark:bg-neutral-950",
-          isOpen ? "translate-x-0" : "translate-x-full"
-        )}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-border">
-          <div className="flex items-center gap-2">
-            <ShoppingBasket className="h-5 w-5 text-primary" aria-hidden="true" />
-            <h2 className="font-semibold">Basket</h2>
-            <span className="text-sm text-muted-foreground">
-              ({basketPrompts.length})
-            </span>
-          </div>
-          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close basket" className="h-11 w-11 -mr-2 touch-manipulation">
-            <X className="h-5 w-5" aria-hidden="true" />
-          </Button>
-        </div>
-
-        {/* Items list */}
-        <div className="flex-1 overflow-y-auto p-4">
-          {basketPrompts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
-              {/* Illustrated empty state with decorative sparkle */}
-              <div className="relative mb-6">
-                <div className="w-20 h-20 rounded-2xl bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
-                  <ShoppingBasket className="h-10 w-10 text-neutral-400 dark:text-neutral-500" aria-hidden="true" />
+          {/* Sidebar */}
+          <motion.aside
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className={cn(
+              "fixed right-0 top-0 h-full w-full sm:w-[380px] z-[9999] flex flex-col border-l border-neutral-200 dark:border-neutral-800 shadow-2xl",
+              "bg-white/90 dark:bg-neutral-950/90 backdrop-blur-2xl"
+            )}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-neutral-100 dark:border-neutral-800">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-500">
+                  <ShoppingBasket className="h-5 w-5" aria-hidden="true" />
                 </div>
-                <Sparkles className="absolute -top-1 -right-1 h-5 w-5 text-amber-400" aria-hidden="true" />
+                <div>
+                  <h2 className="font-bold text-lg leading-tight">Your Basket</h2>
+                  <p className="text-xs font-bold uppercase tracking-widest text-neutral-400">
+                    {basketPrompts.length} {basketPrompts.length === 1 ? "Item" : "Items"}
+                  </p>
+                </div>
               </div>
-
-              <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-2">
-                Your basket is empty
-              </h3>
-
-              <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-6 max-w-[240px]">
-                Save prompts here to download or install them all at once.
-              </p>
-
-              {/* CTA to close sidebar and browse */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onClose}
-                className="gap-2"
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={onClose} 
+                className="h-10 w-10 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
               >
-                <Search className="w-4 h-4" aria-hidden="true" />
-                Browse prompts
+                <X className="h-5 w-5" aria-hidden="true" />
               </Button>
-
-              {/* Hint for mobile users */}
-              <p className="text-xs text-neutral-400 dark:text-neutral-500 mt-4 sm:hidden">
-                Tip: Swipe right on any prompt card to add it
-              </p>
             </div>
-          ) : (
-            <ul className="space-y-2">
-              <AnimatePresence mode="popLayout" initial={false}>
-                {basketPrompts.map((prompt) => (
-                  <motion.li
-                    key={prompt.id}
-                    layout={!prefersReducedMotion}
-                    initial={prefersReducedMotion ? false : { opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: prefersReducedMotion ? 0 : 20 }}
-                    transition={{
-                      duration: prefersReducedMotion ? 0.1 : 0.2,
-                      ease: [0.25, 0.1, 0.25, 1],
-                    }}
-                    className="flex items-center justify-between gap-2 p-2 rounded-md bg-muted/50 hover:bg-muted transition-colors overflow-hidden"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium truncate">
-                        {prompt.title}
-                      </p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {prompt.category}
-                      </p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-11 w-11 shrink-0 -mr-1 touch-manipulation"
-                      onClick={() => removeItem(prompt.id)}
-                      aria-label={`Remove "${prompt.title}" from basket`}
-                    >
-                      <X className="h-4 w-4" aria-hidden="true" />
-                    </Button>
-                  </motion.li>
-                ))}
-              </AnimatePresence>
-            </ul>
-          )}
-        </div>
 
-        {/* Actions */}
-        {basketPrompts.length > 0 && (
-          <div className="p-4 border-t border-border space-y-2">
-            <Button
-              variant="outline"
-              className="w-full justify-start gap-2"
-              onClick={handleDownloadMarkdown}
-              disabled={exporting}
-            >
-              <FileText className="h-4 w-4" aria-hidden="true" />
-              Download as Markdown
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full justify-start gap-2"
-              onClick={handleDownloadSkills}
-              disabled={exporting}
-            >
-              <Package className="h-4 w-4" aria-hidden="true" />
-              Download as Skills ZIP
-            </Button>
-            <Button
-              variant="outline"
-              className={cn(
-                "w-full justify-start gap-2 transition-colors",
-                copyFlash && "bg-emerald-100 dark:bg-emerald-900/30"
+            {/* Items list */}
+            <div className="flex-1 overflow-y-auto p-6 scrollbar-thin">
+              {basketPrompts.length === 0 ? (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="flex flex-col items-center justify-center py-20 px-6 text-center"
+                >
+                  <div className="relative mb-8">
+                    <motion.div 
+                      animate={{ y: [0, -10, 0] }}
+                      transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                      className="w-24 h-24 rounded-3xl bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center shadow-inner"
+                    >
+                      <ShoppingBasket className="h-12 w-12 text-neutral-300 dark:text-neutral-600" aria-hidden="true" />
+                    </motion.div>
+                    <Sparkles className="absolute -top-2 -right-2 h-8 w-8 text-amber-400/50 animate-pulse" aria-hidden="true" />
+                  </div>
+
+                  <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-3">
+                    Empty Basket
+                  </h3>
+
+                  <p className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-8 leading-relaxed">
+                    Browse our curated collection and add prompts to export them in bulk.
+                  </p>
+
+                  <Button
+                    variant="outline"
+                    onClick={onClose}
+                    className="rounded-xl px-6 h-11 font-bold border-2 hover:bg-indigo-500 hover:text-white hover:border-indigo-500 transition-all"
+                  >
+                    Start Browsing
+                  </Button>
+                </motion.div>
+              ) : (
+                <ul className="space-y-3">
+                  <AnimatePresence mode="popLayout">
+                    {basketPrompts.map((prompt, index) => (
+                      <motion.li
+                        key={prompt.id}
+                        layout={!prefersReducedMotion}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{
+                          duration: 0.3,
+                          delay: index * 0.05,
+                        }}
+                        className="group flex items-center justify-between gap-4 p-4 rounded-2xl bg-neutral-50 dark:bg-neutral-900/50 border border-neutral-100 dark:border-neutral-800 hover:border-indigo-500/30 transition-all"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-bold truncate group-hover:text-indigo-500 transition-colors">
+                            {prompt.title}
+                          </p>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 mt-1">
+                            {prompt.category}
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 hover:bg-rose-500/10 hover:text-rose-500 transition-all"
+                          onClick={() => removeItem(prompt.id)}
+                        >
+                          <Trash2 className="h-4 w-4" aria-hidden="true" />
+                        </Button>
+                      </motion.li>
+                    ))}
+                  </AnimatePresence>
+                </ul>
               )}
-              onClick={handleCopyInstallCommand}
-            >
-              <AnimatePresence mode="wait" initial={false}>
-                {copied ? (
-                  <motion.span
-                    key="check"
-                    initial={prefersReducedMotion ? {} : { scale: 0, rotate: -180 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    exit={prefersReducedMotion ? {} : { scale: 0, rotate: 180 }}
-                    transition={{ type: "spring", stiffness: 500, damping: 25 }}
+            </div>
+
+            {/* Actions */}
+            <AnimatePresence>
+              {basketPrompts.length > 0 && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 20 }}
+                  className="p-6 border-t border-neutral-100 dark:border-neutral-800 space-y-3 bg-neutral-50/50 dark:bg-neutral-900/30"
+                >
+                  <Button
+                    onClick={handleCopyInstallCommand}
+                    className={cn(
+                      "w-full h-12 rounded-xl font-bold relative overflow-hidden transition-all duration-300 shadow-xl shadow-indigo-500/10",
+                      copied ? "bg-emerald-500 hover:bg-emerald-600" : "bg-neutral-900 dark:bg-white dark:text-neutral-900"
+                    )}
                   >
-                    <Check className="h-4 w-4 text-emerald-500" aria-hidden="true" />
-                  </motion.span>
-                ) : (
-                  <motion.span
-                    key="copy"
-                    initial={prefersReducedMotion ? {} : { scale: 0 }}
-                    animate={{ scale: 1 }}
-                    exit={prefersReducedMotion ? {} : { scale: 0 }}
-                    transition={{ duration: 0.15 }}
+                    <AnimatePresence mode="wait" initial={false}>
+                      {copied ? (
+                        <motion.span key="check" initial={{ scale: 0 }} animate={{ scale: 1 }} className="flex items-center gap-2">
+                          <Check className="h-5 w-5" />
+                          Copied!
+                        </motion.span>
+                      ) : (
+                        <motion.span key="copy" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2">
+                          <Terminal className="h-5 w-5 text-indigo-500" />
+                          Copy Install Command
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                    {/* Shimmer */}
+                    <motion.div
+                      animate={{ x: ["-100%", "200%"] }}
+                      transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                      className="absolute inset-0 z-0 pointer-events-none bg-gradient-to-r from-transparent via-white/10 dark:via-black/5 to-transparent skew-x-12"
+                    />
+                  </Button>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      variant="outline"
+                      className="h-11 rounded-xl font-bold border-2 text-xs"
+                      onClick={handleDownloadMarkdown}
+                      disabled={exporting}
+                    >
+                      <FileText className="h-4 w-4 mr-2 text-sky-500" />
+                      MD Files
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="h-11 rounded-xl font-bold border-2 text-xs"
+                      onClick={handleDownloadSkills}
+                      disabled={exporting}
+                    >
+                      <Package className="h-4 w-4 mr-2 text-amber-500" />
+                      Skills ZIP
+                    </Button>
+                  </div>
+
+                  <Button
+                    variant="ghost"
+                    className="w-full h-11 rounded-xl font-bold text-neutral-400 hover:text-rose-500 transition-colors"
+                    onClick={handleClearBasket}
                   >
-                    <Copy className="h-4 w-4" aria-hidden="true" />
-                  </motion.span>
-                )}
-              </AnimatePresence>
-              Copy Install Command
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full justify-start gap-2 text-destructive hover:text-destructive"
-              onClick={handleClearBasket}
-            >
-              <Trash2 className="h-4 w-4" aria-hidden="true" />
-              Clear Basket
-            </Button>
-          </div>
-        )}
-      </aside>
-    </>,
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Clear All
+                  </Button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.aside>
+        </>
+      )}
+    </AnimatePresence>,
     document.body
   );
-}
-
-// Helper functions
-function downloadBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
 }

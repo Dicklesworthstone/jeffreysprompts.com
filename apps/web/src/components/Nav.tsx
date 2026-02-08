@@ -4,13 +4,14 @@ import { Github, Menu, X, Sparkles, ShoppingBasket, Crown } from "lucide-react";
 import { ViewTransitionLink } from "./ViewTransitionLink";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { usePathname } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { ThemeToggle } from "./theme-toggle";
 import { BasketSidebar } from "./BasketSidebar";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "./ui/sheet";
 import { useBasket } from "@/hooks/use-basket";
 import { cn } from "@/lib/utils";
+import { MagneticButton } from "./MagneticButton";
 
 /**
  * Custom hook for scroll-aware header behavior
@@ -124,15 +125,23 @@ export function Nav() {
           : "translate-y-0"
       )}
     >
-      <nav className="container mx-auto flex h-12 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <nav className="container mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
         <ViewTransitionLink
           href="/"
-          className="flex items-center gap-2 font-semibold text-lg transition-colors hover:text-primary"
+          className="group flex items-center gap-2.5 font-bold text-xl transition-all duration-300"
         >
-          <Sparkles className="h-5 w-5 text-primary" />
-          <span className="hidden sm:inline">JeffreysPrompts</span>
-          <span className="sm:hidden">JFP</span>
+          <motion.div
+            whileHover={{ rotate: 15, scale: 1.15 }}
+            transition={{ type: "spring", stiffness: 400, damping: 10 }}
+            className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-500 text-white shadow-lg shadow-indigo-500/20"
+          >
+            <Sparkles className="h-5 w-5" />
+          </motion.div>
+          <span className="hidden sm:inline tracking-tight">
+            Jeffreys<span className="text-indigo-500">Prompts</span>
+          </span>
+          <span className="sm:hidden text-indigo-500">JFP</span>
         </ViewTransitionLink>
 
         {/* Desktop Navigation */}
@@ -144,22 +153,18 @@ export function Nav() {
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "relative px-3 py-1.5 text-sm font-medium transition-colors",
+                  "relative px-4 py-2 text-sm font-semibold transition-colors duration-300 rounded-full",
                   isActive
-                    ? "text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "text-indigo-600 dark:text-indigo-400"
+                    : "text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
                 )}
               >
-                {link.label}
+                <span className="relative z-10">{link.label}</span>
                 {isActive && (
                   <motion.div
-                    layoutId="nav-active-indicator"
-                    className="absolute inset-x-1 -bottom-[13px] h-0.5 bg-primary rounded-full"
-                    transition={{
-                      type: "spring",
-                      stiffness: 500,
-                      damping: 30,
-                    }}
+                    layoutId="nav-pill"
+                    className="absolute inset-0 bg-indigo-50 dark:bg-indigo-500/10 rounded-full"
+                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
                   />
                 )}
               </ViewTransitionLink>
@@ -168,52 +173,52 @@ export function Nav() {
         </div>
 
         {/* Right side actions */}
-        <div className="flex items-center gap-1 sm:gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-3">
           {/* Pro links - desktop only */}
           <a
-            href={`${PRO_URL}/login`}
-            className="hidden lg:inline-flex text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            href={`${PRO_URL}/sign-in`}
+            className="hidden lg:inline-flex text-sm font-semibold text-neutral-500 transition-colors hover:text-neutral-900 dark:hover:text-neutral-100 px-3 py-2"
             rel="noopener noreferrer"
           >
             Login
           </a>
-          <Button
-            variant="default"
-            size="sm"
-            asChild
-            className="hidden lg:inline-flex gap-1.5 h-8 px-3"
+          
+          <MagneticButton
+            variant="primary"
+            strength={0.2}
+            glowColor="rgba(251, 191, 36, 0.4)"
+            className="hidden lg:flex items-center gap-1.5 h-10 px-5 rounded-full font-bold shadow-indigo-500/20"
+            onClick={() => window.open(PRO_URL, "_blank")}
           >
-            <a href={PRO_URL} rel="noopener noreferrer">
-              <Crown className="h-3.5 w-3.5" />
-              Go Pro
-            </a>
-          </Button>
+            <Crown className="h-4 w-4 text-amber-300" />
+            <span>Go Pro</span>
+          </MagneticButton>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-11 w-11 relative overflow-visible touch-manipulation"
-            onClick={() => setBasketOpen(true)}
-            aria-label={`Open basket (${items.length} items)`}
-          >
-            <ShoppingBasket className="h-5 w-5" />
-            {items.length > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 h-5 w-5 rounded-full bg-primary text-xs font-bold text-primary-foreground flex items-center justify-center shadow-sm">
-                {items.length > 9 ? "9+" : items.length}
-              </span>
-            )}
-          </Button>
-          <ThemeToggle />
-          <Button variant="ghost" size="icon" asChild className="h-11 w-11 touch-manipulation">
-            <a
-              href="https://github.com/Dicklesworthstone/jeffreysprompts.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="GitHub repository"
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-10 w-10 relative overflow-visible rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+              onClick={() => setBasketOpen(true)}
+              aria-label={`Open basket (${items.length} items)`}
             >
-              <Github className="h-5 w-5" />
-            </a>
-          </Button>
+              <ShoppingBasket className="h-5 w-5" />
+              <AnimatePresence>
+                {items.length > 0 && (
+                  <motion.span
+                    key="basket-count"
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0, opacity: 0 }}
+                    className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-indigo-500 text-[10px] font-bold text-white flex items-center justify-center shadow-md shadow-indigo-500/20"
+                  >
+                    {items.length > 9 ? "9+" : items.length}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </Button>
+            <ThemeToggle />
+          </div>
 
           {/* Mobile menu button + drawer */}
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -266,7 +271,7 @@ export function Nav() {
 
                 <div className="mt-auto border-t border-border/60 px-5 py-3">
                   <a
-                    href={`${PRO_URL}/login`}
+                    href={`${PRO_URL}/sign-in`}
                     className="block min-h-[44px] py-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground touch-manipulation"
                     rel="noopener noreferrer"
                     onClick={() => setMobileMenuOpen(false)}
