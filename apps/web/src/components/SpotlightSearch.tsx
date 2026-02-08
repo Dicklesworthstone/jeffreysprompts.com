@@ -242,11 +242,17 @@ export function SpotlightSearch({
             text: `${r.prompt.title} ${r.prompt.description} ${r.prompt.tags.join(" ")}`,
           }))
 
-          // Apply semantic reranking with hash fallback
-          const reranked = await semanticRerank(debouncedQuery, rankedResults, {
+          // Apply semantic reranking with hash fallback and a safety timeout
+          const rerankPromise = semanticRerank(debouncedQuery, rankedResults, {
             topN: 20,
             fallback: "hash",
           })
+
+          const timeoutPromise = new Promise<RankedResult[]>((_, reject) => 
+            setTimeout(() => reject(new Error("rerank_timeout")), 2000)
+          )
+
+          const reranked = await Promise.race([rerankPromise, timeoutPromise])
 
           if (cancelled) return
 
@@ -864,9 +870,11 @@ export function SpotlightSearch({
 
 interface SpotlightTriggerProps {
   className?: string
+  /** Whether to hide the "Search prompts..." text and kbd hint (default: false) */
+  hideText?: boolean
 }
 
-export function SpotlightTrigger({ className }: SpotlightTriggerProps) {
+export function SpotlightTrigger({ className, hideText = false }: SpotlightTriggerProps) {
   const handleClick = React.useCallback(() => {
     // Dispatch custom event to open spotlight
     const event = new CustomEvent("jfp:open-spotlight")
@@ -887,10 +895,14 @@ export function SpotlightTrigger({ className }: SpotlightTriggerProps) {
       )}
     >
       <SearchIcon className="size-4 shrink-0" aria-hidden="true" />
-      <span className="hidden sm:inline">Search prompts...</span>
-      <kbd className="hidden sm:inline-flex items-center gap-0.5 ml-2 px-1.5 py-0.5 text-xs bg-background rounded font-mono border border-border/50" aria-hidden="true">
-        <CommandIcon className="size-3" />K
-      </kbd>
+      {!hideText && (
+        <>
+          <span className="hidden sm:inline">Search prompts...</span>
+          <kbd className="hidden sm:inline-flex items-center gap-0.5 ml-2 px-1.5 py-0.5 text-xs bg-background rounded font-mono border border-border/50" aria-hidden="true">
+            <CommandIcon className="size-3" />K
+          </kbd>
+        </>
+      )}
     </button>
   )
 }

@@ -187,12 +187,12 @@ export function Nav() {
           
           <MagneticButton
             variant="primary"
-            strength={0.2}
-            glowColor="rgba(251, 191, 36, 0.4)"
-            className="hidden lg:flex items-center gap-1.5 h-10 px-5 rounded-full font-bold shadow-indigo-500/20"
+            strength={0.15}
+            glowColor="rgba(99, 102, 241, 0.2)"
+            className="hidden lg:flex items-center gap-1.5 h-10 px-5 rounded-full font-bold"
             onClick={() => window.open(PRO_URL, "_blank")}
           >
-            <Crown className="h-4 w-4 text-amber-300" />
+            <Crown className="h-4 w-4 text-white" />
             <span>Go Pro</span>
           </MagneticButton>
 
@@ -200,7 +200,7 @@ export function Nav() {
             <div className="hidden sm:block mr-1">
               <LanguageSwitcher />
             </div>
-            <SpotlightTrigger className="mr-1 size-10 p-0 border-none bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full flex items-center justify-center" />
+            <SpotlightTrigger hideText className="mr-1 size-10 p-0 border-none bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full flex items-center justify-center" />
             <Button
               variant="ghost"
               size="icon"
@@ -296,7 +296,7 @@ export function Nav() {
                   </a>
                   <a
                     href={PRO_URL}
-                    className="flex items-center gap-2 min-h-[44px] py-3 text-sm font-medium text-primary transition-colors hover:text-primary/80 touch-manipulation"
+                    className="flex items-center gap-2 min-h-[44px] py-3 text-sm font-bold text-indigo-600 dark:text-indigo-400 transition-colors hover:opacity-80 touch-manipulation"
                     rel="noopener noreferrer"
                     onClick={() => setMobileMenuOpen(false)}
                   >
