@@ -18,6 +18,8 @@ interface AnimatedCounterProps {
   delay?: number;
 }
 
+const numberFormatter = new Intl.NumberFormat("en-US");
+
 /**
  * AnimatedCounter - Smooth counting animation for statistics.
  *
@@ -61,7 +63,7 @@ export function AnimatedCounter({
   useEffect(() => {
     const unsubscribe = springValue.on("change", (latest) => {
       if (ref.current) {
-        ref.current.textContent = Intl.NumberFormat("en-US").format(Math.floor(latest));
+        ref.current.textContent = numberFormatter.format(Math.floor(latest));
       }
     });
     return () => unsubscribe();
