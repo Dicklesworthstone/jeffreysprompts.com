@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { categories as validCategories } from "@jeffreysprompts/core/prompts/registry";
 import type { PromptCategory } from "@jeffreysprompts/core/prompts/types";
 
 export type SortOption = "default" | "rating" | "votes" | "newest";
@@ -57,10 +58,6 @@ export function useFilterState(): UseFilterStateReturn {
     const query = searchParams.get("q") ?? "";
     const categoryParam = searchParams.get("category");
     // Validate category before casting to prevent invalid values from URL
-    const validCategories: PromptCategory[] = [
-      "ideation", "documentation", "automation", "refactoring",
-      "testing", "debugging", "workflow", "communication"
-    ];
     const category = categoryParam && validCategories.includes(categoryParam as PromptCategory)
       ? (categoryParam as PromptCategory)
       : null;

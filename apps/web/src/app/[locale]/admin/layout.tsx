@@ -20,21 +20,27 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-const navItems = [
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/users", label: "Users", icon: Users },
-  { href: "/admin/moderation", label: "Moderation", icon: Flag },
-  { href: "/admin/metadata", label: "Metadata", icon: Tags },
-  { href: "/admin/dmca", label: "DMCA", icon: Scale },
-  { href: "/admin/tickets", label: "Support", icon: LifeBuoy },
-  { href: "/admin/settings", label: "Settings", icon: Settings },
-];
+function getNavItems(locale: string) {
+  return [
+    { href: `/${locale}/admin`, label: "Dashboard", icon: LayoutDashboard },
+    { href: `/${locale}/admin/users`, label: "Users", icon: Users },
+    { href: `/${locale}/admin/moderation`, label: "Moderation", icon: Flag },
+    { href: `/${locale}/admin/metadata`, label: "Metadata", icon: Tags },
+    { href: `/${locale}/admin/dmca`, label: "DMCA", icon: Scale },
+    { href: `/${locale}/admin/tickets`, label: "Support", icon: LifeBuoy },
+    { href: `/${locale}/admin/settings`, label: "Settings", icon: Settings },
+  ];
+}
 
 export default async function AdminLayout({
   children,
+  params,
 }: {
   children: React.ReactNode;
+  params: Promise<{ locale: string }>;
 }) {
+  const { locale } = await params;
+  const navItems = getNavItems(locale);
   const role = getServerAdminRole();
   const roleLabel = role
     .split("_")
@@ -67,7 +73,7 @@ export default async function AdminLayout({
         {/* Footer */}
         <div className="border-t border-neutral-200 p-4 dark:border-neutral-800">
           <Link
-            href="/"
+            href={`/${locale}`}
             className="flex items-center gap-2 text-sm text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"
           >
             <ChevronLeft className="h-4 w-4" />

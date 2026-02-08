@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useInView, useMotionValue, useSpring, motion } from "framer-motion";
+import { useInView, useMotionValue, useSpring } from "framer-motion";
 
 interface AnimatedCounterProps {
   /** Final value to count to */
@@ -25,13 +25,13 @@ interface AnimatedCounterProps {
  */
 export function AnimatedCounter({
   value,
-  duration = 2,
   suffix = "",
   prefix = "",
   className,
   delay = 0,
 }: AnimatedCounterProps) {
   const ref = useRef<HTMLSpanElement>(null);
+  const hasAnimated = useRef(false);
   const isInView = useInView(ref, { once: true, amount: 0.5 });
   const motionValue = useMotionValue(0);
 
@@ -46,14 +46,14 @@ export function AnimatedCounter({
     if (isInView) {
       const timer = setTimeout(() => {
         motionValue.set(value);
+        hasAnimated.current = true;
       }, delay * 1000);
       return () => clearTimeout(timer);
     }
   }, [isInView, value, motionValue, delay]);
 
   useEffect(() => {
-    // Keep motion value in sync if value changes after initial trigger
-    if (isInView) {
+    if (isInView && hasAnimated.current) {
       motionValue.set(value);
     }
   }, [value, isInView, motionValue]);

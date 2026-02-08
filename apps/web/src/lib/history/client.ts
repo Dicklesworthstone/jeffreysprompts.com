@@ -6,7 +6,7 @@ const LOCAL_USER_ID_KEY = "jfpUserId";
 const LEGACY_RATING_USER_ID_KEY = "jfp-rating-user-id";
 const HISTORY_STORAGE_KEY = "jfpHistoryV1";
 const MAX_QUERY_LENGTH = 500;
-const DEDUPE_WINDOW_MS = 5 * 60 * 1000;
+const _DEDUPE_WINDOW_MS = 5 * 60 * 1000;
 const MAX_HISTORY_ITEMS = 1000;
 
 export function getOrCreateLocalUserId(): string | null {
@@ -84,21 +84,22 @@ export async function trackHistoryView(input: {
   if (!userId) return;
 
   const now = new Date();
-  const nowMs = now.getTime();
   const items = getHistoryItems();
 
-  // Check for duplicate in window
-  for (const entry of items) {
-    const viewedMs = new Date(entry.viewedAt).getTime();
-    if (nowMs - viewedMs > DEDUPE_WINDOW_MS) break; // Items are sorted desc, so we can stop
-    if (isDuplicateEntry(entry, input)) {
-      // Just update the timestamp
-      entry.viewedAt = now.toISOString();
-      // Move to top
-      const others = items.filter((i) => i.id !== entry.id);
-      saveHistoryItems([entry, ...others]);
-      return;
-    }
+  // Check for existing entry anywhere in history
+  const existingIndex = items.findIndex((entry) => isDuplicateEntry(entry, input));
+
+  if (existingIndex !== -1) {
+    // Found a duplicate - update its timestamp and move to top
+    const existingEntry = items[existingIndex];
+    existingEntry.viewedAt = now.toISOString();
+    
+    // Remove from old position and put at start
+    const otherItems = items.filter((_, idx) => idx !== existingIndex);
+    const updatedItems = [existingEntry, ...otherItems].slice(0, MAX_HISTORY_ITEMS);
+    saveHistoryItems(updatedItems);
+    window.dispatchEvent(new CustomEvent("jfp:history-update"));
+    return;
   }
 
   const entryId =

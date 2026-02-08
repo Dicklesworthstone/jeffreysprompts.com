@@ -13,7 +13,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { Search, Sparkles, LayoutGrid, Zap, Star } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import type { PromptCategory } from "@jeffreysprompts/core/prompts/types";
 import { HeroBackground } from "./HeroBackground";
@@ -43,11 +43,13 @@ export function Hero({
   const searchDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasMounted = useRef(false);
 
-  // Detect modifier key on client only to avoid hydration mismatch
-  const modifierKey =
-    typeof navigator !== "undefined" && navigator.platform?.includes("Mac")
-      ? "⌘"
-      : "Ctrl";
+  const [modifierKey, setModifierKey] = useState("Ctrl");
+
+  useEffect(() => {
+    if (navigator.platform?.includes("Mac")) {
+      setModifierKey("⌘"); // eslint-disable-line react-hooks/set-state-in-effect -- one-time platform detection on mount
+    }
+  }, []);
 
   useEffect(() => {
     if (!onSearch) return;

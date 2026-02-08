@@ -74,8 +74,8 @@ export function searchPrompts(
     // Apply category filter
     if (category && prompt.category !== category) return false;
 
-    // Apply tags filter (match any)
-    if (tags?.length && !tags.some((tag) => prompt.tags.includes(tag))) {
+    // Apply tags filter (match all)
+    if (tags?.length && !tags.every((tag) => prompt.tags.includes(tag))) {
       return false;
     }
 

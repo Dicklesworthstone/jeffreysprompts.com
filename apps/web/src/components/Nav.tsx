@@ -1,11 +1,13 @@
 "use client";
 
-import { Github, Menu, X, Sparkles, ShoppingBasket, Crown } from "lucide-react";
+import { Menu, X, Sparkles, ShoppingBasket, Crown } from "lucide-react";
 import { ViewTransitionLink } from "./ViewTransitionLink";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ThemeToggle } from "./theme-toggle";
+import { LanguageSwitcher } from "./LanguageSwitcher";
+import { SpotlightTrigger } from "./SpotlightSearch";
 import { BasketSidebar } from "./BasketSidebar";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "./ui/sheet";
@@ -195,6 +197,10 @@ export function Nav() {
           </MagneticButton>
 
           <div className="flex items-center gap-1">
+            <div className="hidden sm:block mr-1">
+              <LanguageSwitcher />
+            </div>
+            <SpotlightTrigger className="mr-1 h-10 border-none bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800" />
             <Button
               variant="ghost"
               size="icon"
@@ -210,7 +216,7 @@ export function Nav() {
                     initial={{ scale: 0, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0, opacity: 0 }}
-                    className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-indigo-500 text-[10px] font-bold text-white flex items-center justify-center shadow-md shadow-indigo-500/20"
+                    className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-indigo-500 text-xs font-bold text-white flex items-center justify-center shadow-md shadow-indigo-500/20"
                   >
                     {items.length > 9 ? "9+" : items.length}
                   </motion.span>
@@ -246,6 +252,9 @@ export function Nav() {
               </SheetHeader>
               <div className="flex h-full flex-col">
                 <nav className="flex flex-col px-5 py-2" aria-label="Mobile navigation">
+                  <div className="py-3 sm:hidden">
+                    <LanguageSwitcher />
+                  </div>
                   {navLinks.map((link) => {
                     const isActive = isActiveRoute(pathname, link.href);
                     return (
@@ -267,6 +276,13 @@ export function Nav() {
                       </ViewTransitionLink>
                     );
                   })}
+                  <ViewTransitionLink
+                    href="/history"
+                    className="flex items-center min-h-[44px] py-3 text-sm font-medium text-muted-foreground hover:text-foreground touch-manipulation sm:hidden"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    History
+                  </ViewTransitionLink>
                 </nav>
 
                 <div className="mt-auto border-t border-border/60 px-5 py-3">

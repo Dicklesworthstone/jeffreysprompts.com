@@ -29,8 +29,8 @@ export function RatingFilter({
       onValueChange={(val) => {
         const numVal = Number(val);
         // Validate that the value is a valid MinRatingOption, default to 0 if invalid
-        const validOptions = [0, 50, 60, 70, 80, 90];
-        onChange(validOptions.includes(numVal) ? (numVal as MinRatingOption) : 0);
+        const validOptionValues = MIN_RATING_OPTIONS.map(o => o.value);
+        onChange(validOptionValues.includes(numVal as MinRatingOption) ? (numVal as MinRatingOption) : 0);
       }}
       disabled={disabled}
     >

@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useMotionValue, useSpring } from "framer-motion";
+import { motion, useMotionValue, useMotionTemplate, useSpring } from "framer-motion";
 import { useEffect, useState } from "react";
 
 /**
@@ -20,6 +20,8 @@ export function MouseSpotlight() {
   // Smooth the movement with spring physics
   const springX = useSpring(mouseX, { stiffness: 50, damping: 20 });
   const springY = useSpring(mouseY, { stiffness: 50, damping: 20 });
+
+  const background = useMotionTemplate`radial-gradient(600px circle at ${springX}px ${springY}px, rgba(99, 102, 241, 0.03), transparent 80%)`;
 
   useEffect(() => {
     // Detect hover capability (desktop)
@@ -42,9 +44,7 @@ export function MouseSpotlight() {
   return (
     <motion.div
       className="fixed inset-0 pointer-events-none z-30 opacity-40 dark:opacity-60 overflow-hidden"
-      style={{
-        background: `radial-gradient(600px circle at ${springX}px ${springY}px, rgba(99, 102, 241, 0.03), transparent 80%)`,
-      }}
+      style={{ background }}
     />
   );
 }

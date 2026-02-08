@@ -120,7 +120,7 @@ export function FinalCtaSection() {
             <div className="inline-flex items-center gap-3 px-6 py-3 rounded-xl bg-black/20 backdrop-blur-sm border border-white/10">
               <Terminal className="w-5 h-5 text-white/70" />
               <code className="text-sm font-mono text-white/90">
-                curl -fsSL jeffreysprompts.com/install.sh | bash
+                curl -fsSL jeffreysprompts.com/install-cli.sh | bash
               </code>
             </div>
           </motion.div>

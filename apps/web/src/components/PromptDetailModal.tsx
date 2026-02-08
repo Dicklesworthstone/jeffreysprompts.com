@@ -22,7 +22,6 @@ import {
   Download,
   Terminal,
   Sparkles,
-  FileText,
   Zap,
 } from "lucide-react";
 import {
@@ -47,7 +46,6 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
-import { ReportDialog } from "@/components/reporting/ReportDialog";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { cn } from "@/lib/utils";
@@ -81,7 +79,7 @@ export function PromptDetailModal({
   const isMobile = useIsMobile();
   const { success, error } = useToast();
   const [copied, setCopied] = useState(false);
-  const [copyFlash, setCopyFlash] = useState(false);
+  const [, setCopyFlash] = useState(false);
   const [context, setContext] = useState("");
   const copiedResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const copyFlashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -286,7 +284,7 @@ export function PromptDetailModal({
           {prompt.tags.map((tag) => (
             <span
               key={tag}
-              className="text-[10px] uppercase tracking-widest font-bold text-neutral-500 dark:text-neutral-500 bg-neutral-100 dark:bg-neutral-800 px-2.5 py-1 rounded-md border border-neutral-200 dark:border-neutral-700"
+              className="text-xs uppercase tracking-widest font-bold text-neutral-500 dark:text-neutral-500 bg-neutral-100 dark:bg-neutral-800 px-2.5 py-1 rounded-md border border-neutral-200 dark:border-neutral-700"
             >
               {tag}
             </span>
@@ -330,7 +328,7 @@ export function PromptDetailModal({
                     value={variableValues[variable.name] ?? variable.default ?? ""}
                     onChange={(e) => updateVariable(variable.name, e.target.value)}
                     placeholder={getVariablePlaceholder(variable.name, variable.type)}
-                    className="h-24 text-sm bg-white dark:bg-neutral-950/50 border-neutral-200 dark:border-neutral-800 focus:ring-indigo-500/30"
+                    className="h-24 bg-white dark:bg-neutral-950/50 border-neutral-200 dark:border-neutral-800 focus:ring-indigo-500/30"
                   />
                 ) : variable.type === "select" && variable.options?.length ? (
                   <Select
@@ -354,7 +352,7 @@ export function PromptDetailModal({
                     value={variableValues[variable.name] ?? variable.default ?? ""}
                     onChange={(e) => updateVariable(variable.name, e.target.value)}
                     placeholder={getVariablePlaceholder(variable.name, variable.type)}
-                    className="h-11 text-sm bg-white dark:bg-neutral-950/50 border-neutral-200 dark:border-neutral-800 focus:ring-indigo-500/30"
+                    className="h-11 bg-white dark:bg-neutral-950/50 border-neutral-200 dark:border-neutral-800 focus:ring-indigo-500/30"
                   />
                 )}
                 {variable.description && (
@@ -383,7 +381,7 @@ export function PromptDetailModal({
           value={context}
           onChange={(e) => setContext(e.target.value)}
           placeholder="Paste code, file contents, or other context to append..."
-          className="h-28 text-sm font-mono bg-neutral-50 dark:bg-black/20 border-neutral-200 dark:border-neutral-800 focus:ring-indigo-500/30"
+          className="h-28 font-mono bg-neutral-50 dark:bg-black/20 border-neutral-200 dark:border-neutral-800 focus:ring-indigo-500/30"
         />
       </motion.div>
 
@@ -400,7 +398,7 @@ export function PromptDetailModal({
              <div className="w-2.5 h-2.5 rounded-full bg-rose-500/50" />
              <div className="w-2.5 h-2.5 rounded-full bg-amber-500/50" />
              <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/50" />
-             <span className="text-[10px] text-neutral-500 font-mono ml-2 uppercase tracking-widest">prompt.md</span>
+             <span className="text-xs text-neutral-500 font-mono ml-2 uppercase tracking-widest">prompt.md</span>
           </div>
           <pre className="p-6 pt-12 text-sm font-mono whitespace-pre-wrap break-words max-h-80 overflow-y-auto text-neutral-300 leading-relaxed scrollbar-thin">
             {renderedContent}

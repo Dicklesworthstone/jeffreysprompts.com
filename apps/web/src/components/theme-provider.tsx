@@ -46,16 +46,21 @@ export function ThemeProvider({
   children,
   defaultTheme = "system",
 }: ThemeProviderProps) {
-  // Initialize from localStorage on client, defaultTheme on server
-  // This avoids the need for a separate hydration effect
-  const [theme, setThemeState] = useState<Theme>(() => {
-    if (typeof window === "undefined") return defaultTheme;
-    return getStoredTheme() ?? defaultTheme;
-  });
-  const [systemTheme, setSystemTheme] = useState<"light" | "dark">(() =>
-    getSystemTheme()
-  );
+  // Initialize with defaultTheme on both server and client for consistent hydration.
+  // Then sync from localStorage after mount.
+  const [theme, setThemeState] = useState<Theme>(defaultTheme);
+  const [systemTheme, setSystemTheme] = useState<"light" | "dark">("light");
   const resolvedTheme = theme === "system" ? systemTheme : theme;
+
+  // Sync from localStorage and system preference after hydration.
+  // Must set state here to avoid server/client hydration mismatch.
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    const stored = getStoredTheme();
+    if (stored) setThemeState(stored);
+    setSystemTheme(getSystemTheme());
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Update resolved theme and apply to document with smooth transition
   useEffect(() => {

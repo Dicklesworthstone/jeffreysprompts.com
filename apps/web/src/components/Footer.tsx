@@ -174,8 +174,8 @@ export function Footer({ className }: FooterProps) {
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/50" />
                   </div>
                 </div>
-                <code className="text-[10px] font-mono text-neutral-300 block break-all leading-relaxed">
-                  curl -fsSL jeffreysprompts.com/install.sh | bash
+                <code className="text-xs font-mono text-neutral-300 block break-all leading-relaxed">
+                  curl -fsSL jeffreysprompts.com/install-cli.sh | bash
                 </code>
               </div>
             </div>

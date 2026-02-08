@@ -25,7 +25,7 @@ export function HeroBackground() {
   const rotate2 = useTransform(scrollY, [0, 1000], [0, -45]);
 
   useEffect(() => {
-    setMounted(true);
+    setMounted(true); // eslint-disable-line react-hooks/set-state-in-effect -- hydration safety pattern
   }, []);
 
   if (!mounted) return null;

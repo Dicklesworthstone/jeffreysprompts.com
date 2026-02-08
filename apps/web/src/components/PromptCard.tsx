@@ -12,12 +12,11 @@
  */
 
 import { useState, useCallback, useRef, useEffect, type MouseEvent, type KeyboardEvent } from "react";
-import { motion, AnimatePresence, useReducedMotion, useSpring } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion, useSpring, useMotionTemplate } from "framer-motion";
 import {
   Copy,
   Check,
   ChevronRight,
-  Sparkles,
   GraduationCap,
   BookOpen,
   Rocket,
@@ -34,7 +33,6 @@ import { trackEvent } from "@/lib/analytics";
 import { copyToClipboard } from "@/lib/clipboard";
 import type { Prompt, PromptDifficulty } from "@jeffreysprompts/core/prompts/types";
 import { RatingDisplay } from "@/components/ratings";
-import { CostBadge } from "@/components/CostBadge";
 import { useMousePosition } from "@/hooks/useMousePosition";
 import { FeaturedContentBadge } from "@/components/featured/staff-pick-badge";
 import { TerminalStream } from "./TerminalStream";
@@ -76,12 +74,14 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
   const prefersReducedMotion = useReducedMotion();
   const cardRef = useRef<HTMLDivElement>(null);
   
-  const { percentageX, percentageY, handleMouseMove, resetMousePosition } = useMousePosition();
-  
+  const { motionPercentageX, motionPercentageY, handleMouseMove, resetMousePosition } = useMousePosition();
+
   // Spring configuration for smooth tilt
   const springConfig = { stiffness: 150, damping: 20 };
   const rotateX = useSpring(0, springConfig);
   const rotateY = useSpring(0, springConfig);
+
+  const glowBackground = useMotionTemplate`radial-gradient(circle at ${motionPercentageX}% ${motionPercentageY}%, rgba(99, 102, 241, 0.1), transparent 70%)`;
 
   const { success, error } = useToast();
   const { addItem, isInBasket } = useBasket();
@@ -94,12 +94,21 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
       return;
     }
 
-    const rX = (percentageY - 50) / -8;
-    const rY = (percentageX - 50) / 8;
-    
-    rotateX.set(rX);
-    rotateY.set(rY);
-  }, [percentageX, percentageY, isHovered, rotateX, rotateY, prefersReducedMotion]);
+    const unsubX = motionPercentageX.on("change", () => {
+      const rX = (motionPercentageY.get() - 50) / -8;
+      const rY = (motionPercentageX.get() - 50) / 8;
+      rotateX.set(rX);
+      rotateY.set(rY);
+    });
+    const unsubY = motionPercentageY.on("change", () => {
+      const rX = (motionPercentageY.get() - 50) / -8;
+      const rY = (motionPercentageX.get() - 50) / 8;
+      rotateX.set(rX);
+      rotateY.set(rY);
+    });
+
+    return () => { unsubX(); unsubY(); };
+  }, [isHovered, rotateX, rotateY, motionPercentageX, motionPercentageY, prefersReducedMotion]);
 
   const handleMouseEnter = useCallback(() => {
     setIsHovered(true);
@@ -209,9 +218,7 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
           {!prefersReducedMotion && (
             <motion.div
               className="absolute inset-0 pointer-events-none z-0"
-              style={{
-                background: `radial-gradient(circle at ${percentageX}% ${percentageY}%, rgba(99, 102, 241, 0.1), transparent 70%)`,
-              }}
+              style={{ background: glowBackground }}
               animate={{ opacity: isHovered ? 1 : 0 }}
             />
           )}
@@ -267,15 +274,20 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
             </p>
 
             <div className="flex flex-wrap gap-2">
-              {prompt.tags.slice(0, 4).map((tag) => (
+              {prompt.tags.slice(0, 3).map((tag) => (
                 <motion.span
                   key={tag}
                   whileHover={{ scale: 1.05 }}
-                  className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-500 bg-neutral-100/80 dark:bg-neutral-800/80 px-2 py-1 rounded-md border border-neutral-200/30 dark:border-neutral-700/30"
+                  className="text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-500 bg-neutral-100/80 dark:bg-neutral-800/80 px-2 py-1 rounded-md border border-neutral-200/30 dark:border-neutral-700/30"
                 >
                   {tag}
                 </motion.span>
               ))}
+              {prompt.tags.length > 3 && (
+                <span className="text-xs font-bold text-neutral-400 dark:text-neutral-500 px-1 py-1">
+                  +{prompt.tags.length - 3}
+                </span>
+              )}
             </div>
           </CardContent>
 
@@ -286,14 +298,14 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
                 <div className="p-4 h-[84px] overflow-hidden">
                   <TerminalStream 
                     text={prompt.content.length > 200 ? `${prompt.content.slice(0, 200)}...` : prompt.content}
-                    className="font-mono text-[12px] leading-relaxed text-neutral-500 dark:text-neutral-400 whitespace-pre-wrap"
+                    className="font-mono text-xs leading-relaxed text-neutral-500 dark:text-neutral-400 whitespace-pre-wrap"
                   />
                 </div>
                 <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-neutral-50/80 dark:from-neutral-900/80 to-transparent pointer-events-none" />
               </div>
 
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4 text-[11px] font-medium text-neutral-400 dark:text-neutral-500">
+                <div className="flex items-center gap-4 text-xs font-medium text-neutral-400 dark:text-neutral-500">
                   {prompt.estimatedTokens && (
                     <div className="flex items-center gap-1.5 group/stat">
                       <Zap className="w-3.5 h-3.5 text-amber-500 group-hover/stat:scale-110 transition-transform" />
@@ -313,6 +325,7 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
                   <Button
                     size="sm"
                     variant="ghost"
+                    aria-label={inBasket ? "Added to basket" : "Add to basket"}
                     className={cn(
                       "h-9 w-9 p-0 rounded-full transition-all duration-300",
                       inBasket ? "bg-emerald-500 text-white" : "hover:bg-neutral-100 dark:hover:bg-neutral-800"
@@ -336,6 +349,7 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
                   <Button
                     size="sm"
                     variant="ghost"
+                    aria-label={copied ? "Copied" : "Copy prompt"}
                     className={cn(
                       "h-9 w-9 p-0 rounded-full transition-all duration-300",
                       copied ? "bg-emerald-500 text-white" : "hover:bg-neutral-100 dark:hover:bg-neutral-800"
@@ -355,17 +369,16 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
                     </AnimatePresence>
                   </Button>
 
-                  <Button
-                    size="sm"
+                  <div
                     className={cn(
-                      "h-9 px-4 rounded-full text-xs font-bold transition-all duration-300",
-                      "bg-neutral-900 text-white hover:bg-black dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200",
+                      "inline-flex items-center justify-center h-9 px-4 rounded-full text-xs font-bold transition-all duration-300",
+                      "bg-neutral-900 text-white group-hover:bg-black dark:bg-white dark:text-neutral-900 dark:group-hover:bg-neutral-200",
                       "shadow-lg shadow-neutral-200 dark:shadow-black"
                     )}
                   >
                     View
                     <ChevronRight className="w-3.5 h-3.5 ml-1" />
-                  </Button>
+                  </div>
                 </div>
               </div>
             </div>

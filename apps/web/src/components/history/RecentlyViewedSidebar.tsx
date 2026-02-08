@@ -130,11 +130,11 @@ export function RecentlyViewedSidebar() {
                       <Search className="h-3.5 w-3.5 text-neutral-500" />
                     ) : null}
                     {entry.category ? (
-                      <Badge variant="secondary" className="text-[10px] uppercase tracking-wide">
+                      <Badge variant="secondary" className="text-xs uppercase tracking-wide">
                         {entry.category}
                       </Badge>
                     ) : (
-                      <Badge variant="outline" className="text-[10px] uppercase tracking-wide">
+                      <Badge variant="outline" className="text-xs uppercase tracking-wide">
                         {entry.kindLabel}
                       </Badge>
                     )}

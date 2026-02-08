@@ -256,7 +256,7 @@ export function BottomTabBar({ onOpenSearch, className }: BottomTabBarProps) {
                 <Link
                   key={tab.id}
                   href={tab.href}
-                  onClick={() => haptic.selection()}
+                  onClick={() => haptic.light()}
                   className="flex-1 min-w-0"
                 >
                   {content}

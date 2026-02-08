@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { motion, useAnimation, AnimatePresence } from "framer-motion";
-import { Copy, Check, ShoppingBasket, Plus, Heart, X, Sparkles, ChevronRight } from "lucide-react";
+import { Copy, Check, ShoppingBasket, Plus, Heart, Sparkles, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PromptCard } from "@/components/PromptCard";
 import { GestureHint } from "@/components/onboarding";

@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils"
 import { trackEvent } from "@/lib/analytics"
 import { searchPrompts, type SearchResult } from "@jeffreysprompts/core/search/engine"
 import { semanticRerank, type RankedResult } from "@jeffreysprompts/core/search/semantic"
-import { featuredPrompts, prompts } from "@jeffreysprompts/core/prompts/registry"
+import { featuredPrompts, prompts, categories as CATEGORIES } from "@jeffreysprompts/core/prompts/registry"
 import type { Prompt, PromptCategory } from "@jeffreysprompts/core/prompts/types"
 import { Badge } from "./ui/badge"
 import { useToast } from "@/components/ui/toast"
@@ -21,7 +21,6 @@ import { AgenticScan } from "./AgenticScan"
 // Constants
 // ============================================================================
 
-const CATEGORIES: PromptCategory[] = ["ideation", "documentation", "automation", "refactoring", "testing", "debugging", "workflow", "communication"]
 const MAX_RECENT_SEARCHES = 5
 
 // ============================================================================
@@ -488,7 +487,18 @@ export function SpotlightSearch({
             exit={isMobile ? { opacity: 0, y: 30 } : { opacity: 0, scale: 0.95, x: "-50%", y: -20 }}
             transition={{ type: "spring", stiffness: 400, damping: 35 }}
           >
-            <AgenticScan />
+            <AnimatePresence>
+              {isReranking && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <AgenticScan />
+                </motion.div>
+              )}
+            </AnimatePresence>
             
             {/* Search Input */}
             <div className={cn(
@@ -578,7 +588,7 @@ export function SpotlightSearch({
                   <XIcon className="size-5" />
                 </button>
               ) : (
-                <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold uppercase tracking-tight text-muted-foreground/70 bg-muted/50 rounded-md font-mono border border-border/50 relative z-10">
+                <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-1 text-xs font-bold uppercase tracking-tight text-muted-foreground/70 bg-muted/50 rounded-md font-mono border border-border/50 relative z-10">
                   esc
                 </kbd>
               )}

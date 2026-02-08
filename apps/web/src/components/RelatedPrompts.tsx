@@ -27,10 +27,12 @@ function scoreRelatedPrompts(promptId: string, limit: number): ScoredPrompt[] {
   const validScores = bm25Results.map((result) => result.score).filter((s) => Number.isFinite(s));
   const maxBm25 = validScores.length > 0 ? Math.max(1, ...validScores) : 1;
 
+  const currentTagSet = new Set(current.tags);
+
   const scored = prompts
     .filter((prompt) => prompt.id !== promptId)
     .map((prompt) => {
-      const tagOverlap = prompt.tags.filter((tag) => current.tags.includes(tag)).length;
+      const tagOverlap = prompt.tags.filter((tag) => currentTagSet.has(tag)).length;
       const bm25Score = (bm25ScoreById.get(prompt.id) ?? 0) / maxBm25;
       const score = tagOverlap * 0.6 + bm25Score * 0.4;
       return { id: prompt.id, score };

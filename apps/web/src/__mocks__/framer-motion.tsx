@@ -11,7 +11,7 @@ import * as React from "react";
 const motionProps = [
   "initial", "animate", "exit", "transition", "variants",
   "whileHover", "whileTap", "whileFocus", "whileDrag", "whileInView",
-  "drag", "dragConstraints", "dragElastic", "dragMomentum", "dragPropagation",
+  "drag", "dragConstraints", "dragDirectionLock", "dragElastic", "dragMomentum", "dragPropagation",
   "onDrag", "onDragStart", "onDragEnd", "onAnimationStart", "onAnimationComplete",
   "layout", "layoutId", "layoutDependency",
 ];
@@ -25,34 +25,41 @@ function filterMotionProps<T extends Record<string, unknown>>(props: T): Partial
   return filtered;
 }
 
-// Simple motion div that renders children without animation
-export const motion = {
-  div: React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-    ({ children, ...props }, ref) => (
-      <div ref={ref} {...filterMotionProps(props)}>
-        {children}
-      </div>
-    )
-  ),
-  span: React.forwardRef<HTMLSpanElement, React.HTMLAttributes<HTMLSpanElement>>(
-    ({ children, ...props }, ref) => (
-      <span ref={ref} {...filterMotionProps(props)}>
-        {children}
-      </span>
-    )
-  ),
-  button: React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement>>(
-    ({ children, ...props }, ref) => (
-      <button ref={ref} {...filterMotionProps(props)}>
-        {children}
-      </button>
-    )
-  ),
-};
+// Factory for motion element mocks — renders the raw HTML element with motion props filtered out
+function createMotionComponent(tag: string) {
+  const Component = React.forwardRef<HTMLElement, Record<string, unknown>>(
+    ({ children, ...props }, ref) =>
+      React.createElement(tag, { ref, ...filterMotionProps(props) }, children as React.ReactNode)
+  );
+  Component.displayName = `Motion${tag.charAt(0).toUpperCase() + tag.slice(1)}`;
+  return Component;
+}
 
-motion.div.displayName = "MotionDiv";
-motion.span.displayName = "MotionSpan";
-motion.button.displayName = "MotionButton";
+// All HTML element types used with motion.X across the codebase
+export const motion: Record<string, ReturnType<typeof createMotionComponent>> = {
+  div: createMotionComponent("div"),
+  span: createMotionComponent("span"),
+  button: createMotionComponent("button"),
+  aside: createMotionComponent("aside"),
+  nav: createMotionComponent("nav"),
+  li: createMotionComponent("li"),
+  p: createMotionComponent("p"),
+  a: createMotionComponent("a"),
+  form: createMotionComponent("form"),
+  section: createMotionComponent("section"),
+  article: createMotionComponent("article"),
+  main: createMotionComponent("main"),
+  header: createMotionComponent("header"),
+  footer: createMotionComponent("footer"),
+  h1: createMotionComponent("h1"),
+  h2: createMotionComponent("h2"),
+  h3: createMotionComponent("h3"),
+  ul: createMotionComponent("ul"),
+  ol: createMotionComponent("ol"),
+  svg: createMotionComponent("svg"),
+  circle: createMotionComponent("circle"),
+  path: createMotionComponent("path"),
+};
 
 // AnimatePresence that immediately unmounts exiting children
 export function AnimatePresence({
@@ -78,6 +85,7 @@ export function useMotionValue(initial: number) {
   return {
     get: () => initial,
     set: () => {},
+    on: () => () => {},
     onChange: () => () => {},
   };
 }
@@ -98,11 +106,19 @@ export function useReducedMotion() {
   return false;
 }
 
+export function useInView() {
+  return true;
+}
+
 export function useMotionTemplate(strings: TemplateStringsArray, ...values: unknown[]) {
-  // Combine template strings with values
+  // Resolve MotionValue objects by calling .get(), pass other values through
   let result = strings[0];
   for (let i = 0; i < values.length; i++) {
-    result += String(values[i]) + (strings[i + 1] || "");
+    const val = values[i];
+    const resolved = val && typeof val === "object" && "get" in val
+      ? (val as { get: () => unknown }).get()
+      : val;
+    result += String(resolved) + (strings[i + 1] || "");
   }
   return result;
 }
@@ -114,6 +130,10 @@ export function useScroll() {
     scrollYProgress: useMotionValue(0),
     scrollXProgress: useMotionValue(0),
   };
+}
+
+export function animate() {
+  return { stop: () => {} };
 }
 
 export const MotionConfig = ({ children }: { children: React.ReactNode }) => <>{children}</>;

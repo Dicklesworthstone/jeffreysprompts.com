@@ -14,29 +14,41 @@ interface TerminalStreamProps {
  * Features:
  * - Mimics a real AI agent typing/streaming
  * - Uses character-by-character reveal
- * - Performance optimized with requestAnimationFrame
+ * - Performance optimized with requestAnimationFrame for silky smooth animation
  */
 export function TerminalStream({ text, className }: TerminalStreamProps) {
-  const [displayedText, setDisplayedText] = useState("");
+  const [animatedText, setAnimatedText] = useState("");
   const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
-    if (prefersReducedMotion) {
-      setDisplayedText(text);
-      return;
-    }
+    if (prefersReducedMotion) return;
 
     let currentIndex = 0;
-    const interval = setInterval(() => {
-      setDisplayedText(text.slice(0, currentIndex));
-      currentIndex += 3; // Type 3 chars at a time for "fast agent" feel
-      if (currentIndex > text.length) {
-        clearInterval(interval);
-      }
-    }, 20);
+    let lastTime = 0;
+    const charsPerSecond = 150; // High-speed agent feel
+    let frameId: number;
 
-    return () => clearInterval(interval);
+    const stream = (timestamp: number) => {
+      if (!lastTime) lastTime = timestamp;
+      const elapsed = timestamp - lastTime;
+
+      if (elapsed > 1000 / (charsPerSecond / 3)) {
+        currentIndex += 3;
+        setAnimatedText(text.slice(0, currentIndex));
+        lastTime = timestamp;
+      }
+
+      if (currentIndex < text.length) {
+        frameId = requestAnimationFrame(stream);
+      }
+    };
+
+    frameId = requestAnimationFrame(stream);
+
+    return () => cancelAnimationFrame(frameId);
   }, [text, prefersReducedMotion]);
+
+  const displayedText = prefersReducedMotion ? text : animatedText;
 
   return (
     <p className={className}>

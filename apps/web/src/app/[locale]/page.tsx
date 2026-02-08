@@ -61,25 +61,53 @@ function HomeContent() {
   // Screen reader announcements for filter results
   const announceResults = useAnnounceCount();
 
-  // Compute category counts
+  // Compute category counts based on current filters (but ignoring category filter itself)
   const categoryCounts = useMemo(() => {
     const counts: Record<PromptCategory, number> = {} as Record<PromptCategory, number>;
-    for (const prompt of prompts) {
+    
+    // Apply search query and tag filters, but NOT category filter
+    let results = [...prompts];
+    if (filters.query.trim()) {
+      const searchResults = searchPrompts(filters.query, {
+        tags: filters.tags.length > 0 ? filters.tags : undefined,
+        limit: 500,
+      });
+      results = searchResults.map((r) => r.prompt);
+    } else if (filters.tags.length > 0) {
+      results = results.filter((p) =>
+        filters.tags.some((tag) => p.tags.includes(tag))
+      );
+    }
+
+    for (const prompt of results) {
       counts[prompt.category] = (counts[prompt.category] ?? 0) + 1;
     }
     return counts;
-  }, []);
+  }, [filters.query, filters.tags]);
 
-  // Compute tag counts
+  // Compute tag counts based on current filters (but ignoring tags filter itself)
   const tagCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    for (const prompt of prompts) {
+    
+    // Apply search query and category filters, but NOT tag filter
+    let results = [...prompts];
+    if (filters.query.trim()) {
+      const searchResults = searchPrompts(filters.query, {
+        category: filters.category ?? undefined,
+        limit: 500,
+      });
+      results = searchResults.map((r) => r.prompt);
+    } else if (filters.category) {
+      results = results.filter((p) => p.category === filters.category);
+    }
+
+    for (const prompt of results) {
       for (const tag of prompt.tags) {
         counts[tag] = (counts[tag] ?? 0) + 1;
       }
     }
     return counts;
-  }, []);
+  }, [filters.query, filters.category]);
 
   // Count active filters for badge
   const filterCount = useMemo(() => {
@@ -111,7 +139,10 @@ function HomeContent() {
       });
       results = searchResults.map((r) => r.prompt);
     } else {
-      results = [...prompts];
+      // Exclude featured prompts from the main grid if no filters are active to avoid duplication
+      results = hasActiveFilters 
+        ? [...prompts] 
+        : prompts.filter(p => !featuredPrompts.some(fp => fp.id === p.id));
 
       if (filters.category) {
         results = results.filter((p) => p.category === filters.category);
@@ -119,7 +150,7 @@ function HomeContent() {
 
       if (filters.tags.length > 0) {
         results = results.filter((p) =>
-          filters.tags.some((tag) => p.tags.includes(tag))
+          filters.tags.every((tag) => p.tags.includes(tag))
         );
       }
     }
@@ -166,7 +197,7 @@ function HomeContent() {
     }
 
     return results;
-  }, [filters, ratingSummaries]);
+  }, [filters, ratingSummaries, hasActiveFilters, featuredPrompts]);
 
   const handlePromptClick = useCallback((prompt: Prompt) => {
     setSelectedPrompt(prompt);
@@ -234,6 +265,20 @@ function HomeContent() {
     }
   }, []);
 
+  const handleCategorySelect = useCallback((category: PromptCategory | null) => {
+    setCategory(category);
+    if (category) {
+      document.getElementById("prompts-section")?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [setCategory]);
+
+  const handleSearch = useCallback((query: string) => {
+    setQuery(query);
+    if (query.trim()) {
+      document.getElementById("prompts-section")?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [setQuery]);
+
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
       {/* Hero Section */}
@@ -241,26 +286,32 @@ function HomeContent() {
         promptCount={prompts.length}
         categoryCount={categories.length}
         categories={categories}
-        onSearch={setQuery}
-        onCategorySelect={setCategory}
+        onSearch={handleSearch}
+        onCategorySelect={handleCategorySelect}
         selectedCategory={filters.category}
       />
 
-      {/* Featured Prompts Section */}
-      <FeaturedPromptsSection
-        prompts={featuredPrompts}
-        totalCount={prompts.length}
-        onPromptClick={handlePromptClick}
-      />
+      {/* Featured Prompts Section - Hide when filtering */}
+      {!hasActiveFilters && (
+        <FeaturedPromptsSection
+          prompts={featuredPrompts}
+          totalCount={prompts.length}
+          onPromptClick={handlePromptClick}
+        />
+      )}
 
-      {/* For You Section */}
-      <ForYouPromptsSection
-        prompts={prompts}
-        onPromptClick={handlePromptClick}
-      />
+      {/* For You Section - Hide when filtering */}
+      {!hasActiveFilters && (
+        <ForYouPromptsSection
+          prompts={prompts}
+          onPromptClick={handlePromptClick}
+        />
+      )}
 
-      {/* Visual separator between Featured and Browse */}
-      <div className="h-px bg-gradient-to-r from-transparent via-neutral-300 dark:via-neutral-700 to-transparent" />
+      {/* Visual separator between Featured and Browse - Hide when filtering */}
+      {!hasActiveFilters && (
+        <div className="h-px bg-gradient-to-r from-transparent via-neutral-300 dark:via-neutral-700 to-transparent" />
+      )}
 
       {/* Browse All Prompts Section */}
       <main id="prompts-section" className="container-wide px-4 sm:px-6 lg:px-8 py-12">
@@ -291,7 +342,7 @@ function HomeContent() {
                 value={filters.minRating}
                 onChange={setMinRating}
                 disabled={ratingsLoading}
-                className="h-8 w-[140px]"
+                className="w-[140px]"
               />
 
               {/* Sort selector */}
@@ -299,7 +350,7 @@ function HomeContent() {
                 value={filters.sortBy}
                 onChange={setSortBy}
                 disabled={ratingsLoading}
-                className="h-8 w-[160px]"
+                className="w-[160px]"
               />
 
               {/* Clear all filters */}
@@ -365,6 +416,7 @@ function HomeContent() {
                     </h3>
                     <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
                       {filteredPrompts.length} prompt{filteredPrompts.length !== 1 ? "s" : ""}
+                      {filters.category && ` in ${filters.category}`}
                       {filters.query && ` matching "${filters.query}"`}
                       {filters.tags.length > 0 && ` with tags: ${filters.tags.join(", ")}`}
                       {filters.minRating > 0 && ` with ${filters.minRating}%+ approval`}
@@ -372,7 +424,7 @@ function HomeContent() {
                   </>
                 ) : (
                   <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                    Showing all {filteredPrompts.length} prompts
+                    Showing all {prompts.length} prompts
                   </p>
                 )}
               </div>

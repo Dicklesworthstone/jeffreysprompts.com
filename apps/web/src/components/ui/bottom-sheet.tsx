@@ -183,8 +183,9 @@ export function BottomSheet({
               className="flex-1 overflow-y-auto overscroll-contain px-5 pb-6 pt-2"
               style={{ touchAction: isDragging ? "none" : "pan-y" }}
               onPointerDown={(e) => {
-                // Prevent drag from starting when touching scrollable content
-                if (contentRef.current && contentRef.current.scrollHeight > contentRef.current.clientHeight) {
+                // Prevent drag from starting when user is scrolled down in content.
+                // When at scroll top, allow drag so user can swipe sheet closed.
+                if (contentRef.current && contentRef.current.scrollTop > 0) {
                   e.stopPropagation();
                 }
               }}

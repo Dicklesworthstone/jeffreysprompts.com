@@ -2,8 +2,8 @@
 
 import { useState, useCallback, useEffect, useRef, type ComponentType, type MouseEvent } from "react";
 import Link from "next/link";
-import { Copy, Check, ExternalLink, Sparkles, Rocket, Code, FileText, Brain, Zap, Package, Star, ChevronRight } from "lucide-react";
-import { motion, AnimatePresence, useReducedMotion, useSpring } from "framer-motion";
+import { Copy, Check, Sparkles, Rocket, Code, FileText, Brain, Zap, Package, Star, ChevronRight } from "lucide-react";
+import { motion, AnimatePresence, useReducedMotion, useSpring, useMotionTemplate } from "framer-motion";
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -55,12 +55,14 @@ export function BundleCard({ bundle, index = 0 }: BundleCardProps) {
   const prefersReducedMotion = useReducedMotion();
   const cardRef = useRef<HTMLDivElement>(null);
   
-  const { percentageX, percentageY, handleMouseMove, resetMousePosition } = useMousePosition();
-  
+  const { motionPercentageX, motionPercentageY, handleMouseMove, resetMousePosition } = useMousePosition();
+
   // Spring configuration for smooth tilt
   const springConfig = { stiffness: 150, damping: 20 };
   const rotateX = useSpring(0, springConfig);
   const rotateY = useSpring(0, springConfig);
+
+  const glowBackground = useMotionTemplate`radial-gradient(circle at ${motionPercentageX}% ${motionPercentageY}%, rgba(139, 92, 246, 0.1), transparent 70%)`;
 
   useEffect(() => {
     if (!isHovered || prefersReducedMotion) {
@@ -69,12 +71,21 @@ export function BundleCard({ bundle, index = 0 }: BundleCardProps) {
       return;
     }
 
-    const rX = (percentageY - 50) / -12;
-    const rY = (percentageX - 50) / 12;
-    
-    rotateX.set(rX);
-    rotateY.set(rY);
-  }, [percentageX, percentageY, isHovered, rotateX, rotateY, prefersReducedMotion]);
+    const unsubX = motionPercentageX.on("change", () => {
+      const rX = (motionPercentageY.get() - 50) / -12;
+      const rY = (motionPercentageX.get() - 50) / 12;
+      rotateX.set(rX);
+      rotateY.set(rY);
+    });
+    const unsubY = motionPercentageY.on("change", () => {
+      const rX = (motionPercentageY.get() - 50) / -12;
+      const rY = (motionPercentageX.get() - 50) / 12;
+      rotateX.set(rX);
+      rotateY.set(rY);
+    });
+
+    return () => { unsubX(); unsubY(); };
+  }, [isHovered, rotateX, rotateY, motionPercentageX, motionPercentageY, prefersReducedMotion]);
 
   useEffect(() => {
     return () => {
@@ -151,9 +162,7 @@ export function BundleCard({ bundle, index = 0 }: BundleCardProps) {
           {!prefersReducedMotion && (
             <motion.div
               className="absolute inset-0 pointer-events-none z-0"
-              style={{
-                background: `radial-gradient(circle at ${percentageX}% ${percentageY}%, rgba(139, 92, 246, 0.1), transparent 70%)`,
-              }}
+              style={{ background: glowBackground }}
               animate={{ opacity: isHovered ? 1 : 0 }}
             />
           )}

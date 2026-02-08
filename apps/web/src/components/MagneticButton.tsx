@@ -122,9 +122,9 @@ export function MagneticButton({
 
   const variantStyles = {
     primary: cn(
-      "bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500",
+      "bg-gradient-to-br from-indigo-600 to-violet-600",
       "text-white font-semibold",
-      "shadow-lg shadow-indigo-500/25"
+      "shadow-lg shadow-indigo-500/20"
     ),
     secondary: cn(
       "bg-white/10 backdrop-blur-sm border border-white/20",

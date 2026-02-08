@@ -8,11 +8,9 @@ import {
   Trash2,
   FileText,
   Package,
-  Copy,
   Check,
   ShoppingBasket,
   Sparkles,
-  Search,
   Terminal,
 } from "lucide-react";
 import { useBasket } from "@/hooks/use-basket";
@@ -58,7 +56,7 @@ export function BasketSidebar({ isOpen, onClose }: BasketSidebarProps) {
   const { items, removeItem, clearBasket } = useBasket();
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
-  const [copyFlash, setCopyFlash] = useState(false);
+  const [, setCopyFlash] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -224,6 +222,9 @@ export function BasketSidebar({ isOpen, onClose }: BasketSidebarProps) {
 
           {/* Sidebar */}
           <motion.aside
+            role="dialog"
+            aria-modal="true"
+            aria-label="Shopping basket"
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
