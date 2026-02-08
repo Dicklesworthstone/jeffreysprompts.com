@@ -40,7 +40,6 @@ export default async function LocaleLayout({
     <NextIntlClientProvider messages={messages}>
       <Providers>
         <SkipLink targetId="main-content" />
-        <MouseSpotlight />
         <Nav />
         <main id="main-content" tabIndex={-1} className="min-h-screen pb-20 md:pb-0 focus:outline-none">
           {children}

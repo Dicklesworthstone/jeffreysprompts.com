@@ -43,11 +43,13 @@ export function Hero({
   const searchDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasMounted = useRef(false);
 
-  const [modifierKey, setModifierKey] = useState("Ctrl");
+  const [modifierKey, setModifierKey] = useState("");
 
   useEffect(() => {
     if (navigator.platform?.includes("Mac")) {
-      setModifierKey("⌘"); // eslint-disable-line react-hooks/set-state-in-effect -- one-time platform detection on mount
+      setModifierKey("⌘");
+    } else {
+      setModifierKey("Ctrl");
     }
   }, []);
 

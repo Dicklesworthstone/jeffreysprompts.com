@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Suspense, useCallback, useMemo, useState } from "react";
+import { Suspense, useCallback, useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ThemeProvider } from "./theme-provider";
 import { AlertTriangle } from "lucide-react";
@@ -33,7 +33,12 @@ export function Providers({ children }: ProvidersProps) {
   const serviceWorker = useServiceWorker();
   const router = useRouter();
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const { isFirstVisit, completeFirstVisit } = useOnboarding();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const openSpotlight = useCallback(() => {
     if (typeof window !== "undefined") {
@@ -167,10 +172,12 @@ export function Providers({ children }: ProvidersProps) {
             isRegistered={serviceWorker.isRegistered}
             hasUpdate={serviceWorker.hasUpdate}
           />
-          <FirstVisitWelcome
-            show={isFirstVisit}
-            onDismiss={completeFirstVisit}
-          />
+          {mounted && (
+            <FirstVisitWelcome
+              show={isFirstVisit}
+              onDismiss={completeFirstVisit}
+            />
+          )}
         </BasketProvider>
       </ToastProvider>
     </ThemeProvider>
