@@ -19,15 +19,21 @@ function getSecret(): Buffer {
     return cachedSecret;
   }
 
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "Missing JFP_USER_ID_SECRET (or JFP_ANON_ID_SECRET) in production. Configure a stable secret to avoid anonymous user identity churn."
+    );
+  }
+
   const fallback = `dev-${process.pid}-${Date.now()}-${Math.random()
     .toString(36)
     .slice(2)}`;
   cachedSecret = Buffer.from(fallback, "utf8");
 
-  if (!warnedMissingSecret && process.env.NODE_ENV === "production") {
+  if (!warnedMissingSecret) {
     warnedMissingSecret = true;
     console.warn(
-      "JFP_USER_ID_SECRET is not set. Falling back to an ephemeral secret; anonymous user IDs will reset on deploy."
+      "JFP_USER_ID_SECRET is not set. Falling back to an ephemeral secret in non-production; anonymous user IDs will reset when the process restarts."
     );
   }
 

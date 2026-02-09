@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createUserIdCookieValue, parseUserIdCookie } from "./user-id";
 
 describe("user-id", () => {
@@ -88,6 +88,58 @@ describe("user-id", () => {
       const cookie = createUserIdCookieValue("test-base64url");
       const signature = cookie.slice(cookie.lastIndexOf(".") + 1);
       expect(signature).not.toMatch(/[+/=]/);
+    });
+  });
+
+  describe("secret configuration", () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+    const originalUserSecret = process.env.JFP_USER_ID_SECRET;
+    const originalAnonSecret = process.env.JFP_ANON_ID_SECRET;
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+      vi.resetModules();
+
+      if (originalNodeEnv === undefined) {
+        delete process.env.NODE_ENV;
+      } else {
+        process.env.NODE_ENV = originalNodeEnv;
+      }
+
+      if (originalUserSecret === undefined) {
+        delete process.env.JFP_USER_ID_SECRET;
+      } else {
+        process.env.JFP_USER_ID_SECRET = originalUserSecret;
+      }
+
+      if (originalAnonSecret === undefined) {
+        delete process.env.JFP_ANON_ID_SECRET;
+      } else {
+        process.env.JFP_ANON_ID_SECRET = originalAnonSecret;
+      }
+    });
+
+    it("throws in production when no secret is configured", async () => {
+      delete process.env.JFP_USER_ID_SECRET;
+      delete process.env.JFP_ANON_ID_SECRET;
+      process.env.NODE_ENV = "production";
+      vi.resetModules();
+
+      const userIdModule = await import("./user-id");
+      expect(() => userIdModule.createUserIdCookieValue("test-user")).toThrow(
+        /Missing JFP_USER_ID_SECRET/
+      );
+    });
+
+    it("allows JFP_ANON_ID_SECRET as production fallback", async () => {
+      delete process.env.JFP_USER_ID_SECRET;
+      process.env.JFP_ANON_ID_SECRET = "fallback-secret";
+      process.env.NODE_ENV = "production";
+      vi.resetModules();
+
+      const userIdModule = await import("./user-id");
+      const cookieValue = userIdModule.createUserIdCookieValue("test-user");
+      expect(userIdModule.parseUserIdCookie(cookieValue)).toBe("test-user");
     });
   });
 });
