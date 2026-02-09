@@ -7,41 +7,23 @@ import {
   recordShareLinkView,
   verifyPassword,
 } from "@/lib/share-links/share-link-store";
-import { getTrustedClientIp } from "@/lib/rate-limit";
+import { createRateLimiter, getTrustedClientIp } from "@/lib/rate-limit";
 
 // Rate limiting for password verification to prevent brute-force attacks
 // More restrictive than general reports: 5 attempts per 15 minutes per IP+code combo
 const MAX_ATTEMPTS_PER_WINDOW = 5;
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
-
-type RateLimitBucket = {
-  count: number;
-  resetAt: number;
-};
-
-const rateLimitBuckets = new Map<string, RateLimitBucket>();
+const MAX_RATE_LIMIT_BUCKETS = 10_000;
+const verifyRateLimiter = createRateLimiter({
+  windowMs: RATE_LIMIT_WINDOW_MS,
+  maxRequests: MAX_ATTEMPTS_PER_WINDOW,
+  maxBuckets: MAX_RATE_LIMIT_BUCKETS,
+  name: "share-link-verify",
+});
 
 function getRateLimitKey(ip: string, code: string): string {
   // Rate limit per IP + share code combination to prevent targeted attacks
   return `${ip}:${code}`;
-}
-
-function getRateLimitBucket(key: string, now: number): RateLimitBucket {
-  const existing = rateLimitBuckets.get(key);
-  if (!existing || now > existing.resetAt) {
-    const bucket = { count: 0, resetAt: now + RATE_LIMIT_WINDOW_MS };
-    rateLimitBuckets.set(key, bucket);
-    return bucket;
-  }
-  return existing;
-}
-
-function pruneExpiredBuckets(now: number): void {
-  for (const [key, bucket] of rateLimitBuckets) {
-    if (bucket.resetAt <= now) {
-      rateLimitBuckets.delete(key);
-    }
-  }
 }
 
 function resolveContent(contentType: string, contentId: string): unknown | null {
@@ -75,21 +57,16 @@ export async function POST(
   }
 
   // Apply rate limiting BEFORE processing to prevent enumeration attacks
-  const now = Date.now();
-  pruneExpiredBuckets(now);
-
   const clientIp = getTrustedClientIp(request);
   const rateLimitKey = getRateLimitKey(clientIp, code);
-  const bucket = getRateLimitBucket(rateLimitKey, now);
-  bucket.count += 1;
+  const rateLimitResult = await verifyRateLimiter.check(rateLimitKey);
 
-  if (bucket.count > MAX_ATTEMPTS_PER_WINDOW) {
-    const retryAfterSeconds = Math.max(1, Math.ceil((bucket.resetAt - now) / 1000));
+  if (!rateLimitResult.allowed) {
     return NextResponse.json(
       { error: "Too many attempts. Please try again later." },
       {
         status: 429,
-        headers: { "Retry-After": retryAfterSeconds.toString() },
+        headers: { "Retry-After": rateLimitResult.retryAfterSeconds.toString() },
       }
     );
   }
