@@ -31,10 +31,7 @@ export async function GET(request: NextRequest) {
   }
 
   const { userId, cookie } = getOrCreateUserId(request);
-  const referralCode = getReferralCodeByCode(code);
-  const existingReferral = getReferralByReferee(userId);
-
-  let data:
+  type ValidationData =
     | {
         valid: false;
         message: string;
@@ -48,42 +45,49 @@ export async function GET(request: NextRequest) {
         };
       };
 
+  const createValidationResponse = (data: ValidationData): NextResponse => {
+    const response = NextResponse.json({
+      success: true,
+      data,
+    });
+
+    if (cookie) {
+      response.cookies.set(cookie.name, cookie.value, cookie.options);
+    }
+
+    return response;
+  };
+
+  const referralCode = getReferralCodeByCode(code);
   if (!referralCode) {
-    data = {
+    return createValidationResponse({
       valid: false,
       message: "Invalid referral code.",
-    };
-  } else if (referralCode.userId === userId) {
-    data = {
+    });
+  }
+
+  if (referralCode.userId === userId) {
+    return createValidationResponse({
       valid: false,
       message: "You cannot use your own referral code.",
-    };
-  } else if (existingReferral) {
-    data = {
+    });
+  }
+
+  if (getReferralByReferee(userId)) {
+    return createValidationResponse({
       valid: false,
       message: "You have already used a referral code.",
-    };
-  } else {
-    data = {
-      valid: true,
-      rewards: {
-        extendedTrialDays: REFERRAL_CONSTANTS.REFEREE_EXTENDED_TRIAL_DAYS,
-        discountPercent: REFERRAL_CONSTANTS.REFEREE_DISCOUNT_PERCENT,
-        message: `You'll get a ${REFERRAL_CONSTANTS.REFEREE_EXTENDED_TRIAL_DAYS}-day trial or ${REFERRAL_CONSTANTS.REFEREE_DISCOUNT_PERCENT}% off your first month!`,
-      },
-    };
+    });
   }
 
-  const response = NextResponse.json({
-    success: true,
-    data,
+  return createValidationResponse({
+    valid: true,
+    rewards: {
+      extendedTrialDays: REFERRAL_CONSTANTS.REFEREE_EXTENDED_TRIAL_DAYS,
+      discountPercent: REFERRAL_CONSTANTS.REFEREE_DISCOUNT_PERCENT,
+      message: `You'll get a ${REFERRAL_CONSTANTS.REFEREE_EXTENDED_TRIAL_DAYS}-day trial or ${REFERRAL_CONSTANTS.REFEREE_DISCOUNT_PERCENT}% off your first month!`,
+    },
   });
-
-  if (cookie) {
-    response.cookies.set(cookie.name, cookie.value, cookie.options);
-  }
-
-  return response;
 }
 
 /**
