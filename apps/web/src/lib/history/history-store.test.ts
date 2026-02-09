@@ -15,6 +15,14 @@ function clearStore() {
   delete g["__jfp_view_history_store__"];
 }
 
+function getEntriesByUserMap(): Map<string, string[]> | null {
+  const g = globalThis as unknown as Record<string, unknown>;
+  const store = g["__jfp_view_history_store__"] as
+    | { entriesByUser?: Map<string, string[]> }
+    | undefined;
+  return store?.entriesByUser ?? null;
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -170,8 +178,10 @@ describe("history-store", () => {
     });
 
     it("returns entries most-recent-first", () => {
-      recordView({ userId: "u1", resourceType: "prompt", resourceId: "p1", viewedAt: "2026-01-01T00:00:00Z" });
-      recordView({ userId: "u1", resourceType: "prompt", resourceId: "p2", viewedAt: "2026-01-02T00:00:00Z" });
+      const older = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+      const newer = new Date(Date.now() - 60 * 1000).toISOString();
+      recordView({ userId: "u1", resourceType: "prompt", resourceId: "p1", viewedAt: older });
+      recordView({ userId: "u1", resourceType: "prompt", resourceId: "p2", viewedAt: newer });
       const items = listHistory({ userId: "u1" });
       expect(items).toHaveLength(2);
       expect(items[0].resourceId).toBe("p2");
@@ -233,6 +243,14 @@ describe("history-store", () => {
     it("is safe to call for nonexistent user", () => {
       expect(() => clearHistory("nobody")).not.toThrow();
     });
+
+    it("removes empty user buckets from internal index", () => {
+      recordView({ userId: "u1", resourceType: "prompt", resourceId: "p1" });
+      clearHistory("u1");
+
+      const entriesByUser = getEntriesByUserMap();
+      expect(entriesByUser?.has("u1")).toBe(false);
+    });
   });
 
   // -----------------------------------------------------------------------
@@ -251,6 +269,22 @@ describe("history-store", () => {
         // Only the new entry should remain
         expect(items).toHaveLength(1);
         expect(items[0].resourceId).toBe("new");
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("removes user bucket when all entries expire", () => {
+      vi.useFakeTimers();
+      try {
+        recordView({ userId: "u1", resourceType: "prompt", resourceId: "old" });
+        vi.advanceTimersByTime(31 * 24 * 60 * 60 * 1000);
+
+        const items = listHistory({ userId: "u1" });
+        expect(items).toEqual([]);
+
+        const entriesByUser = getEntriesByUserMap();
+        expect(entriesByUser?.has("u1")).toBe(false);
       } finally {
         vi.useRealTimers();
       }

@@ -19,6 +19,8 @@ function getStore(): HistoryStore {
   };
 
   if (!globalStore[STORE_KEY]) {
+    // Keep prune tracker in sync with store lifecycle to avoid stale-key buildup.
+    lastPruneTime.clear();
     globalStore[STORE_KEY] = {
       entries: new Map(),
       entriesByUser: new Map(),
@@ -48,6 +50,14 @@ function safeDateMs(value: string): number | null {
  */
 function pruneUserHistory(store: HistoryStore, userId: string, force = false) {
   const now = Date.now();
+  const entries = store.entriesByUser.get(userId);
+
+  // Drop empty user buckets and stale prune-tracker keys eagerly.
+  if (!entries || entries.length === 0) {
+    store.entriesByUser.delete(userId);
+    lastPruneTime.delete(userId);
+    return;
+  }
 
   // Skip if we pruned recently (unless forced)
   if (!force) {
@@ -58,22 +68,29 @@ function pruneUserHistory(store: HistoryStore, userId: string, force = false) {
   }
   lastPruneTime.set(userId, now);
 
-  const entries = store.entriesByUser.get(userId) ?? [];
-  if (entries.length === 0) return;
-
   const cutoff = now - HISTORY_TTL_MS;
   const kept: string[] = [];
+  const existingEntries = entries
+    .map((entryId) => ({ entryId, entry: store.entries.get(entryId) }))
+    .filter(
+      (item): item is { entryId: string; entry: ViewHistoryEntry } =>
+        item.entry !== undefined
+    );
 
-  for (const entryId of entries) {
-    const entry = store.entries.get(entryId);
-    if (!entry) continue;
-
-    const viewedMs = safeDateMs(entry.viewedAt) ?? now;
-    if (viewedMs < cutoff) {
+  for (const { entryId, entry } of existingEntries) {
+    const viewedMs = safeDateMs(entry.viewedAt);
+    const effectiveViewedMs = viewedMs === null ? now : viewedMs;
+    if (effectiveViewedMs < cutoff) {
       store.entries.delete(entryId);
       continue;
     }
     kept.push(entryId);
+  }
+
+  if (kept.length === 0) {
+    store.entriesByUser.delete(userId);
+    lastPruneTime.delete(userId);
+    return;
   }
 
   store.entriesByUser.set(userId, kept);
@@ -115,11 +132,15 @@ export function recordView(input: {
   const nowMs = Number.isFinite(now.getTime()) ? now.getTime() : Date.now();
 
   const existingIds = store.entriesByUser.get(input.userId) ?? [];
-  for (const entryId of existingIds) {
-    const entry = store.entries.get(entryId);
-    if (!entry) continue;
+  const existingEntries = existingIds
+    .map((entryId) => store.entries.get(entryId))
+    .filter((entry): entry is ViewHistoryEntry => entry !== undefined);
+  for (const entry of existingEntries) {
     const viewedMs = safeDateMs(entry.viewedAt);
-    if (!viewedMs) continue;
+    if (viewedMs === null) {
+      continue;
+    }
+
     if (nowMs - viewedMs > DEDUPE_WINDOW_MS) break;
     if (isDuplicateEntry(entry, input)) {
       entry.viewedAt = nowIso;
@@ -157,13 +178,17 @@ export function listHistory(input: {
   pruneUserHistory(store, input.userId);
 
   const limit = input.limit ?? 20;
+  const resourceTypeFilter = input.resourceType ?? null;
   const ids = store.entriesByUser.get(input.userId) ?? [];
   const items: ViewHistoryEntry[] = [];
+  const existingEntries = ids
+    .map((entryId) => store.entries.get(entryId))
+    .filter((entry): entry is ViewHistoryEntry => entry !== undefined);
 
-  for (const entryId of ids) {
-    const entry = store.entries.get(entryId);
-    if (!entry) continue;
-    if (input.resourceType && entry.resourceType !== input.resourceType) continue;
+  for (const entry of existingEntries) {
+    if (resourceTypeFilter !== null && entry.resourceType !== resourceTypeFilter) {
+      continue;
+    }
     items.push(entry);
     if (items.length >= limit) break;
   }
@@ -177,5 +202,6 @@ export function clearHistory(userId: string): void {
   for (const entryId of ids) {
     store.entries.delete(entryId);
   }
-  store.entriesByUser.set(userId, []);
+  store.entriesByUser.delete(userId);
+  lastPruneTime.delete(userId);
 }
