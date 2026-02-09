@@ -36,10 +36,18 @@ vi.mock("@jeffreysprompts/core/export", () => ({
   ],
 }));
 
-vi.mock("crypto", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("crypto")>();
+vi.mock("node:crypto", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:crypto")>();
   return {
     ...actual,
+    default: {
+      ...actual,
+      createHash: () => ({
+        update: () => ({
+          digest: () => "abcdef01",
+        }),
+      }),
+    },
     createHash: () => ({
       update: () => ({
         digest: () => "abcdef01",
