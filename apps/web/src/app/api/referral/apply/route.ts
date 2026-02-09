@@ -30,28 +30,60 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  const { userId, cookie } = getOrCreateUserId(request);
   const referralCode = getReferralCodeByCode(code);
-  if (!referralCode) {
-    return NextResponse.json({
-      success: true,
-      data: {
-        valid: false,
-        message: "Invalid referral code.",
-      },
-    });
-  }
+  const existingReferral = getReferralByReferee(userId);
 
-  return NextResponse.json({
-    success: true,
-    data: {
+  let data:
+    | {
+        valid: false;
+        message: string;
+      }
+    | {
+        valid: true;
+        rewards: {
+          extendedTrialDays: number;
+          discountPercent: number;
+          message: string;
+        };
+      };
+
+  if (!referralCode) {
+    data = {
+      valid: false,
+      message: "Invalid referral code.",
+    };
+  } else if (referralCode.userId === userId) {
+    data = {
+      valid: false,
+      message: "You cannot use your own referral code.",
+    };
+  } else if (existingReferral) {
+    data = {
+      valid: false,
+      message: "You have already used a referral code.",
+    };
+  } else {
+    data = {
       valid: true,
       rewards: {
         extendedTrialDays: REFERRAL_CONSTANTS.REFEREE_EXTENDED_TRIAL_DAYS,
         discountPercent: REFERRAL_CONSTANTS.REFEREE_DISCOUNT_PERCENT,
         message: `You'll get a ${REFERRAL_CONSTANTS.REFEREE_EXTENDED_TRIAL_DAYS}-day trial or ${REFERRAL_CONSTANTS.REFEREE_DISCOUNT_PERCENT}% off your first month!`,
       },
-    },
+    };
+  }
+
+  const response = NextResponse.json({
+    success: true,
+    data,
   });
+
+  if (cookie) {
+    response.cookies.set(cookie.name, cookie.value, cookie.options);
+  }
+
+  return response;
 }
 
 /**
