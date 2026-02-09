@@ -3,16 +3,21 @@
  * @module api/export/route.test
  */
 
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import JSZip from "jszip";
 import { GET } from "./route";
+import * as promptRegistry from "@jeffreysprompts/core/prompts/registry";
 
 function makeRequest(url: string): NextRequest {
   return new NextRequest(url);
 }
 
 describe("/api/export", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("returns 400 for invalid format", async () => {
     const req = makeRequest("http://localhost/api/export?format=bad&ids=idea-wizard");
     const res = await GET(req);
@@ -111,5 +116,54 @@ describe("/api/export", () => {
     const skillMd = await skillFile.async("string");
     expect(skillMd).toContain("name:");
     expect(skillMd).toContain("# The Idea Wizard");
+  });
+
+  it("uses a non-empty fallback filename when prompt id sanitizes to empty", async () => {
+    const basePrompt = promptRegistry.getPrompt("idea-wizard");
+    if (!basePrompt) {
+      throw new Error("Expected fixture prompt idea-wizard");
+    }
+
+    const originalGetPrompt = promptRegistry.getPrompt;
+    vi.spyOn(promptRegistry, "getPrompt").mockImplementation((id: string) => {
+      if (id === "empty-safe-id") {
+        return { ...basePrompt, id: "$$$" };
+      }
+      return originalGetPrompt(id);
+    });
+
+    const req = makeRequest("http://localhost/api/export?format=md&ids=empty-safe-id");
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("text/markdown");
+    expect(res.headers.get("content-disposition")).toMatch(
+      /filename="prompt-[a-f0-9]{8}\.md"/
+    );
+  });
+
+  it("uses a non-empty fallback folder name in skill zip when prompt id sanitizes to empty", async () => {
+    const basePrompt = promptRegistry.getPrompt("idea-wizard");
+    if (!basePrompt) {
+      throw new Error("Expected fixture prompt idea-wizard");
+    }
+
+    const originalGetPrompt = promptRegistry.getPrompt;
+    vi.spyOn(promptRegistry, "getPrompt").mockImplementation((id: string) => {
+      if (id === "empty-safe-id") {
+        return { ...basePrompt, id: "$$$" };
+      }
+      return originalGetPrompt(id);
+    });
+
+    const req = makeRequest("http://localhost/api/export?format=skill&ids=empty-safe-id");
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toBe("application/zip");
+
+    const buf = await res.arrayBuffer();
+    const zip = await JSZip.loadAsync(buf);
+
+    const entries = Object.keys(zip.files);
+    expect(entries.some((name) => /^prompt-[a-f0-9]{8}\/SKILL\.md$/.test(name))).toBe(true);
   });
 });

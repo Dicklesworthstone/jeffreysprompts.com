@@ -1,4 +1,5 @@
 import JSZip from "jszip";
+import { createHash } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getPrompt } from "@jeffreysprompts/core/prompts/registry";
 import { generatePromptMarkdown } from "@jeffreysprompts/core/export/markdown";
@@ -21,7 +22,12 @@ function parseIds(raw: string | null): string[] {
 
 function safeIdForFilename(id: string): string {
   // Defense-in-depth: prevent path traversal or weird Content-Disposition values.
-  return id.replace(/[^a-z0-9-]/gi, "");
+  const safeId = id.replace(/[^a-z0-9-]/gi, "");
+  if (safeId) return safeId;
+
+  // Guarantee a non-empty deterministic fallback for edge-case prompt IDs.
+  const suffix = createHash("sha1").update(id).digest("hex").slice(0, 8);
+  return `prompt-${suffix}`;
 }
 
 function safeDownloadName(name: string): string {
