@@ -2,11 +2,13 @@ import { test, expect } from "../../lib/playwright-logger";
 import {
   getCurrentTheme,
   getStoredTheme,
-  setStoredTheme,
   clearStoredTheme,
   clickThemeToggle,
   getThemeToggleButton,
   waitForThemeTransition,
+  gotoWithTheme,
+  waitForThemeClass,
+  safeReload,
 } from "../../lib/theme-helpers";
 
 /**
@@ -30,10 +32,7 @@ test.describe("Manual Toggle", () => {
 
   test("click switches theme from light to dark", async ({ page, logger }) => {
     await logger.step("set initial theme to light", async () => {
-      await page.goto("/");
-      await setStoredTheme(page, "light");
-      await page.reload();
-      await page.waitForLoadState("load");
+      await gotoWithTheme(page, "/", "light");
     });
 
     await logger.step("verify starting in light mode", async () => {
@@ -47,6 +46,7 @@ test.describe("Manual Toggle", () => {
     });
 
     await logger.step("verify theme changed to dark", async () => {
+      await waitForThemeClass(page, "dark", 5000);
       const theme = await getCurrentTheme(page);
       expect(theme).toBe("dark");
     });
@@ -54,10 +54,7 @@ test.describe("Manual Toggle", () => {
 
   test("theme cycles through light -> dark -> system", async ({ page, logger }) => {
     await logger.step("start with light theme", async () => {
-      await page.goto("/");
-      await setStoredTheme(page, "light");
-      await page.reload();
-      await page.waitForLoadState("load");
+      await gotoWithTheme(page, "/", "light");
     });
 
     await logger.step("verify light theme", async () => {
@@ -68,6 +65,7 @@ test.describe("Manual Toggle", () => {
     await logger.step("click to dark", async () => {
       await clickThemeToggle(page);
       await waitForThemeTransition(page);
+      await waitForThemeClass(page, "dark", 5000);
       const stored = await getStoredTheme(page);
       expect(stored).toBe("dark");
     });
@@ -82,12 +80,10 @@ test.describe("Manual Toggle", () => {
 
   test("preference persists after refresh", async ({ page, logger }) => {
     await logger.step("set theme to dark via toggle", async () => {
-      await page.goto("/");
-      await setStoredTheme(page, "light");
-      await page.reload();
-      await page.waitForLoadState("load");
+      await gotoWithTheme(page, "/", "light");
       await clickThemeToggle(page);
       await waitForThemeTransition(page);
+      await waitForThemeClass(page, "dark", 5000);
     });
 
     await logger.step("verify dark theme", async () => {
@@ -96,8 +92,7 @@ test.describe("Manual Toggle", () => {
     });
 
     await logger.step("refresh page", async () => {
-      await page.reload();
-      await page.waitForLoadState("load");
+      await safeReload(page);
     });
 
     await logger.step("verify dark theme persists", async () => {
@@ -111,6 +106,8 @@ test.describe("Manual Toggle", () => {
   test("works in logged-out state", async ({ page, logger }) => {
     await logger.step("clear any auth state", async () => {
       await page.goto("/");
+      await page.waitForLoadState("load");
+      await page.waitForTimeout(1000);
       await page.evaluate(() => {
         localStorage.removeItem("auth_token");
         sessionStorage.clear();
@@ -118,8 +115,7 @@ test.describe("Manual Toggle", () => {
     });
 
     await logger.step("verify theme toggle works", async () => {
-      await page.reload();
-      await page.waitForLoadState("load");
+      await safeReload(page);
       const toggle = getThemeToggleButton(page);
       await expect(toggle).toBeVisible({ timeout: 10000 });
       await expect(toggle).toBeEnabled();
@@ -127,6 +123,7 @@ test.describe("Manual Toggle", () => {
 
     await logger.step("click toggle and verify change", async () => {
       await clearStoredTheme(page);
+      await safeReload(page);
       await clickThemeToggle(page);
       await waitForThemeTransition(page);
       const stored = await getStoredTheme(page);
@@ -138,10 +135,7 @@ test.describe("Manual Toggle", () => {
 test.describe("Toggle Icon Display", () => {
   test("toggle has icon in light mode", async ({ page, logger }) => {
     await logger.step("set light theme", async () => {
-      await page.goto("/");
-      await setStoredTheme(page, "light");
-      await page.reload();
-      await page.waitForLoadState("load");
+      await gotoWithTheme(page, "/", "light");
     });
 
     await logger.step("verify toggle has an icon", async () => {
@@ -153,10 +147,7 @@ test.describe("Toggle Icon Display", () => {
 
   test("toggle has icon in dark mode", async ({ page, logger }) => {
     await logger.step("set dark theme", async () => {
-      await page.goto("/");
-      await setStoredTheme(page, "dark");
-      await page.reload();
-      await page.waitForLoadState("load");
+      await gotoWithTheme(page, "/", "dark");
     });
 
     await logger.step("verify toggle has an icon", async () => {
@@ -184,10 +175,7 @@ test.describe("Toggle Accessibility", () => {
 
   test("toggle responds to keyboard interaction", async ({ page, logger }) => {
     await logger.step("set up light theme", async () => {
-      await page.goto("/");
-      await setStoredTheme(page, "light");
-      await page.reload();
-      await page.waitForLoadState("load");
+      await gotoWithTheme(page, "/", "light");
     });
 
     await logger.step("focus toggle and activate with Enter", async () => {
@@ -197,6 +185,7 @@ test.describe("Toggle Accessibility", () => {
       await expect(toggle).toBeFocused();
       await toggle.press("Enter");
       await waitForThemeTransition(page);
+      await waitForThemeClass(page, "dark", 5000);
     });
 
     await logger.step("verify theme changed", async () => {
@@ -222,17 +211,16 @@ test.describe("Toggle Accessibility", () => {
 
 test.describe("Toggle on Different Pages", () => {
   test("toggle works on prompt detail page", async ({ page, logger }) => {
-    await logger.step("navigate to prompt detail page", async () => {
-      await page.goto("/prompts/idea-wizard");
-      await page.waitForLoadState("load");
+    await logger.step("navigate with light theme", async () => {
+      await gotoWithTheme(page, "/prompts/idea-wizard", "light");
     });
 
     await logger.step("verify toggle is present and works", async () => {
       const toggle = getThemeToggleButton(page);
       await expect(toggle).toBeVisible({ timeout: 10000 });
-      await setStoredTheme(page, "light");
       await clickThemeToggle(page);
       await waitForThemeTransition(page);
+      await waitForThemeClass(page, "dark", 5000);
       const stored = await getStoredTheme(page);
       expect(stored).toBe("dark");
     });

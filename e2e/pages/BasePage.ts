@@ -55,7 +55,7 @@ export class BasePage {
   }
 
   async waitForNavigation(options: { waitUntil?: "load" | "networkidle" } = {}) {
-    await this.page.waitForLoadState(options.waitUntil ?? "networkidle");
+    await this.page.waitForLoadState(options.waitUntil ?? "load");
   }
 
   async waitForNetworkIdle(timeout = 30000) {

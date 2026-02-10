@@ -12,7 +12,7 @@ test.describe("Mobile Interactions", () => {
   test.beforeEach(async ({ page, logger }) => {
     await logger.step("navigate to homepage", async () => {
       await page.goto("/");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
     });
   });
 

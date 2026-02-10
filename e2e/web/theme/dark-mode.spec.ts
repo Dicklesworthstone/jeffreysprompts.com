@@ -1,12 +1,15 @@
 import { test, expect } from "../../lib/playwright-logger";
 import {
   getCurrentTheme,
-  setStoredTheme,
   clearStoredTheme,
   emulateColorScheme,
   isPageInDarkMode,
   waitForThemeTransition,
   getThemeToggleButton,
+  gotoWithTheme,
+  waitForThemeClass,
+  waitForAnyThemeClass,
+  safeReload,
 } from "../../lib/theme-helpers";
 
 /**
@@ -23,10 +26,12 @@ test.describe("Theme Detection", () => {
 
     await logger.step("navigate with no stored preference", async () => {
       await page.goto("/");
-      await clearStoredTheme(page);
-      await page.reload();
       await page.waitForLoadState("load");
+      await page.waitForTimeout(1500);
+      await clearStoredTheme(page);
+      await safeReload(page);
       await waitForThemeTransition(page);
+      await waitForAnyThemeClass(page);
     });
 
     await logger.step("verify dark theme is applied", async () => {
@@ -42,10 +47,12 @@ test.describe("Theme Detection", () => {
 
     await logger.step("navigate with no stored preference", async () => {
       await page.goto("/");
-      await clearStoredTheme(page);
-      await page.reload();
       await page.waitForLoadState("load");
+      await page.waitForTimeout(1500);
+      await clearStoredTheme(page);
+      await safeReload(page);
       await waitForThemeTransition(page);
+      await waitForAnyThemeClass(page);
     });
 
     await logger.step("verify light theme is applied", async () => {
@@ -56,10 +63,7 @@ test.describe("Theme Detection", () => {
 
   test("light mode renders correctly", async ({ page, logger }) => {
     await logger.step("set light theme", async () => {
-      await page.goto("/");
-      await setStoredTheme(page, "light");
-      await page.reload();
-      await page.waitForLoadState("load");
+      await gotoWithTheme(page, "/", "light");
     });
 
     await logger.step("verify light theme class", async () => {
@@ -77,10 +81,7 @@ test.describe("Theme Detection", () => {
 
   test("dark mode renders correctly", async ({ page, logger }) => {
     await logger.step("set dark theme", async () => {
-      await page.goto("/");
-      await setStoredTheme(page, "dark");
-      await page.reload();
-      await page.waitForLoadState("load");
+      await gotoWithTheme(page, "/", "dark");
     });
 
     await logger.step("verify dark theme class", async () => {
@@ -100,10 +101,7 @@ test.describe("Theme Detection", () => {
 test.describe("Visual Consistency", () => {
   test("content is visible in light mode", async ({ page, logger }) => {
     await logger.step("set up light mode", async () => {
-      await page.goto("/");
-      await setStoredTheme(page, "light");
-      await page.reload();
-      await page.waitForLoadState("load");
+      await gotoWithTheme(page, "/", "light");
     });
 
     await logger.step("verify main heading is visible", async () => {
@@ -118,10 +116,7 @@ test.describe("Visual Consistency", () => {
 
   test("content is visible in dark mode", async ({ page, logger }) => {
     await logger.step("set up dark mode", async () => {
-      await page.goto("/");
-      await setStoredTheme(page, "dark");
-      await page.reload();
-      await page.waitForLoadState("load");
+      await gotoWithTheme(page, "/", "dark");
     });
 
     await logger.step("verify main heading is visible", async () => {
@@ -138,10 +133,7 @@ test.describe("Visual Consistency", () => {
 
   test("dark mode persists during navigation", async ({ page, logger }) => {
     await logger.step("set up dark mode", async () => {
-      await page.goto("/");
-      await setStoredTheme(page, "dark");
-      await page.reload();
-      await page.waitForLoadState("load");
+      await gotoWithTheme(page, "/", "dark");
     });
 
     await logger.step("verify initial dark mode", async () => {
@@ -152,6 +144,7 @@ test.describe("Visual Consistency", () => {
     await logger.step("navigate to another page", async () => {
       await page.goto("/bundles");
       await page.waitForLoadState("load");
+      await page.waitForTimeout(1000);
     });
 
     await logger.step("verify dark mode persists", async () => {
@@ -165,10 +158,7 @@ test.describe("Edge Cases", () => {
   test("explicit preference overrides system preference", async ({ page, logger }) => {
     await logger.step("set system to dark but user preference to light", async () => {
       await emulateColorScheme(page, "dark");
-      await page.goto("/");
-      await setStoredTheme(page, "light");
-      await page.reload();
-      await page.waitForLoadState("load");
+      await gotoWithTheme(page, "/", "light");
     });
 
     await logger.step("verify light theme despite dark system preference", async () => {
@@ -179,10 +169,7 @@ test.describe("Edge Cases", () => {
 
   test("theme persists after refresh", async ({ page, logger }) => {
     await logger.step("set dark theme", async () => {
-      await page.goto("/");
-      await setStoredTheme(page, "dark");
-      await page.reload();
-      await page.waitForLoadState("load");
+      await gotoWithTheme(page, "/", "dark");
     });
 
     await logger.step("verify dark theme", async () => {
@@ -191,8 +178,8 @@ test.describe("Edge Cases", () => {
     });
 
     await logger.step("reload page", async () => {
-      await page.reload();
-      await page.waitForLoadState("load");
+      await safeReload(page);
+      await waitForThemeClass(page, "dark");
     });
 
     await logger.step("verify dark theme persists", async () => {

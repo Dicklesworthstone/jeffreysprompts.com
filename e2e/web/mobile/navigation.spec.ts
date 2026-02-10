@@ -293,8 +293,10 @@ test.describe("Navigation Accessibility", () => {
 
     await logger.step("verify tab bar accessibility", async () => {
       const tabBar = getBottomTabBar(page);
-      const role = await tabBar.first().getAttribute("role");
-      expect(role).toBe("navigation");
+      await expect(tabBar.first()).toBeVisible();
+      // <nav> element has implicit navigation role; verify via tag name
+      const tagName = await tabBar.first().evaluate((el) => el.tagName.toLowerCase());
+      expect(tagName).toBe("nav");
     });
   });
 
