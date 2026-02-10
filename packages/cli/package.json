@@ -7,7 +7,7 @@
   "types": "./src/index.ts",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "bun test __tests__/commands/list.test.ts __tests__/commands/search.test.ts __tests__/commands/suggest.test.ts __tests__/commands/recommend.test.ts __tests__/commands/impact.test.ts __tests__/commands/graph.test.ts __tests__/commands/render.test.ts __tests__/commands/bundles.test.ts && bun test __tests__/commands/skills.test.ts && bun test __tests__/commands/copy.test.ts && bun test __tests__/lib/registry-loader.test.ts && bun test __tests__/commands/registry.test.ts && bun test __tests__/lib/variables.test.ts __tests__/lib/utils.test.ts __tests__/lib/clipboard.test.ts __tests__/lib/auto-update.test.ts",
+    "test": "bun test __tests__/commands/list.test.ts __tests__/commands/search.test.ts __tests__/commands/suggest.test.ts __tests__/commands/recommend.test.ts __tests__/commands/impact.test.ts __tests__/commands/graph.test.ts __tests__/commands/render.test.ts __tests__/commands/bundles.test.ts && bun test __tests__/commands/skills.test.ts && bun test __tests__/commands/copy.test.ts && bun test __tests__/lib/registry-loader.test.ts && bun test __tests__/commands/registry.test.ts && bun test __tests__/lib/variables.test.ts __tests__/lib/utils.test.ts __tests__/lib/clipboard.test.ts __tests__/lib/auto-update.test.ts && bun test __tests__/commands/completion.test.ts __tests__/commands/utilities.test.ts __tests__/commands/notes.test.ts __tests__/commands/sync.test.ts && bun test __tests__/commands/update-cli.test.ts",
     "test:unit": "bun test __tests__/commands/list.test.ts __tests__/commands/search.test.ts __tests__/commands/suggest.test.ts __tests__/commands/render.test.ts"
   },
   "dependencies": {
