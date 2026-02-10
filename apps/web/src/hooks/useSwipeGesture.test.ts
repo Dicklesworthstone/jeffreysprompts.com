@@ -109,7 +109,7 @@ describe("useSwipeGesture", () => {
     const onSwipeLeft = vi.fn();
     const onSwipeRight = vi.fn();
     const { result } = renderHook(() =>
-      useSwipeGesture({ onSwipeLeft, onSwipeRight }, { threshold: 100 })
+      useSwipeGesture({ onSwipeLeft, onSwipeRight }, { threshold: 100, velocityThreshold: Infinity })
     );
 
     act(() => {
