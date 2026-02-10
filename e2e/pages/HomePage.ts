@@ -142,19 +142,36 @@ export class HomePage extends BasePage {
   }
 
   async getStatValue(statName: string): Promise<string | null> {
-    const stat = this.page.getByText(statName).first();
-    if (!(await stat.isVisible())) return null;
-
-    // Find the numeric value near this stat
-    const parent = stat.locator("xpath=..");
-    const text = await parent.textContent();
-    const match = text?.match(/(\d+)/);
-    return match ? match[1] : null;
+    // Target the stat label specifically via its CSS class (uppercase tracking-widest)
+    // to avoid matching <span>Prompts</span> inside "JeffreysPrompts" nav text.
+    // The stats container is animated by framer-motion from opacity:0 (delay:0.8s)
+    // so we use "attached" state which ignores visibility.
+    const stat = this.page.locator(".uppercase.tracking-widest").filter({ hasText: statName }).first();
+    try {
+      await stat.waitFor({ state: "attached", timeout: 10000 });
+      const parent = stat.locator("xpath=..");
+      const text = await parent.textContent({ timeout: 5000 });
+      const match = text?.match(/(\d+)/);
+      return match ? match[1] : null;
+    } catch {
+      return null;
+    }
   }
 
   // --- Category Filter ---
 
   async getCategoryButtons(): Promise<string[]> {
+    // Wait for the category filter group to appear in the DOM (framer-motion
+    // animates with delay:1.2s from opacity:0)
+    try {
+      await this.categoryFilterGroup.waitFor({ state: "attached", timeout: 10000 });
+    } catch {
+      return [];
+    }
+
+    // Wait for at least one button to be present
+    await this.categoryFilterGroup.locator("button").first().waitFor({ state: "attached", timeout: 5000 });
+
     const buttons = await this.categoryFilterGroup.locator("button").all();
     const names: string[] = [];
     for (const button of buttons) {
@@ -252,7 +269,8 @@ export class HomePage extends BasePage {
   // --- Footer ---
 
   async scrollToFooter() {
-    await this.page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    // Use locator-based scroll to avoid "Execution context destroyed" during streaming
+    await this.footer.last().scrollIntoViewIfNeeded();
     await this.page.waitForTimeout(500);
   }
 

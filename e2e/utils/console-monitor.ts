@@ -58,6 +58,10 @@ const GLOBAL_IGNORE_PATTERNS = [
   // Known non-issues
   /ResizeObserver loop/i, // Browser quirk, not a bug
   /Non-Error promise rejection/i, // Often third-party
+
+  // Service Worker registration errors when serviceWorkers: "block" is set
+  /Service Worker registration failed/i,
+  /\[SW\].*registration/i,
 ];
 
 export class ConsoleMonitor {

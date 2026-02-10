@@ -232,10 +232,9 @@ test.describe("Footer Display", () => {
   // On mobile viewports, the page has its own inline footer with different content.
   test.beforeEach(async ({ page, logger }) => {
     await logger.step("navigate to homepage", async () => {
-      await page.goto("/");
-      await page.waitForLoadState("load");
-      // The footer renders from the layout, independent of page streaming.
-      // Don't wait for H1 (which requires streaming) — just wait for the page.
+      // Use gotoHomepage to handle Turbopack streaming stalls that can destroy
+      // the execution context during page.evaluate (scroll) calls
+      await gotoHomepage(page);
     });
   });
 
@@ -244,7 +243,9 @@ test.describe("Footer Display", () => {
     const isMobile = (viewport?.width ?? 1280) < 768;
 
     await logger.step("scroll to footer", async () => {
-      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+      // Use locator-based scroll instead of page.evaluate to avoid
+      // "Execution context destroyed" errors during Turbopack streaming
+      await page.locator("footer").last().scrollIntoViewIfNeeded();
       await page.waitForTimeout(500);
     });
 
@@ -270,7 +271,7 @@ test.describe("Footer Display", () => {
     const isMobile = (viewport?.width ?? 1280) < 768;
 
     await logger.step("scroll to footer", async () => {
-      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+      await page.locator("footer").last().scrollIntoViewIfNeeded();
       await page.waitForTimeout(500);
     });
 
@@ -303,7 +304,7 @@ test.describe("Footer Display", () => {
     test.skip(isMobile, "Layout Footer with CLI section is hidden on mobile viewports");
 
     await logger.step("scroll to footer", async () => {
-      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+      await page.locator("footer").last().scrollIntoViewIfNeeded();
       await page.waitForTimeout(500);
     });
 

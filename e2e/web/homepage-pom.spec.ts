@@ -79,8 +79,8 @@ test.describe("Homepage - Page Object Model", () => {
     if (categories.some((c) => c.toLowerCase() === "ideation")) {
       await homePage.selectCategory("ideation");
 
-      // Verify prompts are filtered (some should remain)
-      await homePage.page.waitForTimeout(500);
+      // Wait for filtered prompt cards to appear in the DOM
+      await homePage.waitForPromptCards(1, 10000);
       const titles = await homePage.getPromptTitles();
       expect(titles.length).toBeGreaterThan(0);
     }
@@ -202,19 +202,20 @@ test.describe("Homepage - Performance", () => {
 
 test.describe("Homepage - Network Resilience", () => {
   test("handles slow network gracefully", async ({ homePage, page }) => {
-    // Simulate slow 3G
+    // Simulate slow 3G — note: in dev mode Turbopack serves large unminified
+    // bundles, so the simulated throughput needs to be higher than production
     const client = await page.context().newCDPSession(page);
     await client.send("Network.emulateNetworkConditions", {
       offline: false,
-      downloadThroughput: (500 * 1024) / 8, // 500 Kbps
+      downloadThroughput: (1500 * 1024) / 8, // 1.5 Mbps (slow but viable for dev bundles)
       uploadThroughput: (500 * 1024) / 8,
-      latency: 400, // 400ms
+      latency: 200, // 200ms
     });
 
     await homePage.goto();
 
-    // Should still load (with longer timeout)
-    await homePage.waitForPageLoad(30000);
+    // Should still load (with longer timeout for dev mode)
+    await homePage.waitForPageLoad(45000);
 
     // Should have at least the hero heading visible
     await homePage.assertVisible(homePage.headline);
