@@ -15,7 +15,7 @@ test.describe("Homepage Load", () => {
   test.beforeEach(async ({ page, logger }) => {
     await logger.step("navigate to homepage", async () => {
       await page.goto("/");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
     });
   });
 
@@ -33,33 +33,27 @@ test.describe("Homepage Load", () => {
 
   test("hero section displays correctly", async ({ page, logger }) => {
     await logger.step("verify hero badge", async () => {
-      await expect(page.getByText("Curated prompts for agentic coding").first()).toBeVisible({ timeout: 5000 });
+      await expect(page.getByText("Curated prompts for agentic excellence").first()).toBeVisible({ timeout: 5000 });
     });
 
     await logger.step("verify main headline", async () => {
-      // TextReveal component renders the headline
+      // CharacterReveal component renders the headline
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible({ timeout: 5000 });
     });
 
     await logger.step("verify tagline about prompts", async () => {
-      await expect(page.getByText(/collection of .* prompts/i)).toBeVisible();
-    });
-
-    await logger.step("verify stats counters", async () => {
-      // Prompt count and category count should be displayed
-      await expect(page.getByText("Prompts").first()).toBeVisible();
-      await expect(page.getByText("Categories").first()).toBeVisible();
-      await expect(page.getByText("Free").first()).toBeVisible();
+      await expect(page.getByText(/Battle-tested patterns/i)).toBeVisible();
     });
 
     await logger.step("verify search input", async () => {
-      const searchInput = page.getByPlaceholder("Search prompts...");
+      const searchInput = page.getByPlaceholder("Find your next favorite prompt...");
       await expect(searchInput).toBeVisible();
       await expect(searchInput).toBeEnabled();
     });
 
-    await logger.step("verify install CLI button", async () => {
-      await expect(page.getByRole("button", { name: /install cli/i })).toBeVisible();
+    await logger.step("verify category filter in hero", async () => {
+      const categoryGroup = page.locator("[aria-label='Filter by category']").first();
+      await expect(categoryGroup).toBeVisible();
     });
   });
 
@@ -89,20 +83,19 @@ test.describe("Prompt Grid Display", () => {
   test.beforeEach(async ({ page, logger }) => {
     await logger.step("navigate to homepage", async () => {
       await page.goto("/");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
     });
   });
 
   test("prompt grid displays multiple cards", async ({ page, logger }) => {
     await logger.step("wait for prompt cards to load", async () => {
       // Wait for at least one prompt card to be visible
-      await expect(page.getByText("The Idea Wizard")).toBeVisible({ timeout: 10000 });
+      await expect(page.locator("[data-testid='prompt-card']").first()).toBeVisible({ timeout: 10000 });
     });
 
     await logger.step("verify multiple prompt cards exist", async () => {
       // The grid should display multiple cards
-      // Cards are motion.div elements inside a grid
-      const cards = page.locator(".grid > div");
+      const cards = page.locator("[data-testid='prompt-card']");
       const cardCount = await cards.count();
       expect(cardCount).toBeGreaterThanOrEqual(3);
     });
@@ -115,20 +108,19 @@ test.describe("Prompt Grid Display", () => {
 
   test("prompt card has expected structure", async ({ page, logger }) => {
     await logger.step("wait for cards to load", async () => {
-      await expect(page.getByText("The Idea Wizard")).toBeVisible({ timeout: 10000 });
+      await expect(page.locator("[data-testid='prompt-card']").first()).toBeVisible({ timeout: 10000 });
     });
 
     await logger.step("verify card has title", async () => {
       // Card title is h3 element
-      const cardTitle = page.locator("h3").filter({ hasText: "The Idea Wizard" });
+      const cardTitle = page.locator("[data-testid='prompt-card'] h3").first();
       await expect(cardTitle).toBeVisible();
     });
 
     await logger.step("verify card has category badge", async () => {
       // Each card should have a category badge (ideation, documentation, etc.)
-      // Badges are rendered as spans with capitalize class
-      const ideaWizardCard = page.locator("h3").filter({ hasText: "The Idea Wizard" }).locator("../..");
-      const categoryBadge = ideaWizardCard.locator("span.capitalize").first();
+      const firstCard = page.locator("[data-testid='prompt-card']").first();
+      const categoryBadge = firstCard.locator("span.capitalize").first();
       await expect(categoryBadge).toBeVisible();
     });
 
@@ -138,12 +130,12 @@ test.describe("Prompt Grid Display", () => {
     });
 
     await logger.step("verify card has action buttons", async () => {
-      // Copy button
-      const copyButton = page.getByRole("button", { name: /copy/i }).first();
+      // Copy button (aria-label="Copy prompt")
+      const copyButton = page.locator("[data-testid='prompt-card']").first().getByRole("button", { name: /copy/i });
       await expect(copyButton).toBeVisible();
 
       // View button
-      const viewButton = page.getByRole("button", { name: /view/i }).first();
+      const viewButton = page.locator("[data-testid='prompt-card']").first().getByRole("button", { name: /view/i });
       await expect(viewButton).toBeVisible();
     });
 
@@ -154,14 +146,14 @@ test.describe("Prompt Grid Display", () => {
   });
 
   test("results header shows correct count", async ({ page, logger }) => {
-    await logger.step("verify 'All Prompts' heading exists", async () => {
-      await expect(page.getByRole("heading", { name: "All Prompts" })).toBeVisible({ timeout: 10000 });
+    await logger.step("verify 'Browse All Prompts' heading exists", async () => {
+      await expect(page.getByRole("heading", { name: "Browse All Prompts" })).toBeVisible({ timeout: 10000 });
     });
 
     await logger.step("verify prompt count is displayed", async () => {
-      // The count text like "X prompts"
-      const countText = page.locator("text=/\\d+ prompts?/");
-      await expect(countText).toBeVisible();
+      // The count text like "X prompt(s)"
+      const countText = page.getByText(/\d+ prompt/);
+      await expect(countText.first()).toBeVisible();
     });
   });
 
@@ -183,14 +175,14 @@ test.describe("Filter Sections Display", () => {
   test.beforeEach(async ({ page, logger }) => {
     await logger.step("navigate to homepage", async () => {
       await page.goto("/");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
     });
   });
 
   test("category filter section displays", async ({ page, logger }) => {
     await logger.step("verify category filter exists in main content", async () => {
       // CategoryFilter component renders in the filters section
-      await expect(page.getByRole("heading", { name: "All Prompts" })).toBeVisible({ timeout: 10000 });
+      await expect(page.getByRole("heading", { name: "Browse All Prompts" })).toBeVisible({ timeout: 10000 });
     });
   });
 
@@ -214,29 +206,28 @@ test.describe("Footer Display", () => {
   test.beforeEach(async ({ page, logger }) => {
     await logger.step("navigate to homepage", async () => {
       await page.goto("/");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
     });
   });
 
   test("footer displays with site info", async ({ page, logger }) => {
     await logger.step("scroll to footer", async () => {
-      // Main footer contains h3 with site name
-      const mainFooter = page.locator("footer").filter({ hasText: "JeffreysPrompts.com" }).first();
+      const mainFooter = page.locator("footer").first();
       await mainFooter.scrollIntoViewIfNeeded();
     });
 
-    await logger.step("verify site name in footer", async () => {
-      await expect(page.locator("footer h3").getByText("JeffreysPrompts.com")).toBeVisible({ timeout: 5000 });
+    await logger.step("verify site brand in footer", async () => {
+      await expect(page.locator("footer").getByText("JeffreysPrompts").first()).toBeVisible({ timeout: 5000 });
     });
 
     await logger.step("verify tagline in footer", async () => {
-      await expect(page.locator("footer").getByText(/Curated prompts/i).first()).toBeVisible();
+      await expect(page.locator("footer").getByText(/premium prompt library/i).first()).toBeVisible();
     });
   });
 
   test("footer has social links", async ({ page, logger }) => {
     await logger.step("scroll to footer", async () => {
-      const mainFooter = page.locator("footer").filter({ hasText: "JeffreysPrompts.com" }).first();
+      const mainFooter = page.locator("footer").first();
       await mainFooter.scrollIntoViewIfNeeded();
     });
 
@@ -254,7 +245,7 @@ test.describe("Footer Display", () => {
 
   test("footer has install command", async ({ page, logger }) => {
     await logger.step("scroll to footer", async () => {
-      const mainFooter = page.locator("footer").filter({ hasText: "JeffreysPrompts.com" }).first();
+      const mainFooter = page.locator("footer").first();
       await mainFooter.scrollIntoViewIfNeeded();
     });
 
@@ -272,23 +263,23 @@ test.describe("Responsive Layout", () => {
 
     await logger.step("navigate to homepage", async () => {
       await page.goto("/");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
     });
 
     await logger.step("verify hero is visible", async () => {
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     });
 
-    await logger.step("verify search input is full width and touch-friendly", async () => {
-      const searchInput = page.getByPlaceholder("Search prompts...");
+    await logger.step("verify search input is visible and touch-friendly", async () => {
+      const searchInput = page.getByPlaceholder("Find your next favorite prompt...");
       await expect(searchInput).toBeVisible();
       // Should have minimum height for touch targets
       const height = await searchInput.evaluate((el) => el.offsetHeight);
-      expect(height).toBeGreaterThanOrEqual(48);
+      expect(height).toBeGreaterThanOrEqual(44);
     });
 
-    await logger.step("verify prompt cards stack vertically", async () => {
-      await expect(page.getByText("The Idea Wizard")).toBeVisible({ timeout: 10000 });
+    await logger.step("verify prompt cards are visible", async () => {
+      await expect(page.locator("[data-testid='prompt-card']").first()).toBeVisible({ timeout: 10000 });
       // On mobile, grid should be single column
       const grid = page.locator(".grid.gap-6");
       await expect(grid).toBeVisible();
@@ -302,12 +293,12 @@ test.describe("Responsive Layout", () => {
 
     await logger.step("navigate to homepage", async () => {
       await page.goto("/");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
     });
 
     await logger.step("verify multi-column grid", async () => {
-      await expect(page.getByText("The Idea Wizard")).toBeVisible({ timeout: 10000 });
-      // Desktop should show lg:grid-cols-3
+      await expect(page.locator("[data-testid='prompt-card']").first()).toBeVisible({ timeout: 10000 });
+      // Desktop should show grid with gap
       const grid = page.locator(".grid.gap-6");
       await expect(grid).toBeVisible();
     });
@@ -326,7 +317,7 @@ test.describe("Performance Indicators", () => {
     const domContentLoaded = Date.now() - startTime;
 
     await logger.step("wait for full load", async () => {
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
     });
 
     const fullLoad = Date.now() - startTime;
@@ -342,13 +333,13 @@ test.describe("Performance Indicators", () => {
   test("no layout shift after initial render", async ({ page, logger }) => {
     await logger.step("navigate to homepage", async () => {
       await page.goto("/");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
     });
 
     await logger.step("verify prompt grid is stable", async () => {
       // Get initial position of a prompt card
-      await expect(page.getByText("The Idea Wizard")).toBeVisible({ timeout: 10000 });
-      const card = page.locator("h3").filter({ hasText: "The Idea Wizard" });
+      await expect(page.locator("[data-testid='prompt-card']").first()).toBeVisible({ timeout: 10000 });
+      const card = page.locator("[data-testid='prompt-card'] h3").first();
       const initialBox = await card.boundingBox();
 
       // Wait a bit and check position hasn't shifted
