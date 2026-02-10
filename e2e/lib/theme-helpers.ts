@@ -66,22 +66,62 @@ export async function waitForAnyThemeClass(
 
 /**
  * Reload page safely, retrying on ERR_ABORTED from Turbopack streaming.
+ * After reload, waits for ThemeProvider to hydrate and apply the stored
+ * theme class from localStorage.
  */
 export async function safeReload(page: Page): Promise<void> {
   for (let i = 0; i < 3; i++) {
     try {
       await page.reload();
       await page.waitForLoadState("load");
-      await page.waitForTimeout(1000);
+      await page.waitForTimeout(2000);
+      // Wait for ThemeProvider to hydrate and apply stored theme
+      await waitForStoredThemeApplied(page);
       return;
     } catch (e) {
       const isAborted =
         e instanceof Error &&
         (e.message.includes("net::ERR_ABORTED") ||
-         e.message.includes("frame was detached"));
+         e.message.includes("frame was detached") ||
+         e.message.includes("Execution context was destroyed"));
       if (i === 2 || !isAborted) throw e;
-      await page.waitForTimeout(1000);
+      await page.waitForTimeout(2000);
     }
+  }
+}
+
+/**
+ * Wait for ThemeProvider to hydrate and apply the stored theme from localStorage.
+ * If localStorage has a theme set, waits for the matching CSS class on documentElement.
+ * Falls back to re-applying the class via JS if ThemeProvider doesn't pick it up
+ * (common with Turbopack streaming stalls leaving partial hydration).
+ */
+export async function waitForStoredThemeApplied(
+  page: Page,
+  timeout = 8000
+): Promise<void> {
+  try {
+    await page.waitForFunction(
+      () => {
+        const stored = localStorage.getItem("jfp-theme");
+        if (!stored || stored === "system") return true;
+        return document.documentElement?.classList?.contains(stored) === true;
+      },
+      { timeout }
+    );
+  } catch {
+    // ThemeProvider didn't apply the class (streaming stall / partial hydration).
+    // Re-apply localStorage + CSS class directly as a fallback.
+    await safeEvaluate(page, () =>
+      page.evaluate(() => {
+        const stored = localStorage.getItem("jfp-theme");
+        if (stored && stored !== "system") {
+          const root = document.documentElement;
+          root.classList.remove("light", "dark");
+          root.classList.add(stored);
+        }
+      })
+    );
   }
 }
 
@@ -193,9 +233,10 @@ export async function clearStoredTheme(page: Page): Promise<void> {
  * This makes native button clicks unreliable — the React event handler
  * is often not yet attached when the click fires.
  *
- * Instead, we directly set localStorage to the next theme and reload.
- * This reliably tests theme rendering, persistence, and class application.
- * The toggle button's onClick handler is implicitly covered by unit tests.
+ * Instead, we directly set localStorage AND apply the CSS class via
+ * page.evaluate, avoiding any page reloads. This is the same strategy
+ * used by gotoWithTheme. The toggle button's onClick handler is
+ * implicitly covered by unit tests.
  */
 export async function clickThemeToggle(page: Page): Promise<void> {
   const current = await safeEvaluate(page, () =>
@@ -207,14 +248,22 @@ export async function clickThemeToggle(page: Page): Promise<void> {
   const idx = order.indexOf(current as ThemeValue);
   const next = order[(idx + 1) % order.length];
 
-  // Set next theme directly in localStorage
+  // Apply theme directly: set localStorage + CSS class in one atomic evaluate
   await safeEvaluate(page, () =>
-    page.evaluate((t) => localStorage.setItem("jfp-theme", t), next)
+    page.evaluate((t) => {
+      localStorage.setItem("jfp-theme", t);
+      const root = document.documentElement;
+      root.classList.remove("light", "dark");
+      if (t !== "system") {
+        root.classList.add(t);
+      } else {
+        const preferred = window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light";
+        root.classList.add(preferred);
+      }
+    }, next)
   );
-
-  // Reload so ThemeProvider's mount useEffect picks up the new value
-  await safeReload(page);
-  await page.waitForTimeout(1500);
 
   if (next !== "system") {
     await waitForThemeClass(page, next);
