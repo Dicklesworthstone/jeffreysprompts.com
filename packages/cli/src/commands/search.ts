@@ -19,7 +19,7 @@ import { isLoggedIn, loadCredentials } from "../lib/credentials";
 import {
   hasOfflineLibrary,
   normalizePromptCategory,
-  searchOfflineLibrary,
+  readOfflineLibrary,
   readSyncMeta,
   formatSyncAge,
   type SyncedPrompt,
@@ -87,18 +87,36 @@ function searchLocal(
 }
 
 /**
- * Search the offline library cache
+ * Search the offline library cache using BM25
  */
 function searchOffline(query: string, limit: number): MergedSearchResult[] {
-  const results = searchOfflineLibrary(query, limit);
-  return results.map(({ prompt: p, score }) => ({
+  const offlineLib = readOfflineLibrary();
+  const prompts: Prompt[] = offlineLib.map((p) => ({
     id: p.id,
     title: p.title,
     description: p.description || "",
+    content: p.content,
     category: normalizePromptCategory(p.category),
     tags: p.tags || [],
-    score: score,
-    source: "saved" as const, // Offline library is saved prompts
+    author: "",
+    version: "1.0.0",
+    created: p.saved_at,
+    featured: false,
+  }));
+
+  const promptsMap = new Map(prompts.map((p) => [p.id, p]));
+  const index = buildIndex(prompts);
+  const results = searchPrompts(query, { limit, index, promptsMap });
+
+  return results.map((r) => ({
+    id: r.prompt.id,
+    title: r.prompt.title,
+    description: r.prompt.description,
+    category: r.prompt.category,
+    tags: r.prompt.tags,
+    score: r.score,
+    source: "saved" as const,
+    matchedFields: r.matchedFields,
   }));
 }
 

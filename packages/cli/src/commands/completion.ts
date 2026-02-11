@@ -42,6 +42,14 @@ const COMMANDS = [
   "completion",
   "serve",
   "update-cli",
+  "recommend",
+  "cost",
+  "impact",
+  "graph",
+  "packs",
+  "dedupe",
+  "config",
+  "random",
 ] as const;
 
 const COMMAND_OPTIONS: Record<string, string[]> = {
@@ -74,6 +82,14 @@ const COMMAND_OPTIONS: Record<string, string[]> = {
   completion: ["--shell"],
   serve: ["--config"],
   "update-cli": ["--check", "--force", "--json"],
+  recommend: ["--limit", "--prefer-tags", "--prefer-categories", "--exclude-tags", "--exclude-categories", "--json"],
+  cost: ["--model", "--input-tokens", "--output-tokens", "--price-in", "--price-out", "--list-models", "--alerts", "--alerts-limit", "--json"],
+  impact: ["--json"],
+  graph: ["--format", "--include-meta", "--include-collections", "--json"],
+  packs: ["--installed", "--tool", "--json"],
+  dedupe: ["--min-score", "--limit", "--json"],
+  config: ["--json"],
+  random: ["--category", "--tag", "--copy", "--json"],
 };
 
 const GLOBAL_OPTIONS = ["--help", "--version"];

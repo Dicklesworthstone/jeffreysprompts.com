@@ -14,8 +14,16 @@ import {
   isNotFoundError,
 } from "../lib/api-client";
 import { isLoggedIn, getCurrentUser } from "../lib/credentials";
-import { shouldOutputJson } from "../lib/utils";
+import { shouldOutputJson, atomicWriteFileSync } from "../lib/utils";
 import { loadRegistry } from "../lib/registry-loader";
+import {
+  readOfflineLibrary,
+  getLibraryPath,
+  getMetaPath,
+  readSyncMeta,
+  type SyncedPrompt,
+  type SyncMeta,
+} from "../lib/offline";
 
 export interface SaveOptions {
   json?: boolean;
@@ -39,6 +47,37 @@ function writeJson(payload: Record<string, unknown>): void {
 
 function writeJsonError(code: string, message: string, extra: Record<string, unknown> = {}): void {
   writeJson({ error: true, code, message, ...extra });
+}
+
+function updateOfflineLibrary(prompt: SyncedPrompt): void {
+  try {
+    const existingPrompts = readOfflineLibrary();
+    const index = existingPrompts.findIndex((p) => p.id === prompt.id);
+    let newPrompts: SyncedPrompt[];
+    
+    if (index >= 0) {
+      newPrompts = [...existingPrompts];
+      newPrompts[index] = prompt;
+    } else {
+      newPrompts = [...existingPrompts, prompt];
+    }
+    
+    atomicWriteFileSync(getLibraryPath(), JSON.stringify(newPrompts, null, 2));
+
+    // Update metadata count
+    const meta = readSyncMeta();
+    const newMeta: SyncMeta = meta
+      ? { ...meta, promptCount: newPrompts.length }
+      : {
+          version: "1.0.0",
+          lastSync: new Date().toISOString(),
+          promptCount: newPrompts.length,
+        };
+    atomicWriteFileSync(getMetaPath(), JSON.stringify(newMeta, null, 2));
+  } catch (err) {
+    // Silently fail to update offline cache - it's a nice-to-have, not critical
+    // The user will get it on next sync anyway
+  }
 }
 
 /**
@@ -159,6 +198,19 @@ export async function saveCommand(
 
   // Success
   const data = response.data as SaveResponse;
+  
+  // Update offline library cache immediately
+  const savedPrompt: SyncedPrompt = {
+    id: data.prompt_id || prompt.id,
+    title: data.title || prompt.title,
+    content: prompt.content,
+    description: prompt.description,
+    category: prompt.category,
+    tags: prompt.tags,
+    saved_at: data.saved_at || new Date().toISOString(),
+  };
+  updateOfflineLibrary(savedPrompt);
+
   if (shouldOutputJson(options)) {
     writeJson({
       saved: true,
