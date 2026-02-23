@@ -155,7 +155,7 @@ export function ForYouPromptsSection({
   }
 
   return (
-    <section className="py-8 bg-neutral-50 dark:bg-neutral-950 border-b border-neutral-200 dark:border-neutral-800">
+    <section className="py-8 bg-neutral-50 dark:bg-neutral-950 border-b border-neutral-200 dark:border-neutral-800 overflow-x-hidden">
       <div className="container-wide px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 10 }}

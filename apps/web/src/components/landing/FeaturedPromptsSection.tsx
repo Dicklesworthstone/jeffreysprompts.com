@@ -24,7 +24,7 @@ export function FeaturedPromptsSection({
   if (featuredPrompts.length === 0) return null;
 
   return (
-    <section className="py-8 bg-white dark:bg-neutral-900/50 border-b border-neutral-200 dark:border-neutral-800">
+    <section className="py-8 bg-white dark:bg-neutral-900/50 border-b border-neutral-200 dark:border-neutral-800 overflow-x-hidden">
       <div className="container-wide px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <motion.div

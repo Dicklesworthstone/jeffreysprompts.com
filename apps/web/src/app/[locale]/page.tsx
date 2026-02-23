@@ -325,7 +325,7 @@ function HomeContent() {
       )}
 
       {/* Browse All Prompts Section */}
-      <main id="prompts-section" className="container-wide px-4 sm:px-6 lg:px-8 py-12">
+      <main id="prompts-section" className="container-wide px-4 sm:px-6 lg:px-8 py-12 overflow-x-hidden">
         {/* Section Header */}
         <AnimatedSection variant="fadeUp" delay={0.1} className="mb-8">
           <h2 className="text-xl font-semibold text-neutral-900 dark:text-white mb-2">
@@ -469,7 +469,7 @@ function HomeContent() {
       </main>
 
       {/* Minimal Footer */}
-      <footer className="border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900">
+      <footer className="border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 overflow-x-hidden">
         <div className="container-wide px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
             {/* Brand & Links */}
