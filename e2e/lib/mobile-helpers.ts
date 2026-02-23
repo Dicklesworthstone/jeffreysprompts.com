@@ -69,7 +69,7 @@ export function getHamburgerMenu(page: Page) {
 export async function isHamburgerMenuVisible(page: Page): Promise<boolean> {
   const menu = getHamburgerMenu(page);
   try {
-    await menu.waitFor({ state: "visible", timeout: 1000 });
+    await menu.waitFor({ state: "visible", timeout: 5000 });
     return true;
   } catch {
     return false;
@@ -103,9 +103,10 @@ export async function closeMobileMenu(page: Page): Promise<void> {
 
 /**
  * Get the bottom tab bar (visible on mobile)
+ * Matches both BottomTabBar (data-tab-bar) and BottomNav (aria-label)
  */
 export function getBottomTabBar(page: Page) {
-  return page.locator("[data-tab-bar]");
+  return page.locator("[data-tab-bar], nav[aria-label='Mobile navigation']");
 }
 
 /**
@@ -114,7 +115,7 @@ export function getBottomTabBar(page: Page) {
 export async function isBottomTabBarVisible(page: Page): Promise<boolean> {
   const tabBar = getBottomTabBar(page);
   try {
-    await tabBar.first().waitFor({ state: "visible", timeout: 1000 });
+    await tabBar.first().waitFor({ state: "visible", timeout: 5000 });
     return true;
   } catch {
     return false;

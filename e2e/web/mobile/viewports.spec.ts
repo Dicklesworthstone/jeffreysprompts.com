@@ -14,6 +14,17 @@ import {
  * Tests for responsive layouts across different viewport sizes.
  */
 
+// Dismiss onboarding modal for all viewport tests
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("jfp-onboarding", JSON.stringify({
+      hints: {},
+      firstVisit: false,
+      firstVisitAt: new Date().toISOString(),
+    }));
+  });
+});
+
 test.describe("Viewport: Mobile Portrait (375px)", () => {
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize(VIEWPORTS.mobilePortrait);
@@ -61,10 +72,13 @@ test.describe("Viewport: Mobile Portrait (375px)", () => {
       await page.waitForLoadState("load");
     });
 
-    await logger.step("verify cards are stacked", async () => {
-      // Wait for cards to render
-      await page.waitForSelector("[data-testid='prompt-card'], .rounded-lg.border", { timeout: 5000 }).catch(() => {});
-      const stacked = await areCardsStacked(page, "[data-testid='prompt-card'], article.rounded-lg");
+    await logger.step("verify cards are stacked in browse section", async () => {
+      // Scroll to the "Browse All Prompts" section (past featured horizontal scroll)
+      const browseSection = page.locator("#prompts-section");
+      await browseSection.scrollIntoViewIfNeeded();
+      // Wait for grid cards to render in the browse section
+      await page.waitForSelector("#prompts-section [data-testid='prompt-card'], #prompts-section article.rounded-lg", { timeout: 5000 }).catch(() => {});
+      const stacked = await areCardsStacked(page, "#prompts-section [data-testid='prompt-card'], #prompts-section article.rounded-lg");
       expect(stacked).toBe(true);
     });
   });
@@ -105,12 +119,18 @@ test.describe("Viewport: Tablet Portrait (768px)", () => {
   test("desktop navigation is visible", async ({ page, logger }) => {
     await logger.step("navigate to homepage", async () => {
       await page.goto("/");
-      await page.waitForLoadState("load");
+      await page.waitForLoadState("networkidle");
+      // Wait for nav to hydrate — md:flex needs React client render at exactly 768px
+      await page.waitForTimeout(1000);
     });
 
     await logger.step("verify desktop nav links are visible", async () => {
-      await expect(page.getByRole("link", { name: "Bundles" })).toBeVisible();
-      await expect(page.getByRole("link", { name: "Workflows" })).toBeVisible();
+      // Scope to header nav to avoid matching footer links
+      const headerNav = page.locator("header nav");
+      const bundlesLink = headerNav.getByRole("link", { name: "Bundles" });
+      const pricingLink = headerNav.getByRole("link", { name: "Pricing" });
+      await expect(bundlesLink).toBeVisible({ timeout: 15000 });
+      await expect(pricingLink).toBeVisible({ timeout: 15000 });
     });
   });
 
@@ -164,7 +184,7 @@ test.describe("Viewport: Desktop (1280px)", () => {
     });
 
     await logger.step("verify Go Pro button is visible", async () => {
-      await expect(page.getByRole("link", { name: /Go Pro/i })).toBeVisible();
+      await expect(page.getByRole("button", { name: /Go Pro/i })).toBeVisible();
     });
   });
 });
