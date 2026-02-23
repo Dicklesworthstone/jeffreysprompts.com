@@ -96,7 +96,8 @@ export interface ButtonProps
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = "default", size = "default", asChild = false, loading, children, disabled, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button"
+    // If loading, we provide custom children (a fragment), which breaks Radix Slot. Fall back to "button".
+    const Comp = asChild && !loading ? Slot : "button"
 
     return (
       <Comp

@@ -88,7 +88,7 @@ export function Hero({
       <HeroBackground />
 
       <div className="container-wide px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="text-center max-w-4xl mx-auto">
+        <div className="text-center max-w-full sm:max-w-4xl mx-auto">
           {/* Enhanced Badge */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
@@ -103,7 +103,7 @@ export function Hero({
           </motion.div>
 
           {/* Main headline - dramatic reveal */}
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-neutral-900 dark:text-white mb-6 leading-[1.1]">
+          <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-neutral-900 dark:text-white mb-6 leading-[1.1]">
             <CharacterReveal
               text="Jeffrey's Prompts"
               preset="cascade"
@@ -117,7 +117,7 @@ export function Hero({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.6 }}
-            className="text-lg sm:text-2xl text-neutral-600 dark:text-neutral-400 mb-12 max-w-2xl mx-auto leading-relaxed"
+            className="text-lg sm:text-2xl text-neutral-600 dark:text-neutral-400 mb-12 max-w-full sm:max-w-2xl mx-auto leading-relaxed"
           >
             Battle-tested patterns for Claude, GPT, and the next generation of AI coding assistants.
           </motion.p>
@@ -180,7 +180,7 @@ export function Hero({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 1 }}
             onSubmit={handleSearchSubmit}
-            className="max-w-2xl mx-auto mb-12"
+            className="max-w-full sm:max-w-2xl mx-auto mb-12"
           >
             <div className="relative group">
               <Search className={cn(
@@ -231,7 +231,7 @@ export function Hero({
             <div
               role="group"
               aria-label="Filter by category"
-              className="flex items-center justify-center gap-3 min-w-max"
+              className="flex items-center justify-center gap-3 flex-nowrap"
             >
               <MagneticButton
                 type="button"

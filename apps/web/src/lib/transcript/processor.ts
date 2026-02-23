@@ -268,6 +268,7 @@ function detectSections(messages: TranscriptMessage[]): TranscriptSection[] {
       const startIdx = i;
       let endIdx = i;
       let editCount = 0;
+      let gapCount = 0;
 
       // Extend while we see edit-related activity
       while (endIdx < messages.length) {
@@ -275,14 +276,19 @@ function detectSections(messages: TranscriptMessage[]): TranscriptSection[] {
         const hasEdit = m.toolCalls?.some((tc) => editTools.includes(tc.name));
         if (hasEdit) {
           editCount++;
+          gapCount = 0;
           endIdx++;
-        } else if (endIdx - startIdx < 3) {
-          // Allow gaps of 1-2 messages in implementation
+        } else if (gapCount < 2) {
+          // Allow gaps of 1-2 messages anywhere in the implementation section
+          gapCount++;
           endIdx++;
         } else {
           break;
         }
       }
+      
+      // Rewind endIdx to remove trailing gap messages from the section
+      endIdx -= gapCount;
 
       if (editCount >= 2) {
         addSection(

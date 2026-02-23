@@ -73,7 +73,7 @@ export function buildIndex(prompts: Prompt[]): BM25Index {
     documents,
     // Ensure avgDocLength is always at least 1 to prevent division by zero
     // in the BM25 length normalization formula (doc.length / avgDocLength)
-    avgDocLength: Math.max(totalLength / prompts.length || 1, 1),
+    avgDocLength: Math.max(totalLength / Math.max(prompts.length, 1), 1),
     docCount: prompts.length,
     termDocFreq,
   };

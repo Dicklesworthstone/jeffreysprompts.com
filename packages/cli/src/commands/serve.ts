@@ -228,6 +228,8 @@ export async function serveCommand(options: ServeOptions): Promise<void> {
         );
       }
 
+      const totalMatches = results.length;
+
       // Limit results
       results = results.slice(0, limit);
 
@@ -245,7 +247,7 @@ export async function serveCommand(options: ServeOptions): Promise<void> {
                   tags: r.prompt.tags,
                   score: Math.round(r.score * 100) / 100,
                 })),
-                total: results.length,
+                total: totalMatches,
               },
               null,
               2
@@ -258,10 +260,12 @@ export async function serveCommand(options: ServeOptions): Promise<void> {
     if (name === "render_prompt") {
       const id = args?.id !== undefined && args?.id !== null ? String(args.id) : "";
       // Coerce all variable values to strings to ensure consistent rendering
-      const rawVariables = (args?.variables as Record<string, unknown>) || {};
+      const rawVariables = args?.variables;
       const variables: Record<string, string> = {};
-      for (const [key, value] of Object.entries(rawVariables)) {
-        variables[key] = value !== undefined && value !== null ? String(value) : "";
+      if (typeof rawVariables === 'object' && rawVariables !== null && !Array.isArray(rawVariables)) {
+        for (const [key, value] of Object.entries(rawVariables as Record<string, unknown>)) {
+          variables[key] = value !== undefined && value !== null ? String(value) : "";
+        }
       }
       const context =
         args?.context !== undefined && args?.context !== null

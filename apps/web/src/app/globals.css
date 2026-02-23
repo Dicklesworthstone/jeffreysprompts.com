@@ -1517,6 +1517,7 @@ html.theme-transitioning *::after {
      ======================================================================== */
 
   .container-narrow {
+    width: 100%;
     max-width: var(--container-narrow);
     margin-left: auto;
     margin-right: auto;
@@ -1525,6 +1526,7 @@ html.theme-transitioning *::after {
   }
 
   .container-default {
+    width: 100%;
     max-width: var(--container-default);
     margin-left: auto;
     margin-right: auto;
@@ -1533,6 +1535,7 @@ html.theme-transitioning *::after {
   }
 
   .container-wide {
+    width: 100%;
     max-width: var(--container-wide);
     margin-left: auto;
     margin-right: auto;

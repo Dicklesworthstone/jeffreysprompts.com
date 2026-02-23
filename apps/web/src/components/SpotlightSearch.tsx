@@ -185,6 +185,7 @@ export function SpotlightSearch({
 
   // Debounce search query
   const debouncedQuery = useDebouncedValue(query, 150)
+  const isSearching = query.trim() !== debouncedQuery.trim()
 
   // Search when query changes
   React.useEffect(() => {
@@ -690,10 +691,19 @@ export function SpotlightSearch({
               )}
 
               {/* No results state */}
-              {results.length === 0 && query && (
+              {results.length === 0 && query && !isSearching && !isReranking && (
                 <div className="px-4 py-10 text-center" role="status">
                   <p className="text-muted-foreground">No results for &quot;{query}&quot;</p>
                   <p className="text-sm text-muted-foreground/60 mt-1">Try different keywords or enable semantic search</p>
+                </div>
+              )}
+
+              {/* Skeleton loading state during search or semantic reranking */}
+              {results.length === 0 && (isSearching || isReranking) && query.trim() !== "" && (
+                <div className="py-2" role="status" aria-label="Loading search results">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <SearchResultSkeleton key={i} index={i} />
+                  ))}
                 </div>
               )}
 
@@ -742,15 +752,6 @@ export function SpotlightSearch({
                         )}
                       </div>
                     </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Skeleton loading state during semantic reranking */}
-              {isReranking && results.length === 0 && (
-                <div className="py-2" role="status" aria-label="Loading search results">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <SearchResultSkeleton key={i} index={i} />
                   ))}
                 </div>
               )}

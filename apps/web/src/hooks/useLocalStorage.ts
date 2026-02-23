@@ -43,6 +43,7 @@ export function useLocalStorage<T>(
   const { debounceMs = 300 } = options;
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const initialValueRef = useRef<T>(initialValue);
+  initialValueRef.current = initialValue;
   const latestValueRef: MutableRefObject<T> = useRef<T>(initialValue);
   const latestSerializedRef = useRef<string | null>(null);
   const latestKeyRef = useRef<string>(key);
