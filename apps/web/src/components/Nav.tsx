@@ -115,7 +115,7 @@ export function Nav() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
+        "sticky top-0 z-50 w-full overflow-x-hidden border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
         "transition-all duration-300 ease-out",
         // Border and shadow based on scroll state
         isScrolled
@@ -127,7 +127,7 @@ export function Nav() {
           : "translate-y-0"
       )}
     >
-      <nav className="container mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <nav className="container mx-auto flex h-14 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
         <ViewTransitionLink
           href="/"
