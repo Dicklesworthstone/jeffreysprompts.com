@@ -137,3 +137,4 @@ _
 ignore
 mcp_agent_mail
 .mcp_agent_mail_stub
+target/
