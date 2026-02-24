@@ -2,7 +2,7 @@
  * SKILL.md export for Claude Code skills integration
  */
 
-import { createHash } from "crypto";
+import { createHash, randomUUID } from "crypto";
 import type { Prompt } from "../prompts/types";
 import type { Workflow } from "../prompts/workflows";
 import { getPrompt } from "../prompts/registry";
@@ -144,7 +144,7 @@ export function getUniqueDelimiter(content: string, base: string = "JFP_SKILL"):
   }
   // Fallback with crypto random if we exhausted attempts
   if (counter >= MAX_ATTEMPTS && content.includes(delimiter)) {
-    const suffix = createHash("sha256").update(`${Date.now()}-${Math.random()}`).digest("hex").slice(0, 16);
+    const suffix = createHash("sha256").update(`${Date.now()}-${randomUUID()}`).digest("hex").slice(0, 16);
     delimiter = `${base}_${suffix}`;
   }
   return delimiter;

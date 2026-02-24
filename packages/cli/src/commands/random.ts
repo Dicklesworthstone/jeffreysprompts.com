@@ -4,6 +4,7 @@
 
 import { type Prompt } from "@jeffreysprompts/core/prompts";
 import chalk from "chalk";
+import { randomBytes } from "crypto";
 import { shouldOutputJson } from "../lib/utils";
 import { loadRegistry } from "../lib/registry-loader";
 import { copyToClipboard } from "../lib/clipboard";
@@ -67,7 +68,9 @@ export async function randomCommand(options: RandomOptions): Promise<void> {
   }
 
   // Pick a random prompt
-  const randomIndex = Math.floor(Math.random() * candidates.length);
+  // Secure random number generation (0 to 1) using crypto.randomBytes
+  const secureRandom = randomBytes(4).readUInt32LE(0) / 0xffffffff;
+  const randomIndex = Math.floor(secureRandom * candidates.length);
   const prompt = candidates[randomIndex];
 
   // Copy to clipboard if requested

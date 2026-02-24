@@ -237,7 +237,7 @@ function detectSections(messages: TranscriptMessage[]): TranscriptSection[] {
     const msg = messages[i];
 
     // Detect "Deep Analysis" - messages with extended thinking
-    if (msg.thinking && msg.thinking.length > 1000) {
+    if ((msg.thinking?.length ?? 0) > 1000) {
       const startIdx = i;
       let endIdx = i;
 

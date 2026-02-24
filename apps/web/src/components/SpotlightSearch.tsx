@@ -189,134 +189,138 @@ export function SpotlightSearch({
 
   // Search when query changes
   React.useEffect(() => {
-    if (!debouncedQuery.trim() && !selectedCategory) {
-      setResults([])
-      setIsReranking(false)
-      return
-    }
-
-    if (!debouncedQuery.trim() && selectedCategory) {
-      const categoryResults: SearchResult[] = prompts
-        .filter((prompt) => prompt.category === selectedCategory)
-        .map((prompt) => ({
-          prompt,
-          score: 1,
-          matchedFields: ["category"],
-        }))
-      setResults(categoryResults)
-      setIsReranking(false)
-      trackEvent("search", {
-        queryLength: 0,
-        resultCount: categoryResults.length,
-        source: "spotlight",
-        semantic: false,
-      })
-      setSelectedIndex(0)
-      return
-    }
-
-    let cancelled = false
+    const searchGeneration = { cancelled: false };
 
     async function performSearch() {
+      if (!debouncedQuery.trim() && !selectedCategory) {
+        if (searchGeneration.cancelled) return;
+        setResults([]);
+        setIsReranking(false);
+        return;
+      }
+
+      if (!debouncedQuery.trim() && selectedCategory) {
+        const categoryResults: SearchResult[] = prompts
+          .filter((prompt) => prompt.category === selectedCategory)
+          .map((prompt) => ({
+            prompt,
+            score: 1,
+            matchedFields: ["category"],
+          }));
+        if (searchGeneration.cancelled) return;
+        setResults(categoryResults);
+        setIsReranking(false);
+        trackEvent("search", {
+          queryLength: 0,
+          resultCount: categoryResults.length,
+          source: "spotlight",
+          semantic: false,
+        });
+        setSelectedIndex(0);
+        return;
+      }
+
       // Get more results if we'll be reranking
-      const limit = semanticMode ? 20 : 10
-      const searchOptions: Parameters<typeof searchPrompts>[1] = { limit }
+      const limit = semanticMode ? 20 : 10;
+      const searchOptions: Parameters<typeof searchPrompts>[1] = { limit };
 
       // Add category filter if selected
       if (selectedCategory) {
-        searchOptions.category = selectedCategory
+        searchOptions.category = selectedCategory;
       }
 
-      const searchResults = searchPrompts(debouncedQuery || "", searchOptions)
+      const searchResults = searchPrompts(debouncedQuery || "", searchOptions);
 
-      if (cancelled) return
+      if (searchGeneration.cancelled) return;
 
       if (semanticMode && searchResults.length > 0) {
-        setIsReranking(true)
-        setResults(searchResults) // Show BM25 results immediately
+        setIsReranking(true);
+        setResults(searchResults); // Show BM25 results immediately
 
+        let timeoutId: ReturnType<typeof setTimeout> | undefined;
         try {
           // Convert to RankedResult format
           const rankedResults: RankedResult[] = searchResults.map((r) => ({
             id: r.prompt.id,
             score: r.score,
             text: `${r.prompt.title} ${r.prompt.description} ${r.prompt.tags.join(" ")}`,
-          }))
+          }));
 
           // Apply semantic reranking with hash fallback and a safety timeout
           const rerankPromise = semanticRerank(debouncedQuery, rankedResults, {
             topN: 20,
             fallback: "hash",
-          })
+          });
 
-          let timeoutId: ReturnType<typeof setTimeout> | undefined;
           const timeoutPromise = new Promise<RankedResult[]>((_, reject) => {
-            timeoutId = setTimeout(() => reject(new Error("rerank_timeout")), 2000)
-          })
+            timeoutId = setTimeout(() => reject(new Error("rerank_timeout")), 2000);
+          });
 
-          const reranked = await Promise.race([rerankPromise, timeoutPromise])
-          if (timeoutId) clearTimeout(timeoutId)
+          const reranked = await Promise.race([rerankPromise, timeoutPromise]);
+          if (timeoutId) clearTimeout(timeoutId);
 
-          if (cancelled) return
+          if (searchGeneration.cancelled) return;
 
           // Map back to SearchResult format
-          const rerankedIds = reranked.map((r) => r.id)
-          const resultById = new Map(searchResults.map((r) => [r.prompt.id, r]))
+          const rerankedIds = reranked.map((r) => r.id);
+          const resultById = new Map(searchResults.map((r) => [r.prompt.id, r]));
 
           const rerankedResults = rerankedIds
             .map((id, idx) => {
-              const original = resultById.get(id)
-              if (!original) return null
-              return { ...original, score: reranked[idx].score }
+              const original = resultById.get(id);
+              if (!original) return null;
+              return { ...original, score: reranked[idx].score };
             })
             .filter((r): r is SearchResult => r !== null)
-            .slice(0, 10)
-
-          setResults(rerankedResults)
+            .slice(0, 10);
+          
+          if (searchGeneration.cancelled) return;
+          setResults(rerankedResults);
           trackEvent("search", {
             queryLength: debouncedQuery.length,
             resultCount: rerankedResults.length,
             source: "spotlight",
             semantic: true,
-          })
+          });
         } catch (err) {
-          console.warn("[SpotlightSearch] Semantic rerank failed, using BM25:", err)
-          if (cancelled) return
+          console.warn("[SpotlightSearch] Semantic rerank failed, using BM25:", err);
+          if (searchGeneration.cancelled) return;
           // Limit to 10 results on failure (same as non-semantic mode)
-          const fallbackResults = searchResults.slice(0, 10)
-          setResults(fallbackResults)
+          const fallbackResults = searchResults.slice(0, 10);
+          setResults(fallbackResults);
           trackEvent("search", {
             queryLength: debouncedQuery.length,
             resultCount: fallbackResults.length,
             source: "spotlight",
             semantic: false, // Fell back to BM25
-          })
+          });
         } finally {
-          if (!cancelled) setIsReranking(false)
+          if (timeoutId) clearTimeout(timeoutId);
+          if (!searchGeneration.cancelled) setIsReranking(false);
         }
       } else {
-        setIsReranking(false)
-        const nextResults = searchResults.slice(0, 10)
-        if (cancelled) return
-        setResults(nextResults)
+        setIsReranking(false);
+        const nextResults = searchResults.slice(0, 10);
+        if (searchGeneration.cancelled) return;
+        setResults(nextResults);
         trackEvent("search", {
           queryLength: debouncedQuery.length,
           resultCount: nextResults.length,
           source: "spotlight",
           semantic: semanticMode,
-        })
+        });
       }
 
-      if (!cancelled) setSelectedIndex(0)
+      if (!searchGeneration.cancelled) setSelectedIndex(0);
     }
 
-    performSearch()
+    performSearch();
 
     return () => {
-      cancelled = true
-      setIsReranking(false)
-    }
-  }, [debouncedQuery, semanticMode, selectedCategory])
+      searchGeneration.cancelled = true;
+      setIsReranking(false);
+    };
+  }, [debouncedQuery, semanticMode, selectedCategory]);
 
   // Global keyboard shortcut (Cmd+K / Ctrl+K)
   React.useEffect(() => {

@@ -87,6 +87,7 @@ export function CommunityPromptCard({
   const copyFlashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { success, error } = useToast();
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setHasMounted(true); }, []);
 
   useEffect(() => {

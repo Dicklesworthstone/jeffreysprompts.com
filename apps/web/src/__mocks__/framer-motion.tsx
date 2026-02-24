@@ -38,7 +38,7 @@ function createMotionValue(initial: number): MockMotionValue {
 }
 
 function isMotionValue(v: unknown): v is MockMotionValue {
-  return v != null && typeof v === "object" && (v as Record<string, unknown>).__mockMotionValue === true;
+  return v !== null && v !== undefined && typeof v === "object" && (v as Record<string, unknown>).__mockMotionValue === true;
 }
 
 // ============================================================================

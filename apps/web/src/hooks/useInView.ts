@@ -34,30 +34,34 @@ export function useInView<T extends HTMLElement = HTMLDivElement>(
 
   useEffect(() => {
     const element = ref.current;
-    if (!element) return;
+    let observer: IntersectionObserver | null = null;
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry) return;
+    if (element) {
+      observer = new IntersectionObserver(
+        ([entry]) => {
+          if (!entry) return;
 
-        const inView = entry.isIntersecting;
-        setIsInView(inView);
+          const inView = entry.isIntersecting;
+          setIsInView(inView);
 
-        if (inView) {
-          setHasBeenInView(true);
+          if (inView) {
+            setHasBeenInView(true);
 
-          if (triggerOnce) {
-            observer.disconnect();
+            if (triggerOnce) {
+              observer?.disconnect();
+            }
           }
-        }
-      },
-      { threshold, rootMargin }
-    );
+        },
+        { threshold, rootMargin }
+      );
 
-    observer.observe(element);
+      observer.observe(element);
+    }
 
     return () => {
-      observer.disconnect();
+      if (observer) {
+        observer.disconnect();
+      }
     };
   }, [threshold, rootMargin, triggerOnce]);
 
@@ -96,35 +100,35 @@ export function useInViewStagger(
 
     refs.forEach((ref, index) => {
       const element = ref.current;
-      if (!element) return;
+      if (element) {
+        const observer = new IntersectionObserver(
+          ([entry]) => {
+            if (!entry) return;
 
-      const observer = new IntersectionObserver(
-        ([entry]) => {
-          if (!entry) return;
+            if (entry.isIntersecting) {
+              setInViewStates((prev) => {
+                const next = [...prev];
+                next[index] = true;
+                return next;
+              });
 
-          if (entry.isIntersecting) {
-            setInViewStates((prev) => {
-              const next = [...prev];
-              next[index] = true;
-              return next;
-            });
-
-            if (triggerOnce) {
-              observer.disconnect();
+              if (triggerOnce) {
+                observer.disconnect();
+              }
+            } else if (!triggerOnce) {
+              setInViewStates((prev) => {
+                const next = [...prev];
+                next[index] = false;
+                return next;
+              });
             }
-          } else if (!triggerOnce) {
-            setInViewStates((prev) => {
-              const next = [...prev];
-              next[index] = false;
-              return next;
-            });
-          }
-        },
-        { threshold, rootMargin }
-      );
+          },
+          { threshold, rootMargin }
+        );
 
-      observer.observe(element);
-      observers.push(observer);
+        observer.observe(element);
+        observers.push(observer);
+      }
     });
 
     return () => {

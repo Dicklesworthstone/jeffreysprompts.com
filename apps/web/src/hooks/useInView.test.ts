@@ -33,6 +33,7 @@ class MockIntersectionObserver {
   constructor(callback: IntersectionCallback) {
     this.callback = callback;
     observerCallback = callback;
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     observerInstance = this;
   }
 }

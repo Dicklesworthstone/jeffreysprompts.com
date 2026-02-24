@@ -20,6 +20,7 @@ export interface BM25Index {
   avgDocLength: number;
   docCount: number;
   termDocFreq: Map<string, number>; // How many docs contain each term
+  invertedIndex: Map<string, string[]>; // Inverted index: term -> [docId]
 }
 
 /**
@@ -28,6 +29,7 @@ export interface BM25Index {
 export function buildIndex(prompts: Prompt[]): BM25Index {
   const documents = new Map<string, BM25Document>();
   const termDocFreq = new Map<string, number>();
+  const invertedIndex = new Map<string, string[]>();
   let totalLength = 0;
 
   for (const prompt of prompts) {
@@ -45,7 +47,7 @@ export function buildIndex(prompts: Prompt[]): BM25Index {
       prompt.content,
     ];
 
-    const tokens = tokenize(textParts.join(" "));
+    const tokens = textParts.flatMap(part => tokenize(part));
     const uniqueTokens = new Set(tokens);
 
     // Precompute term frequency map for efficient search
@@ -63,9 +65,13 @@ export function buildIndex(prompts: Prompt[]): BM25Index {
 
     totalLength += tokens.length;
 
-    // Update document frequency for each unique term
+    // Update document frequency and inverted index for each unique term
     for (const token of uniqueTokens) {
       termDocFreq.set(token, (termDocFreq.get(token) ?? 0) + 1);
+      
+      const postings = invertedIndex.get(token) ?? [];
+      postings.push(prompt.id);
+      invertedIndex.set(token, postings);
     }
   }
 
@@ -76,6 +82,7 @@ export function buildIndex(prompts: Prompt[]): BM25Index {
     avgDocLength: Math.max(totalLength / Math.max(prompts.length, 1), 1),
     docCount: prompts.length,
     termDocFreq,
+    invertedIndex,
   };
 }
 
@@ -97,9 +104,23 @@ export function search(
   const queryTokens = Array.isArray(query) ? query : tokenize(query);
   const scores = new Map<string, number>();
 
-  for (const [docId, doc] of index.documents) {
-    let score = 0;
+  // Use inverted index to get candidate documents
+  const candidateDocs = new Set<string>();
+  for (const term of queryTokens) {
+    const postings = index.invertedIndex.get(term);
+    if (postings) {
+      for (const docId of postings) {
+        candidateDocs.add(docId);
+      }
+    }
+  }
 
+  // Score only the candidate documents
+  for (const docId of candidateDocs) {
+    const doc = index.documents.get(docId);
+    if (!doc) continue;
+
+    let score = 0;
     for (const term of queryTokens) {
       // Use precomputed term frequency map - O(1) lookup instead of O(n) filter
       const tf = doc.termFreq.get(term) ?? 0;

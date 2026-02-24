@@ -224,7 +224,7 @@ export async function serveCommand(options: ServeOptions): Promise<void> {
       }
       if (!trimmedQuery && tags && tags.length > 0) {
         results = results.filter((r) =>
-          tags.some((tag) => r.prompt.tags.includes(tag))
+          tags.some((tag) => r.prompt?.tags?.includes(tag))
         );
       }
 
