@@ -45,9 +45,11 @@ export async function GET(request: NextRequest) {
   // Parse filter options with runtime validation
   const validStatuses = new Set<FeatureStatus>(["under_review", "planned", "in_progress", "shipped", "declined"]);
   const statusParam = searchParams.get("status");
-  const status = statusParam
+  const filteredStatuses = statusParam
     ? statusParam.split(",").filter((s): s is FeatureStatus => validStatuses.has(s as FeatureStatus))
-    : undefined;
+    : [];
+  // Empty filter (all invalid values) = no filter, not "match nothing"
+  const status = filteredStatuses.length > 0 ? filteredStatuses : undefined;
 
   const validSortBy = new Set(["votes", "newest", "oldest"]);
   const sortByParam = searchParams.get("sortBy");

@@ -18,9 +18,10 @@ export function isSafeSkillId(id: string): boolean {
 export function resolveSafeChildPath(root: string, child: string): string {
   const resolvedRoot = resolve(root);
   const resolvedChild = resolve(resolvedRoot, child);
-  // Use path.relative to verify child is under root (not at root itself)
+  // Use path.relative to verify child is strictly under root.
+  // Check for ".." (exact) or "../" prefix to avoid false positives on filenames like "..config".
   const rel = relative(resolvedRoot, resolvedChild);
-  if (!rel || rel.startsWith("..") || rel.startsWith(sep)) {
+  if (!rel || rel === ".." || rel.startsWith(".." + sep) || rel.startsWith(sep)) {
     throw new Error(`Unsafe path: ${child}`);
   }
   return resolvedChild;
