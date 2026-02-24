@@ -48,8 +48,11 @@ function downloadBlob(blob: Blob, filename: string) {
   a.download = filename;
   document.body.appendChild(a);
   a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  // Defer cleanup so the browser can finish initiating the download
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 100);
 }
 
 export function BasketSidebar({ isOpen, onClose }: BasketSidebarProps) {

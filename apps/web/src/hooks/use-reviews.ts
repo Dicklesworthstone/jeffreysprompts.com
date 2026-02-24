@@ -129,6 +129,13 @@ export function useReviews({
             : prev.reviews.map((r) => (r.id === data.review.id ? data.review : r)),
           summary: data.summary,
           userReview: data.review,
+          pagination: data.isNew
+            ? {
+                ...prev.pagination,
+                total: prev.pagination.total + 1,
+                offset: prev.pagination.offset + 1,
+              }
+            : prev.pagination,
           loading: false,
           error: null,
         }));

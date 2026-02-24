@@ -30,7 +30,6 @@ export function useLeaderboard(options: UseLeaderboardOptions = {}): UseLeaderbo
     error: null,
   });
 
-  const fetchedRef = useRef(false);
   const mountedRef = useRef(true);
 
   const fetchLeaderboard = useCallback(async (signal?: AbortSignal) => {
@@ -67,11 +66,7 @@ export function useLeaderboard(options: UseLeaderboardOptions = {}): UseLeaderbo
   useEffect(() => {
     mountedRef.current = true;
     const controller = new AbortController();
-
-    if (!fetchedRef.current) {
-      fetchedRef.current = true;
-      fetchLeaderboard(controller.signal);
-    }
+    fetchLeaderboard(controller.signal);
 
     return () => {
       mountedRef.current = false;

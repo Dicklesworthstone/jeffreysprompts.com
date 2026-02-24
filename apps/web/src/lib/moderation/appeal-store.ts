@@ -134,8 +134,7 @@ export function createAppeal(input: {
   const nowIso = now.toISOString();
 
   // Calculate review deadline
-  const deadline = new Date(now);
-  deadline.setDate(deadline.getDate() + APPEAL_REVIEW_DEADLINE_DAYS);
+  const deadline = new Date(now.getTime() + APPEAL_REVIEW_DEADLINE_DAYS * 24 * 60 * 60 * 1000);
 
   const appeal: ModerationAppeal = {
     id: crypto.randomUUID(),

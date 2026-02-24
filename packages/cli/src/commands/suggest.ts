@@ -139,7 +139,7 @@ export async function suggestCommand(task: string, options: SuggestOptions) {
   for (let i = 0; i < results.length; i++) {
     const { prompt, score, matchedFields } = results[i];
     // Semantic scores are 0-1 (need * 100), BM25 scores are typically 0-5 (need * 20)
-    const relevancePercent = Math.min(100, Math.round(options.semantic ? score * 100 : score * 20));
+    const relevancePercent = Math.max(0, Math.min(100, Math.round(options.semantic ? score * 100 : score * 20)));
     const relevanceBar = getRelevanceBar(relevancePercent);
 
     // Header: rank, title, relevance
@@ -180,7 +180,8 @@ export async function suggestCommand(task: string, options: SuggestOptions) {
  * Generate a visual relevance bar
  */
 function getRelevanceBar(percent: number): string {
-  const filled = Math.round(percent / 10);
+  const clamped = Math.max(0, Math.min(100, percent));
+  const filled = Math.round(clamped / 10);
   const empty = 10 - filled;
 
   let color: (s: string) => string;
@@ -277,7 +278,7 @@ function generateTip(
  */
 function formatSuggestion(result: SearchResult, task: string, semantic?: boolean): SuggestOutput["suggestions"][0] {
   // Normalize relevance to 0-1 scale (semantic scores are 0-1, BM25 scores are ~0-5)
-  const normalizedRelevance = Math.min(1, semantic ? result.score : result.score / 5);
+  const normalizedRelevance = Math.max(0, Math.min(1, semantic ? result.score : result.score / 5));
   return {
     id: result.prompt.id,
     title: result.prompt.title,

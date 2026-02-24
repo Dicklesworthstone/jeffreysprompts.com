@@ -278,6 +278,9 @@ export function reverseModerationAction(input: {
   const action = store.actions.get(input.actionId);
   if (!action) return null;
 
+  // Already reversed — return as-is to prevent overwriting original reversal metadata
+  if (action.reversedAt) return action;
+
   action.reversedAt = new Date().toISOString();
   action.reversedBy = input.reversedBy;
   action.reversalReason = input.reason ?? null;

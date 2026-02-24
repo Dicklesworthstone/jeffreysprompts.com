@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { timingSafeEqual } from "crypto";
 import {
   createAppeal,
   canAppealAction,
@@ -8,6 +9,17 @@ import {
 import { getModerationAction } from "@/lib/moderation/action-store";
 import { checkContentForSpam } from "@/lib/moderation/spam-check";
 import { getUserIdFromRequest } from "@/lib/user-id";
+
+/** Constant-time token comparison to prevent timing attacks */
+function safeTokenEqual(a: string, b: string): boolean {
+  const aBuf = Buffer.from(a, "utf8");
+  const bBuf = Buffer.from(b, "utf8");
+  if (aBuf.length !== bBuf.length) {
+    timingSafeEqual(bBuf, bBuf); // constant-time even on length mismatch
+    return false;
+  }
+  return timingSafeEqual(aBuf, bBuf);
+}
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_EXPLANATION_LENGTH = 2000;
@@ -162,7 +174,7 @@ export async function GET(request: NextRequest) {
   }
 
   const appeal = getAppeal(appealId);
-  if (!appeal || appeal.accessToken !== appealToken) {
+  if (!appeal || !safeTokenEqual(appeal.accessToken, appealToken)) {
     return NextResponse.json(
       { error: "Appeal not found." },
       { status: 404, headers: { "Cache-Control": "no-store, max-age=0" } }

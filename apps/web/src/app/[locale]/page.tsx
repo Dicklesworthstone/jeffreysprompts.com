@@ -304,19 +304,23 @@ function HomeContent() {
 
       {/* Featured Prompts Section - Hide when filtering */}
       {!hasActiveFilters && (
-        <FeaturedPromptsSection
-          prompts={featuredPrompts}
-          totalCount={prompts.length}
-          onPromptClick={handlePromptClick}
-        />
+        <ErrorBoundary variant="inline">
+          <FeaturedPromptsSection
+            prompts={featuredPrompts}
+            totalCount={prompts.length}
+            onPromptClick={handlePromptClick}
+          />
+        </ErrorBoundary>
       )}
 
       {/* For You Section - Hide when filtering */}
       {!hasActiveFilters && (
-        <ForYouPromptsSection
-          prompts={prompts}
-          onPromptClick={handlePromptClick}
-        />
+        <ErrorBoundary variant="inline">
+          <ForYouPromptsSection
+            prompts={prompts}
+            onPromptClick={handlePromptClick}
+          />
+        </ErrorBoundary>
       )}
 
       {/* Visual separator between Featured and Browse - Hide when filtering */}

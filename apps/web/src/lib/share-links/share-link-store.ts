@@ -40,6 +40,7 @@ interface ShareLinkStore {
 const STORE_KEY = "__jfp_share_link_store__";
 const CODE_LENGTH = 12;
 const MAX_CODE_ATTEMPTS = 10;
+const MAX_VIEWS_PER_LINK = 1000;
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
 
 function getStore(): ShareLinkStore {
@@ -277,6 +278,10 @@ export function recordShareLinkView(input: {
 
   const list = store.views.get(input.linkId) ?? [];
   list.push(view);
+  // Evict oldest views to prevent unbounded memory growth
+  if (list.length > MAX_VIEWS_PER_LINK) {
+    list.splice(0, list.length - MAX_VIEWS_PER_LINK);
+  }
   store.views.set(input.linkId, list);
 
   link.viewCount += 1;

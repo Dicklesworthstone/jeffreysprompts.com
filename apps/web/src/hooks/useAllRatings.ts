@@ -27,7 +27,6 @@ export function useAllRatings(): UseAllRatingsReturn {
     lastUpdated: null,
   });
 
-  const fetchedRef = useRef(false);
   const mountedRef = useRef(true);
 
   const fetchRatings = useCallback(async (signal?: AbortSignal) => {
@@ -68,12 +67,7 @@ export function useAllRatings(): UseAllRatingsReturn {
   useEffect(() => {
     mountedRef.current = true;
     const controller = new AbortController();
-
-    // Only fetch once on mount
-    if (!fetchedRef.current) {
-      fetchedRef.current = true;
-      fetchRatings(controller.signal);
-    }
+    fetchRatings(controller.signal);
 
     return () => {
       mountedRef.current = false;

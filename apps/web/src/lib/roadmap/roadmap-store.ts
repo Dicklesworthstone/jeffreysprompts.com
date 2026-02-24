@@ -422,7 +422,7 @@ export function submitFeature(data: {
 }): FeatureRequest {
   const store = getStore();
 
-  const id = `feat-${Date.now().toString(36)}`;
+  const id = `feat-${crypto.randomUUID()}`;
   const now = new Date().toISOString();
 
   const feature: FeatureRequest = {
@@ -530,7 +530,7 @@ export function addComment(data: {
     return null;
   }
 
-  const id = `comment-${Date.now().toString(36)}`;
+  const id = `comment-${crypto.randomUUID()}`;
 
   const comment: FeatureComment = {
     id,

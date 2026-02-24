@@ -22,9 +22,10 @@ function normalizeEmail(value: string) {
   return value.trim().toLowerCase();
 }
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 function isValidEmail(value: string) {
-  const normalized = normalizeEmail(value);
-  return normalized.length > 3 && normalized.includes("@");
+  return EMAIL_REGEX.test(normalizeEmail(value));
 }
 
 function normalizeUrl(value: string) {

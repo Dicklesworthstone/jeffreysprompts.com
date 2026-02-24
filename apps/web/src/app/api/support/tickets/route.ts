@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { timingSafeEqual } from "crypto";
 import {
   SUPPORT_EMAIL,
   isSupportCategory,
@@ -13,6 +14,17 @@ import {
 } from "@/lib/support/ticket-store";
 import { checkContentForSpam } from "@/lib/moderation/spam-check";
 import { createRateLimiter, checkMultipleLimits, getTrustedClientIp } from "@/lib/rate-limit";
+
+/** Constant-time token comparison to prevent timing attacks */
+function safeTokenEqual(a: string, b: string): boolean {
+  const aBuf = Buffer.from(a, "utf8");
+  const bBuf = Buffer.from(b, "utf8");
+  if (aBuf.length !== bBuf.length) {
+    timingSafeEqual(bBuf, bBuf);
+    return false;
+  }
+  return timingSafeEqual(aBuf, bBuf);
+}
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_NAME_LENGTH = 80;
@@ -214,7 +226,7 @@ export async function GET(request: NextRequest) {
   }
 
   const ticket = getSupportTicket(ticketNumber);
-  if (!ticket || ticket.accessToken !== ticketToken) {
+  if (!ticket || !safeTokenEqual(ticket.accessToken, ticketToken)) {
     return NextResponse.json({ error: "Ticket not found." }, { status: 404, headers: NO_STORE_HEADERS });
   }
 
@@ -282,7 +294,7 @@ export async function PUT(request: NextRequest) {
   }
 
   const ticket = getSupportTicket(ticketNumber);
-  if (!ticket || ticket.accessToken !== ticketToken) {
+  if (!ticket || !safeTokenEqual(ticket.accessToken, ticketToken)) {
     return NextResponse.json({ error: "Ticket not found." }, { status: 404, headers: NO_STORE_HEADERS });
   }
 
