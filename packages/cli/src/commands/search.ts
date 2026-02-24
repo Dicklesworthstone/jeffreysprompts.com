@@ -27,7 +27,7 @@ import {
 import { loadRegistry } from "../lib/registry-loader";
 
 function writeJson(payload: Record<string, unknown>): void {
-  console.log(JSON.stringify(payload, null, 2));
+  console.log(JSON.stringify(payload));
 }
 
 function writeJsonError(code: string, message: string, extra: Record<string, unknown> = {}): void {
@@ -222,21 +222,18 @@ function mergeResults(
   personal: MergedSearchResult[],
   limit: number
 ): MergedSearchResult[] {
-  // Combine lists
-  const all = [...personal, ...local];
+  // Use a map to store the best result for each ID, prioritizing by score
+  const bestResults = new Map<string, MergedSearchResult>();
 
-  // Dedup by ID
-  const seen = new Set<string>();
-  const unique: MergedSearchResult[] = [];
-
-  for (const item of all) {
-    if (!seen.has(item.id)) {
-      seen.add(item.id);
-      unique.push(item);
+  for (const item of [...personal, ...local]) {
+    const existing = bestResults.get(item.id);
+    if (!existing || item.score > existing.score) {
+      bestResults.set(item.id, item);
     }
   }
 
-  // Sort by score descending
+  // Convert map back to array and sort by score
+  const unique = Array.from(bestResults.values());
   unique.sort((a, b) => b.score - a.score);
 
   return unique.slice(0, limit);

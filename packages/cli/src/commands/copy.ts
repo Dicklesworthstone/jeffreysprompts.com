@@ -20,6 +20,14 @@ interface CopyOptions {
   json?: boolean;
 }
 
+function writeJson(payload: Record<string, unknown>): void {
+  console.log(JSON.stringify(payload));
+}
+
+function writeJsonError(code: string, message: string, extra: Record<string, unknown> = {}): void {
+  writeJson({ error: true, code, message, ...extra });
+}
+
 export async function copyCommand(id: string, options: CopyOptions) {
   // Load registry dynamically (SWR pattern)
   const registry = await loadRegistry();
@@ -27,12 +35,11 @@ export async function copyCommand(id: string, options: CopyOptions) {
 
   if (!prompt) {
     if (shouldOutputJson(options)) {
-      console.log(JSON.stringify({ error: "not_found", message: `Prompt not found: ${id}` }));
+      writeJsonError("not_found", `Prompt not found: ${id}`);
     } else {
       console.error(chalk.red(`Prompt not found: ${id}`));
     }
     process.exit(1);
-    return;
   }
 
   // Parse CLI variables

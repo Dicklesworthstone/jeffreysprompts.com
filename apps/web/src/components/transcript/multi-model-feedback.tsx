@@ -709,12 +709,9 @@ export function MultiModelFeedback() {
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {workflowPosts.map((post, index) => (
-            <motion.a
+            <motion.div
               key={post.id}
               id={`xpost-${post.id}`}
-              href={`https://x.com/doodlestein/status/${post.id}`}
-              target="_blank"
-              rel="noreferrer"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-40px" }}
@@ -761,12 +758,17 @@ export function MultiModelFeedback() {
                     Guide step
                   </a>
                 ))}
-                <span className="inline-flex items-center gap-1 text-sky-700 dark:text-sky-200">
+                <a
+                  href={`https://x.com/doodlestein/status/${post.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-sky-700 dark:text-sky-200 hover:underline"
+                >
                   View post
                   <ArrowUpRight className="h-3 w-3 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-                </span>
+                </a>
               </div>
-            </motion.a>
+            </motion.div>
           ))}
         </div>
       </div>

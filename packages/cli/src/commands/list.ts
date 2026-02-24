@@ -67,7 +67,12 @@ function applyFilters(results: Prompt[], options: ListOptions): Prompt[] {
   }
 
   if (options.tag) {
-    filtered = filtered.filter((p) => p.tags.includes(options.tag!));
+    const requestedTags = options.tag.split(',').map(t => t.trim()).filter(Boolean);
+    if (requestedTags.length > 0) {
+      filtered = filtered.filter((p) => 
+        p.tags.some(pt => requestedTags.includes(pt))
+      );
+    }
   }
 
   return filtered;

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import { CodeBlock, CodeTabs } from "./CodeBlock";
 
 vi.mock("@/lib/clipboard", () => ({
@@ -38,13 +38,17 @@ describe("CodeBlock", () => {
   it("copies code on button click", async () => {
     render(<CodeBlock code="copy me" language="bash" />);
     const copyBtn = screen.getByLabelText("Copy code");
-    fireEvent.click(copyBtn);
+    await act(async () => {
+      fireEvent.click(copyBtn);
+    });
     expect(copyToClipboard).toHaveBeenCalledWith("copy me");
   });
 
   it("shows Copied label after copying", async () => {
     render(<CodeBlock code="copy me" language="bash" />);
-    fireEvent.click(screen.getByLabelText("Copy code"));
+    await act(async () => {
+      fireEvent.click(screen.getByLabelText("Copy code"));
+    });
     // After copy, aria-label changes to "Copied"
     await vi.waitFor(() => {
       expect(screen.getByLabelText("Copied")).toBeInTheDocument();

@@ -199,8 +199,7 @@ export function getReviewSummary(input: {
     includeReported: false,
   });
 
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const thirtyDaysAgoStr = thirtyDaysAgo.toISOString();
 
   const recentReviews = reviews.filter((r) => r.createdAt >= thirtyDaysAgoStr).length;

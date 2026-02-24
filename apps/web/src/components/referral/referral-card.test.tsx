@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
 import { ReferralCard } from "./referral-card";
 
 vi.mock("@/lib/clipboard", () => ({
@@ -70,7 +70,9 @@ describe("ReferralCard", () => {
     await waitFor(() => {
       expect(screen.getByLabelText("Copy link")).toBeInTheDocument();
     });
-    fireEvent.click(screen.getByLabelText("Copy link"));
+    await act(async () => {
+      fireEvent.click(screen.getByLabelText("Copy link"));
+    });
     expect(copyToClipboard).toHaveBeenCalledWith(
       "https://jeffreysprompts.com/r/TESTCODE"
     );

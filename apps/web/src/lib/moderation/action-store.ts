@@ -119,8 +119,7 @@ export function createModerationAction(input: {
 
   let endsAt: string | null = null;
   if (input.actionType === "suspension" && input.durationDays && input.durationDays > 0) {
-    const endDate = new Date(now);
-    endDate.setDate(endDate.getDate() + input.durationDays);
+    const endDate = new Date(now.getTime() + input.durationDays * 24 * 60 * 60 * 1000);
     endsAt = endDate.toISOString();
   }
 

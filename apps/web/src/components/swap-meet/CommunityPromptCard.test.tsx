@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import { CommunityPromptCard } from "./CommunityPromptCard";
 
 vi.mock("framer-motion", () => ({
@@ -123,10 +123,12 @@ describe("CommunityPromptCard", () => {
     expect(onClick).toHaveBeenCalledWith(mockPrompt);
   });
 
-  it("copies content on copy button click", () => {
+  it("copies content on copy button click", async () => {
     render(<CommunityPromptCard prompt={mockPrompt as never} />);
     const copyBtn = screen.getByLabelText("Copy prompt");
-    fireEvent.click(copyBtn);
+    await act(async () => {
+      fireEvent.click(copyBtn);
+    });
     expect(copyToClipboard).toHaveBeenCalledWith(
       "You are an expert developer..."
     );
