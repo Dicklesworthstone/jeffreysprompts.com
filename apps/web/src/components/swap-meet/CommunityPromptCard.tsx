@@ -46,10 +46,16 @@ function formatNumber(num: number): string {
   return num.toString();
 }
 
-function formatDate(dateString: string): string {
+/** Format as absolute date string (safe for SSR — no Date.now() dependency) */
+function formatDateAbsolute(dateString: string): string {
   const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+/** Format as relative time string (client-only — uses Date.now()) */
+function formatDateRelative(dateString: string): string {
+  const date = new Date(dateString);
+  const diffMs = Date.now() - date.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
   if (diffDays === 0) return "Today";
@@ -75,10 +81,13 @@ export function CommunityPromptCard({
 }: CommunityPromptCardProps) {
   const [copied, setCopied] = useState(false);
   const [copyFlash, setCopyFlash] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
   const prefersReducedMotion = useReducedMotion();
   const copiedResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const copyFlashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { success, error } = useToast();
+
+  useEffect(() => { setHasMounted(true); }, []);
 
   useEffect(() => {
     return () => {
@@ -259,7 +268,7 @@ export function CommunityPromptCard({
             {/* Actions Row */}
             <div className="flex items-center justify-between">
               <span className="text-xs text-neutral-400">
-                {formatDate(prompt.createdAt)}
+                {hasMounted ? formatDateRelative(prompt.createdAt) : formatDateAbsolute(prompt.createdAt)}
               </span>
 
               <div className="flex items-center gap-1">

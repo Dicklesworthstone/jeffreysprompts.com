@@ -8,7 +8,7 @@
  */
 
 import { motion, useReducedMotion, type Variants } from "framer-motion";
-import { type ReactNode, useRef, useState, useEffect } from "react";
+import { Children, type ReactNode, useRef, useState, useEffect } from "react";
 
 type AnimationVariant = "fadeUp" | "fadeIn" | "slideLeft" | "slideRight" | "scale";
 
@@ -166,16 +166,14 @@ function StaggerChildren({ children, variant, duration }: StaggerChildrenProps) 
     },
   };
 
-  // Wrap each direct child with motion.div
+  // Wrap each direct child with motion.div, using child's own key when available
   return (
     <>
-      {Array.isArray(children)
-        ? children.map((child, index) => (
-            <motion.div key={index} variants={childVariants}>
-              {child}
-            </motion.div>
-          ))
-        : children}
+      {Children.map(children, (child, index) => (
+        <motion.div key={(child as { key?: string })?.key ?? `stagger-${index}`} variants={childVariants}>
+          {child}
+        </motion.div>
+      ))}
     </>
   );
 }

@@ -60,14 +60,17 @@ export function useServiceWorker(): ServiceWorkerState {
           registration,
         }));
 
-        // Check for updates periodically
+        // Listen for new service worker installations
         updateFoundHandler = () => {
           const newWorker = registration.installing;
           if (newWorker) {
+            // Clean up previous handler to prevent memory leak
+            if (installingWorker && stateChangeHandler) {
+              installingWorker.removeEventListener("statechange", stateChangeHandler);
+            }
             installingWorker = newWorker;
             stateChangeHandler = () => {
               if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
-                // New version available
                 setState((prev) => ({ ...prev, hasUpdate: true }));
               }
             };

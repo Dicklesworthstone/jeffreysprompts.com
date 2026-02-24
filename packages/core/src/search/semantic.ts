@@ -350,8 +350,9 @@ export async function semanticRerank(
       const docEmbedding = await generateEmbedding(text, options);
 
       if (docEmbedding.length === 0) {
-        // Passthrough: keep original score
-        return { ...result };
+        // Passthrough on failure: normalize BM25 score and treat semantic score as 0
+        const normalizedBm25 = result.score / maxBm25Score;
+        return { ...result, score: normalizedBm25 * 0.4 };
       }
 
       const semanticScore = cosineSimilarity(queryEmbedding, docEmbedding);

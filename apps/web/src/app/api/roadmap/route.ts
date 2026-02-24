@@ -42,17 +42,18 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  // Parse filter options
+  // Parse filter options with runtime validation
+  const validStatuses = new Set<FeatureStatus>(["under_review", "planned", "in_progress", "shipped", "declined"]);
   const statusParam = searchParams.get("status");
   const status = statusParam
-    ? (statusParam.split(",") as FeatureStatus[])
+    ? statusParam.split(",").filter((s): s is FeatureStatus => validStatuses.has(s as FeatureStatus))
     : undefined;
 
-  const sortBy = searchParams.get("sortBy") as
-    | "votes"
-    | "newest"
-    | "oldest"
-    | undefined;
+  const validSortBy = new Set(["votes", "newest", "oldest"]);
+  const sortByParam = searchParams.get("sortBy");
+  const sortBy = sortByParam && validSortBy.has(sortByParam)
+    ? (sortByParam as "votes" | "newest" | "oldest")
+    : undefined;
 
   const limitParam = searchParams.get("limit");
   const parsedLimit = limitParam ? parseInt(limitParam, 10) : undefined;

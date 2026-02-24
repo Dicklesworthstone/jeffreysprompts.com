@@ -249,11 +249,13 @@ export function SpotlightSearch({
             fallback: "hash",
           })
 
-          const timeoutPromise = new Promise<RankedResult[]>((_, reject) => 
-            setTimeout(() => reject(new Error("rerank_timeout")), 2000)
-          )
+          let timeoutId: ReturnType<typeof setTimeout> | undefined;
+          const timeoutPromise = new Promise<RankedResult[]>((_, reject) => {
+            timeoutId = setTimeout(() => reject(new Error("rerank_timeout")), 2000)
+          })
 
           const reranked = await Promise.race([rerankPromise, timeoutPromise])
+          if (timeoutId) clearTimeout(timeoutId)
 
           if (cancelled) return
 

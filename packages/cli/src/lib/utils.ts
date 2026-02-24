@@ -1,4 +1,4 @@
-import { resolve, sep, dirname } from "path";
+import { resolve, sep, relative, dirname } from "path";
 import { writeFileSync, renameSync, mkdirSync, unlinkSync, existsSync } from "fs";
 import { writeFile, rename, mkdir, unlink } from "fs/promises";
 import { randomBytes } from "crypto";
@@ -18,7 +18,9 @@ export function isSafeSkillId(id: string): boolean {
 export function resolveSafeChildPath(root: string, child: string): string {
   const resolvedRoot = resolve(root);
   const resolvedChild = resolve(resolvedRoot, child);
-  if (!resolvedChild.startsWith(resolvedRoot + sep)) {
+  // Use path.relative to verify child is under root (not at root itself)
+  const rel = relative(resolvedRoot, resolvedChild);
+  if (!rel || rel.startsWith("..") || rel.startsWith(sep)) {
     throw new Error(`Unsafe path: ${child}`);
   }
   return resolvedChild;

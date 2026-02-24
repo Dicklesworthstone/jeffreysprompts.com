@@ -167,8 +167,8 @@ export function createDefaultConfig(): JfpConfig {
   };
 }
 
-// Legacy export for backwards compatibility
-export const DEFAULT_CONFIG: JfpConfig = createDefaultConfig();
+// Use createDefaultConfig() instead — a module-level singleton would be stale
+// if JFP_HOME is set after module import.
 
 function parseEnvNumber(value: string | undefined): number | null {
   if (!value) return null;
