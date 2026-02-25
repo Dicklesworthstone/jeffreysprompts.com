@@ -5,7 +5,6 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { runReadyChecks, runStatusChecks } from "./checks";
-import type { HealthStatus } from "./checks";
 
 const envBackup: Record<string, string | undefined> = {};
 

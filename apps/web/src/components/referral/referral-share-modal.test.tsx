@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { render, screen, act , fireEvent} from "@testing-library/react";
 import { ReferralShareModal } from "./referral-share-modal";
 
 vi.mock("@/lib/clipboard", () => ({

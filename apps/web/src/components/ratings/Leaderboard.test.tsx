@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent} from "@testing-library/react";
 import { Leaderboard } from "./Leaderboard";
 
 vi.mock("framer-motion", () => ({
@@ -8,7 +8,8 @@ vi.mock("framer-motion", () => ({
       children,
       ...props
     }: React.PropsWithChildren<Record<string, unknown>>) => {
-      const { initial, animate, transition, whileHover, whileTap, ...rest } = props;
+       
+      const { ...rest } = props;
       return <button {...rest}>{children}</button>;
     },
   },

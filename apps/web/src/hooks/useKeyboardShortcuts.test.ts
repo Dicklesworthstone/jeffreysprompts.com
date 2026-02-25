@@ -2,7 +2,7 @@
  * Tests for useKeyboardShortcuts hook and formatShortcut utility
  */
 import { renderHook, act } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi} from "vitest";
 import { useKeyboardShortcuts, formatShortcut, type KeyboardShortcut } from "./useKeyboardShortcuts";
 
 function fireKeyDown(key: string, opts: Partial<KeyboardEventInit> = {}) {

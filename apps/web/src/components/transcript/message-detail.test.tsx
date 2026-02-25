@@ -1,12 +1,13 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent} from "@testing-library/react";
 import { MessageDetail } from "./message-detail";
 import type { TranscriptMessage } from "@/lib/transcript/types";
 
 vi.mock("framer-motion", () => ({
   motion: {
     div: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => {
-      const { initial, animate, transition, whileInView, viewport, exit, ...rest } = props;
+       
+      const { ...rest } = props;
       return <div {...(rest as React.HTMLAttributes<HTMLDivElement>)}>{children}</div>;
     },
   },

@@ -12,7 +12,7 @@ import { useReducedMotion } from "./useReducedMotion";
 // ---------------------------------------------------------------------------
 
 let changeListeners: Array<(e: MediaQueryListEvent) => void> = [];
-let matchesValue = false;
+
 
 function createMockMatchMedia(matches: boolean) {
   return vi.fn().mockImplementation((query: string) => ({
@@ -35,7 +35,7 @@ function createMockMatchMedia(matches: boolean) {
 
 beforeEach(() => {
   changeListeners = [];
-  matchesValue = false;
+  
   window.matchMedia = createMockMatchMedia(false);
 });
 

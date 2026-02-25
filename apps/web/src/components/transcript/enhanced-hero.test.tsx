@@ -5,19 +5,23 @@ import { EnhancedHero } from "./enhanced-hero";
 vi.mock("framer-motion", () => ({
   motion: {
     div: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => {
-      const { initial, animate, transition, whileInView, viewport, style, ...rest } = props;
+       
+      const { ...rest } = props;
       return <div {...(rest as React.HTMLAttributes<HTMLDivElement>)}>{children}</div>;
     },
     h1: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => {
-      const { initial, animate, transition, ...rest } = props;
+       
+      const { ...rest } = props;
       return <h1 {...(rest as React.HTMLAttributes<HTMLHeadingElement>)}>{children}</h1>;
     },
     p: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => {
-      const { initial, animate, transition, ...rest } = props;
+       
+      const { ...rest } = props;
       return <p {...(rest as React.HTMLAttributes<HTMLParagraphElement>)}>{children}</p>;
     },
     span: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => {
-      const { initial, animate, transition, ...rest } = props;
+       
+      const { ...rest } = props;
       return <span {...(rest as React.HTMLAttributes<HTMLSpanElement>)}>{children}</span>;
     },
   },

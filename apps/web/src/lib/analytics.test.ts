@@ -5,7 +5,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { trackEvent, trackGaEvent, trackPageView } from "./analytics";
 
 describe("analytics", () => {
-  const origWindow = globalThis.window;
 
   beforeEach(() => {
     // Reset window mocks

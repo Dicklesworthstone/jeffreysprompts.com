@@ -6,7 +6,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { NextRequest } from "next/server";
 import { PERMISSIONS, getServerAdminRole, checkAdminPermission } from "./permissions";
-import type { AdminRole, AdminPermission } from "./permissions";
+import type { AdminPermission } from "./permissions";
 
 // Helper to create mock requests
 function makeRequest(headers: Record<string, string> = {}): NextRequest {

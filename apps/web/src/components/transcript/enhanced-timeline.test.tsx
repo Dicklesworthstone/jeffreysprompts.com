@@ -1,16 +1,18 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent} from "@testing-library/react";
 import { EnhancedTimeline } from "./enhanced-timeline";
 import type { TranscriptMessage, TranscriptSection } from "@/lib/transcript/types";
 
 vi.mock("framer-motion", () => ({
   motion: {
     button: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => {
-      const { initial, animate, transition, whileInView, viewport, ...rest } = props;
+       
+      const { ...rest } = props;
       return <button {...(rest as React.ButtonHTMLAttributes<HTMLButtonElement>)}>{children}</button>;
     },
     div: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => {
-      const { initial, animate, transition, whileInView, viewport, exit, ...rest } = props;
+       
+      const { ...rest } = props;
       return <div {...(rest as React.HTMLAttributes<HTMLDivElement>)}>{children}</div>;
     },
   },

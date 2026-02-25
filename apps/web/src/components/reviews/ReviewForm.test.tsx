@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, waitFor , fireEvent} from "@testing-library/react";
 import { ReviewForm } from "./ReviewForm";
 import { REVIEW_MAX_LENGTH } from "@/lib/reviews/review-store";
 import type { Review } from "@/lib/reviews/review-store";

@@ -12,10 +12,7 @@ import {
 } from "./theme";
 
 describe("theme", () => {
-  let origLocalStorage: Storage;
-
   beforeEach(() => {
-    origLocalStorage = globalThis.localStorage;
     // Ensure clean state
     try {
       localStorage.removeItem("theme");

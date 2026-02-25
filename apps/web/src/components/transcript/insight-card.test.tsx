@@ -1,12 +1,13 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent} from "@testing-library/react";
 import { InsightCard } from "./insight-card";
 import type { TranscriptHighlight } from "@/lib/transcript/types";
 
 vi.mock("framer-motion", () => ({
   motion: {
     button: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => {
-      const { initial, animate, transition, whileInView, viewport, ...rest } = props;
+       
+      const { ...rest } = props;
       return <button {...(rest as React.ButtonHTMLAttributes<HTMLButtonElement>)}>{children}</button>;
     },
   },

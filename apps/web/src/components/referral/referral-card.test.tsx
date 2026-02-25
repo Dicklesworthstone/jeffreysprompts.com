@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
+import { render, screen, waitFor, act , fireEvent} from "@testing-library/react";
 import { ReferralCard } from "./referral-card";
 
 vi.mock("@/lib/clipboard", () => ({

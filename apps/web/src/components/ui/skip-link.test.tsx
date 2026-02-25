@@ -3,8 +3,8 @@
  * Tests WCAG 2.4.1 bypass block accessibility link.
  */
 
-import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, fireEvent} from "@testing-library/react";
+import { describe, it, expect, vi} from "vitest";
 import { SkipLink } from "./skip-link";
 
 describe("SkipLink", () => {

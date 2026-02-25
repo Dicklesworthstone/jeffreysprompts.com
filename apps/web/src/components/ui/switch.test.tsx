@@ -3,7 +3,7 @@
  * Tests Radix Switch toggle rendering and interaction.
  */
 
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent} from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { Switch } from "./switch";
 

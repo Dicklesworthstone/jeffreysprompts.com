@@ -90,7 +90,7 @@ describe("useViewTransition", () => {
         return mockTransition;
       });
       // Ensure reduced motion is off
-      const origMatchMedia = window.matchMedia;
+      
       window.matchMedia = vi.fn().mockReturnValue({ matches: false }) as unknown as typeof window.matchMedia;
     });
 

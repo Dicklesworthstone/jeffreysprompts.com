@@ -2,7 +2,7 @@
  * Tests for useServiceWorker hook — service worker registration and state
  */
 import { renderHook, act, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
+import { afterEach, describe, it, expect, vi } from "vitest";
 import { useServiceWorker, checkForUpdates, skipWaitingAndReload } from "./useServiceWorker";
 
 describe("useServiceWorker", () => {

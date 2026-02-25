@@ -78,7 +78,7 @@ describe("useInView", () => {
     (result.current.ref as { current: HTMLElement | null }).current = div;
 
     // Re-render to trigger useEffect
-    const { result: result2 } = renderHook(() => useInView());
+    renderHook(() => useInView());
     // Observer should be created when element exists
     expect(typeof IntersectionObserver).toBe("function");
   });

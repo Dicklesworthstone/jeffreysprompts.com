@@ -5,11 +5,13 @@ import { MultiModelFeedback } from "./multi-model-feedback";
 vi.mock("framer-motion", () => ({
   motion: {
     div: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => {
-      const { initial, animate, transition, whileInView, viewport, ...rest } = props;
+       
+      const { ...rest } = props;
       return <div {...(rest as React.HTMLAttributes<HTMLDivElement>)}>{children}</div>;
     },
     a: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => {
-      const { initial, animate, transition, whileInView, viewport, ...rest } = props;
+       
+      const { ...rest } = props;
       return <a {...(rest as React.AnchorHTMLAttributes<HTMLAnchorElement>)}>{children}</a>;
     },
   },

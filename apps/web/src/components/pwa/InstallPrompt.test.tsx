@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { render, screen, act , fireEvent} from "@testing-library/react";
 import { InstallPrompt } from "./InstallPrompt";
 
 vi.mock("framer-motion", () => ({
@@ -8,7 +8,8 @@ vi.mock("framer-motion", () => ({
       children,
       ...props
     }: React.PropsWithChildren<Record<string, unknown>>) => {
-      const { initial, animate, exit, transition, whileHover, whileTap, ...rest } = props;
+       
+      const { ...rest } = props;
       return <div {...rest}>{children}</div>;
     },
   },

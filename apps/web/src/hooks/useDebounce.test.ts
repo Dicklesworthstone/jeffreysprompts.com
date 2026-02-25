@@ -78,7 +78,7 @@ describe("useDebounce", () => {
       rerender({ value: "change2" });
       rerender({ value: "change3" });
 
-      // Still initial, pending
+      // Still _initial, pending
       expect(result.current[0]).toBe("initial");
       expect(result.current[1]).toBe(true);
 
