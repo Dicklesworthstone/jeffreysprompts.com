@@ -443,7 +443,7 @@ function generateSessionId(startTime: string): string {
     return `session-${Date.now()}`;
   }
   // Use a random suffix to prevent collisions for same-day sessions
-  const suffix = Math.random().toString(36).substring(2, 8);
+  const suffix = crypto.randomUUID().substring(0, 6);
   return `session-${date.toISOString().slice(0, 10)}-${suffix}`;
 }
 

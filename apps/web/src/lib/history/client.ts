@@ -22,7 +22,7 @@ export function getOrCreateLocalUserId(): string | null {
     userId =
       typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
         ? crypto.randomUUID()
-        : `user-${Math.random().toString(36).slice(2, 9)}`;
+        : `user-${crypto.randomUUID().slice(0, 8)}`;
     window.localStorage.setItem(LOCAL_USER_ID_KEY, userId);
     window.localStorage.setItem(LEGACY_RATING_USER_ID_KEY, userId);
   }
@@ -104,7 +104,7 @@ export async function trackHistoryView(input: {
   const entryId =
     typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
       ? crypto.randomUUID()
-      : `entry-${Math.random().toString(36).slice(2, 11)}`;
+      : `entry-${crypto.randomUUID().slice(0, 9)}`;
 
   const newItem: ViewHistoryEntry = {
     id: entryId,

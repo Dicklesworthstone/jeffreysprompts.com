@@ -25,9 +25,7 @@ function getSecret(): Buffer {
     );
   }
 
-  const fallback = `dev-${process.pid}-${Date.now()}-${Math.random()
-    .toString(36)
-    .slice(2)}`;
+  const fallback = `dev-${process.pid}-${Date.now()}-${randomUUID()}`;
   cachedSecret = Buffer.from(fallback, "utf8");
 
   if (!warnedMissingSecret) {

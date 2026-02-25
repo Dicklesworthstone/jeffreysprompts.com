@@ -70,7 +70,7 @@ function createTicketNumber(store: SupportTicketStore): string {
   let attempts = 0;
 
   while (!ticketNumber || store.tickets.has(ticketNumber)) {
-    const random = Math.floor(1000 + Math.random() * 9000);
+    const random = Math.floor(1000 + (parseInt(crypto.randomUUID().slice(0, 4), 16) % 9000));
     ticketNumber = `SUP-${date}-${random}`;
     attempts += 1;
     if (attempts > 10) {
