@@ -1,4 +1,3 @@
-import { getBundlePrompts } from "@jeffreysprompts/core/prompts/bundles";
 import Table from "cli-table3";
 import boxen from "boxen";
 import chalk from "chalk";
