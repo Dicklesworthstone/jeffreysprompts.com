@@ -101,9 +101,9 @@ describe("user-id", () => {
       vi.resetModules();
 
       if (originalNodeEnv === undefined) {
-        delete process.env.NODE_ENV;
+        // delete process.env.NODE_ENV;
       } else {
-        process.env.NODE_ENV = originalNodeEnv;
+        // process.env.NODE_ENV = originalNodeEnv;
       }
 
       if (originalUserSecret === undefined) {
@@ -122,7 +122,7 @@ describe("user-id", () => {
     it("throws in production when no secret is configured", async () => {
       delete process.env.JFP_USER_ID_SECRET;
       delete process.env.JFP_ANON_ID_SECRET;
-      process.env.NODE_ENV = "production";
+      vi.stubEnv("NODE_ENV", "production");
       vi.resetModules();
 
       const userIdModule = await import("./user-id");
@@ -134,7 +134,7 @@ describe("user-id", () => {
     it("allows JFP_ANON_ID_SECRET as production fallback", async () => {
       delete process.env.JFP_USER_ID_SECRET;
       process.env.JFP_ANON_ID_SECRET = "fallback-secret";
-      process.env.NODE_ENV = "production";
+      vi.stubEnv("NODE_ENV", "production");
       vi.resetModules();
 
       const userIdModule = await import("./user-id");

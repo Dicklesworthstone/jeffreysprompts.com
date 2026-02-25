@@ -18,7 +18,13 @@ interface TerminalStreamProps {
  */
 export function TerminalStream({ text, className }: TerminalStreamProps) {
   const [animatedText, setAnimatedText] = useState("");
+  const [prevText, setPrevText] = useState(text);
   const prefersReducedMotion = useReducedMotion();
+
+  if (text !== prevText) {
+    setAnimatedText("");
+    setPrevText(text);
+  }
 
   useEffect(() => {
     if (prefersReducedMotion) return;

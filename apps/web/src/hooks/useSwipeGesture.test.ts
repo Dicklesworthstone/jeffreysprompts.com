@@ -78,7 +78,7 @@ describe("useSwipeGesture", () => {
     });
 
     act(() => {
-      result.current.handlers.onTouchEnd(createTouchEvent("touchend", 100, 100) as unknown as React.TouchEvent);
+      result.current.handlers.onTouchEnd!();
     });
 
     expect(onSwipeLeft).toHaveBeenCalled();
@@ -99,7 +99,7 @@ describe("useSwipeGesture", () => {
     });
 
     act(() => {
-      result.current.handlers.onTouchEnd(createTouchEvent("touchend", 200, 100) as unknown as React.TouchEvent);
+      result.current.handlers.onTouchEnd!();
     });
 
     expect(onSwipeRight).toHaveBeenCalled();
@@ -119,7 +119,7 @@ describe("useSwipeGesture", () => {
       result.current.handlers.onTouchMove(createTouchEvent("touchmove", 130, 100));
     });
     act(() => {
-      result.current.handlers.onTouchEnd(createTouchEvent("touchend", 130, 100) as unknown as React.TouchEvent);
+      result.current.handlers.onTouchEnd!();
     });
 
     expect(onSwipeLeft).not.toHaveBeenCalled();
@@ -134,7 +134,7 @@ describe("useSwipeGesture", () => {
       result.current.handlers.onTouchStart(createTouchEvent("touchstart", 100, 100));
     });
     act(() => {
-      result.current.handlers.onTouchEnd(createTouchEvent("touchend", 100, 100) as unknown as React.TouchEvent);
+      result.current.handlers.onTouchEnd!();
     });
 
     expect(onSwipeEnd).toHaveBeenCalled();

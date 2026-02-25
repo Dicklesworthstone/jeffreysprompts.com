@@ -183,7 +183,6 @@ export function useFilterState(): UseFilterStateReturn {
     params.delete("q");
     params.delete("category");
     params.delete("tags");
-    params.delete("sort");
     params.delete("minRating");
 
     const newUrl = params.toString()

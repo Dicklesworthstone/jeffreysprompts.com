@@ -146,7 +146,9 @@ async function downloadFile(url: string, destPath: string, expectedSize?: number
       if (done) break;
 
       downloadedSize += value.length;
-      fileStream.write(value);
+      if (!fileStream.write(value)) {
+        await new Promise<void>((resolve) => fileStream.once("drain", () => resolve()));
+      }
 
       if (showProgress && Date.now() - lastProgressUpdate > 100) {
         const percent = Math.round((downloadedSize / totalSize) * 100);

@@ -10,7 +10,7 @@ const mockSummary = {
 };
 
 vi.mock("@/hooks/use-rating", () => ({
-  useRating: vi.fn(() => ({ summary: mockSummary, loading: false })),
+  useRating: vi.fn(() => ({ summary: mockSummary as any, loading: false })),
 }));
 
 import { useRating } from "@/hooks/use-rating";
@@ -18,11 +18,11 @@ import { useRating } from "@/hooks/use-rating";
 describe("RatingDisplay", () => {
   beforeEach(() => {
     vi.mocked(useRating).mockReturnValue({
-      summary: mockSummary,
-      loading: false,
-      userVote: null,
-      vote: vi.fn(),
-      removeVote: vi.fn(),
+      summary: mockSummary as any,
+      loading: false, userRating: null, error: null,
+      
+      rate: vi.fn(), refresh: vi.fn(),
+      
     });
   });
 
@@ -45,11 +45,11 @@ describe("RatingDisplay", () => {
 
   it("shows singular 'vote' for total of 1", () => {
     vi.mocked(useRating).mockReturnValue({
-      summary: { upvotes: 1, downvotes: 0, total: 1, approvalRate: 100 },
-      loading: false,
-      userVote: null,
-      vote: vi.fn(),
-      removeVote: vi.fn(),
+      summary: { contentType: "prompt", contentId: "test", lastUpdated: "2024", upvotes: 1, downvotes: 0, total: 1, approvalRate: 100 },
+      loading: false, userRating: null, error: null,
+      
+      rate: vi.fn(), refresh: vi.fn(),
+      
     });
     render(
       <RatingDisplay contentType="prompt" contentId="test-1" variant="detailed" />
@@ -59,11 +59,11 @@ describe("RatingDisplay", () => {
 
   it("formats large counts with k suffix", () => {
     vi.mocked(useRating).mockReturnValue({
-      summary: { upvotes: 1500, downvotes: 500, total: 2000, approvalRate: 75 },
-      loading: false,
-      userVote: null,
-      vote: vi.fn(),
-      removeVote: vi.fn(),
+      summary: { contentType: "prompt", contentId: "test", lastUpdated: "2024", upvotes: 1500, downvotes: 500, total: 2000, approvalRate: 75 },
+      loading: false, userRating: null, error: null,
+      
+      rate: vi.fn(), refresh: vi.fn(),
+      
     });
     render(<RatingDisplay contentType="prompt" contentId="test-1" />);
     expect(screen.getByText("(2.0k)")).toBeInTheDocument();
@@ -72,10 +72,10 @@ describe("RatingDisplay", () => {
   it("returns null when loading", () => {
     vi.mocked(useRating).mockReturnValue({
       summary: null,
-      loading: true,
-      userVote: null,
-      vote: vi.fn(),
-      removeVote: vi.fn(),
+      loading: true, userRating: null, error: null,
+      
+      rate: vi.fn(), refresh: vi.fn(),
+      
     });
     const { container } = render(
       <RatingDisplay contentType="prompt" contentId="test-1" />
@@ -85,11 +85,11 @@ describe("RatingDisplay", () => {
 
   it("returns null when total is 0", () => {
     vi.mocked(useRating).mockReturnValue({
-      summary: { upvotes: 0, downvotes: 0, total: 0, approvalRate: 0 },
-      loading: false,
-      userVote: null,
-      vote: vi.fn(),
-      removeVote: vi.fn(),
+      summary: { contentType: "prompt", contentId: "test", lastUpdated: "2024", upvotes: 0, downvotes: 0, total: 0, approvalRate: 0 },
+      loading: false, userRating: null, error: null,
+      
+      rate: vi.fn(), refresh: vi.fn(),
+      
     });
     const { container } = render(
       <RatingDisplay contentType="prompt" contentId="test-1" />

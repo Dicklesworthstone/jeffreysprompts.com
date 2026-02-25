@@ -111,6 +111,7 @@ export class ApiClient {
           ok: false,
           status: response.status,
           error: errorMessage,
+          data: data as T,
         };
       }
 
@@ -143,6 +144,7 @@ export class ApiClient {
             ok: false,
             status: response.status,
             error: errorMessage,
+            data: data as T,
           };
         }
       }

@@ -18,7 +18,8 @@ vi.mock("framer-motion", () => ({
 
 vi.mock("@/hooks/usePWAInstall", () => ({
   usePWAInstall: vi.fn(() => ({
-    isInstallable: true,
+    canPrompt: false,
+      isInstallable: true,
     isInstalled: false,
     isIOS: false,
     promptInstall: vi.fn(),
@@ -32,6 +33,7 @@ describe("InstallPrompt", () => {
     vi.useFakeTimers();
     localStorage.clear();
     vi.mocked(usePWAInstall).mockReturnValue({
+      canPrompt: false,
       isInstallable: true,
       isInstalled: false,
       isIOS: false,
@@ -59,6 +61,7 @@ describe("InstallPrompt", () => {
 
   it("does not show if already installed", () => {
     vi.mocked(usePWAInstall).mockReturnValue({
+      canPrompt: false,
       isInstallable: false,
       isInstalled: true,
       isIOS: false,
@@ -79,6 +82,7 @@ describe("InstallPrompt", () => {
 
   it("does not show when not installable and not iOS", () => {
     vi.mocked(usePWAInstall).mockReturnValue({
+      canPrompt: false,
       isInstallable: false,
       isInstalled: false,
       isIOS: false,
@@ -91,6 +95,7 @@ describe("InstallPrompt", () => {
 
   it("shows iOS instructions when iOS and Install clicked", () => {
     vi.mocked(usePWAInstall).mockReturnValue({
+      canPrompt: false,
       isInstallable: false,
       isInstalled: false,
       isIOS: true,

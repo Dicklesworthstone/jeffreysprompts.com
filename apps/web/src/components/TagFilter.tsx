@@ -37,10 +37,18 @@ export function TagFilter({
     onChange([]);
   }, [onChange]);
 
-  // Sort tags by count if available, otherwise alphabetically
-  const sortedTags = counts
-    ? [...tags].sort((a, b) => (counts[b] ?? 0) - (counts[a] ?? 0) || a.localeCompare(b))
-    : [...tags].sort();
+  // Sort tags: selected first, then by count (if available), then alphabetically
+  const sortedTags = [...tags].sort((a, b) => {
+    const aSelected = selected.includes(a);
+    const bSelected = selected.includes(b);
+    if (aSelected && !bSelected) return -1;
+    if (!aSelected && bSelected) return 1;
+    
+    if (counts) {
+      return (counts[b] ?? 0) - (counts[a] ?? 0) || a.localeCompare(b);
+    }
+    return a.localeCompare(b);
+  });
 
   const visibleTags = sortedTags.slice(0, maxVisible);
   const hiddenCount = sortedTags.length - maxVisible;

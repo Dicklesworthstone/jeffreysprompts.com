@@ -31,7 +31,7 @@ describe("/api/reviews/[id]/respond", () => {
   const origEnv = { ...process.env };
 
   beforeEach(() => {
-    process.env.NODE_ENV = "development";
+    vi.stubEnv("NODE_ENV", "development");
     mockGetUserId.mockReturnValue(null);
     mockGetReview.mockReset();
   });
@@ -74,17 +74,17 @@ describe("/api/reviews/[id]/respond", () => {
         contentType: "prompt",
         contentId: "p1",
         userId: "other-user",
-        rating: 4,
-        title: "Test",
-        body: "A review",
+        rating: 4 as any,
+        // title: "Test",
+        // body: "A review",
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        helpfulVotes: 0,
-        unhelpfulVotes: 0,
+        // helpfulVotes: 0,
+        // unhelpfulVotes: 0,
         status: "published",
         authorResponse: null,
-      });
-      process.env.NODE_ENV = "production";
+      } as any);
+      vi.stubEnv("NODE_ENV", "production");
       const res = await POST(
         new NextRequest("http://localhost/api/reviews/review1/respond", {
           method: "POST",

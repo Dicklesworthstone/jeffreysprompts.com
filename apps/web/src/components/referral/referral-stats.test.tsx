@@ -50,7 +50,7 @@ describe("ReferralStats", () => {
   });
 
   it("shows loading skeleton initially", () => {
-    globalThis.fetch = vi.fn(() => new Promise(() => {}));
+    globalThis.fetch = vi.fn(() => new Promise(() => {})) as any;
     const { container } = render(<ReferralStats />);
     expect(container.querySelector(".animate-pulse")).toBeInTheDocument();
   });

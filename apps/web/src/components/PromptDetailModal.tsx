@@ -221,7 +221,8 @@ export function PromptDetailModal({
       if (a.parentNode) {
         a.parentNode.removeChild(a);
       }
-      URL.revokeObjectURL(url);
+      // Delay revoking URL to ensure browser has started download
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
     success("Downloaded", `${prompt.id}.md`);
     trackEvent("export", { id: prompt.id, format: "md", source: "modal" });

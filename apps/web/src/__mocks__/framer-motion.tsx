@@ -68,7 +68,7 @@ function filterMotionProps<T extends Record<string, unknown>>(props: T): Partial
         cleanStyle[k] = v;
       }
     }
-    filtered.style = cleanStyle as T[keyof T];
+    (filtered as Record<string, unknown>).style = cleanStyle;
   }
   return filtered;
 }

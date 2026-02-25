@@ -62,7 +62,7 @@ describe("Leaderboard", () => {
     vi.mocked(useLeaderboard).mockReturnValue({
       entries: [],
       loading: false,
-      error: new Error("fail"),
+      error: "fail",
       refresh: vi.fn(),
     });
     render(<Leaderboard />);

@@ -264,10 +264,14 @@ self.addEventListener("message", (event) => {
   }
 
   if (event.data === "getVersion") {
-    getRegistryVersion().then((version) => {
-      const cacheName = `${REGISTRY_CACHE_PREFIX}${version}`;
-      event.ports[0].postMessage({ version, cacheName });
-    });
+    getRegistryVersion()
+      .then((version) => {
+        const cacheName = `${REGISTRY_CACHE_PREFIX}${version}`;
+        event.ports[0].postMessage({ version, cacheName });
+      })
+      .catch((err) => {
+        console.error("Failed to get registry version", err);
+      });
   }
 });
 

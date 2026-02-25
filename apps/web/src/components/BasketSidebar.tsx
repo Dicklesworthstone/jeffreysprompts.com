@@ -262,43 +262,45 @@ export function BasketSidebar({ isOpen, onClose }: BasketSidebarProps) {
 
             {/* Items list */}
             <div className="flex-1 overflow-y-auto p-6 scrollbar-thin">
-              {basketPrompts.length === 0 ? (
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="flex flex-col items-center justify-center py-20 px-6 text-center"
-                >
-                  <div className="relative mb-8">
-                    <motion.div 
-                      animate={{ y: [0, -10, 0] }}
-                      transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                      className="w-24 h-24 rounded-3xl bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center shadow-inner"
+              <ul className="space-y-3">
+                <AnimatePresence mode="popLayout">
+                  {basketPrompts.length === 0 ? (
+                    <motion.li 
+                      key="empty-state"
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      className="flex flex-col items-center justify-center py-20 px-6 text-center list-none"
                     >
-                      <ShoppingBasket className="h-12 w-12 text-neutral-300 dark:text-neutral-600" aria-hidden="true" />
-                    </motion.div>
-                    <Sparkles className="absolute -top-2 -right-2 h-8 w-8 text-amber-400/50 animate-pulse" aria-hidden="true" />
-                  </div>
+                      <div className="relative mb-8">
+                        <motion.div 
+                          animate={{ y: [0, -10, 0] }}
+                          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                          className="w-24 h-24 rounded-3xl bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center shadow-inner"
+                        >
+                          <ShoppingBasket className="h-12 w-12 text-neutral-300 dark:text-neutral-600" aria-hidden="true" />
+                        </motion.div>
+                        <Sparkles className="absolute -top-2 -right-2 h-8 w-8 text-amber-400/50 animate-pulse" aria-hidden="true" />
+                      </div>
 
-                  <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-3">
-                    Empty Basket
-                  </h3>
+                      <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-3">
+                        Empty Basket
+                      </h3>
 
-                  <p className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-8 leading-relaxed">
-                    Browse our curated collection and add prompts to export them in bulk.
-                  </p>
+                      <p className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-8 leading-relaxed">
+                        Browse our curated collection and add prompts to export them in bulk.
+                      </p>
 
-                  <Button
-                    variant="outline"
-                    onClick={onClose}
-                    className="rounded-xl px-6 h-11 font-bold border-2 hover:bg-indigo-500 hover:text-white hover:border-indigo-500 transition-all"
-                  >
-                    Start Browsing
-                  </Button>
-                </motion.div>
-              ) : (
-                <ul className="space-y-3">
-                  <AnimatePresence mode="popLayout">
-                    {basketPrompts.map((prompt, index) => (
+                      <Button
+                        variant="outline"
+                        onClick={onClose}
+                        className="rounded-xl px-6 h-11 font-bold border-2 hover:bg-indigo-500 hover:text-white hover:border-indigo-500 transition-all"
+                      >
+                        Start Browsing
+                      </Button>
+                    </motion.li>
+                  ) : (
+                    basketPrompts.map((prompt, index) => (
                       <motion.li
                         key={prompt.id}
                         layout={!prefersReducedMotion}
@@ -328,10 +330,10 @@ export function BasketSidebar({ isOpen, onClose }: BasketSidebarProps) {
                           <Trash2 className="h-4 w-4" aria-hidden="true" />
                         </Button>
                       </motion.li>
-                    ))}
-                  </AnimatePresence>
-                </ul>
-              )}
+                    ))
+                  )}
+                </AnimatePresence>
+              </ul>
             </div>
 
             {/* Actions */}

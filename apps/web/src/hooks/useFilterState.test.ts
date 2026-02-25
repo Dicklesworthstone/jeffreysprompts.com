@@ -366,7 +366,7 @@ describe("useFilterState", () => {
   });
 
   describe("clearFilters", () => {
-    it("removes all filter params from URL", () => {
+    it("removes all filter params from URL but preserves sort", () => {
       mockSearchParams.set("q", "wizard");
       mockSearchParams.set("category", "ideation");
       mockSearchParams.set("tags", "ai,brainstorming");
@@ -377,7 +377,7 @@ describe("useFilterState", () => {
         result.current.clearFilters();
       });
 
-      expect(mockPush).toHaveBeenCalledWith("/", { scroll: false });
+      expect(mockPush).toHaveBeenCalledWith("/?sort=rating", { scroll: false });
     });
 
     it("works when no filters are active", () => {

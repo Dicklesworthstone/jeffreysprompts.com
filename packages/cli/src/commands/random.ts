@@ -68,8 +68,8 @@ export async function randomCommand(options: RandomOptions): Promise<void> {
   }
 
   // Pick a random prompt
-  // Secure random number generation (0 to 1) using crypto.randomBytes
-  const secureRandom = randomBytes(4).readUInt32LE(0) / 0xffffffff;
+  // Secure random number generation (0 to <1) using crypto.randomBytes
+  const secureRandom = randomBytes(4).readUInt32LE(0) / 0x100000000;
   const randomIndex = Math.floor(secureRandom * candidates.length);
   const prompt = candidates[randomIndex];
 

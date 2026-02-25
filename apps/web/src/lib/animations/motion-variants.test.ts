@@ -206,7 +206,7 @@ describe("motion-variants", () => {
   describe("withDelay", () => {
     it("adds delay to transitions", () => {
       const delayed = withDelay(fadeUp, 200);
-      const visible = delayed.visible as Record<string, Record<string, unknown>>;
+      const visible = delayed.visible as any;
       expect(visible.transition.delay).toBe(0.2);
     });
 
@@ -220,7 +220,7 @@ describe("motion-variants", () => {
         visible: { opacity: 1, transition: { duration: 0.5, delay: 0.1 } },
       };
       const delayed = withDelay(variants, 200);
-      const visible = delayed.visible as Record<string, Record<string, unknown>>;
+      const visible = delayed.visible as any;
       expect(visible.transition.delay).toBeCloseTo(0.3);
     });
   });

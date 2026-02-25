@@ -57,10 +57,13 @@ export function PromptGrid({
     >
       <AnimatePresence mode="popLayout" initial={false}>
         {prompts.map((prompt, index) => (
-          <div key={prompt.id} className="h-full">
+          <motion.div 
+            key={prompt.id} 
+            layout={!prefersReducedMotion}
+            className="h-full"
+          >
             {isMobile ? (
               <motion.div
-                layout={!prefersReducedMotion}
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
@@ -84,7 +87,7 @@ export function PromptGrid({
                 />
               </GridTransition>
             )}
-          </div>
+          </motion.div>
         ))}
       </AnimatePresence>
     </motion.div>

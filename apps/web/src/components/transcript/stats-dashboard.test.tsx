@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { StatsDashboard } from "./stats-dashboard";
@@ -5,7 +6,7 @@ import type { ProcessedTranscript } from "@/lib/transcript/types";
 
 vi.mock("framer-motion", () => ({
   motion: {
-    div: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => {
+    div: ({ children, initial, animate, whileInView, whileHover, whileTap, viewport, transition, variants, style, exit, layoutId, layout, className, ...props }: React.PropsWithChildren<Record<string, unknown>>) => {
        
       const { ...rest } = props;
       return <div {...(rest as React.HTMLAttributes<HTMLDivElement>)}>{children}</div>;

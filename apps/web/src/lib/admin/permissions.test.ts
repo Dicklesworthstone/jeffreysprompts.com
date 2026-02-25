@@ -159,7 +159,7 @@ describe("checkAdminPermission", () => {
 
   it("returns admin_token_not_configured in production with no token", () => {
     delete process.env.JFP_ADMIN_TOKEN;
-    process.env.NODE_ENV = "production";
+    vi.stubEnv("NODE_ENV", "production");
     const req = makeRequest({});
     const result = checkAdminPermission(req, "users.view");
     expect(result.ok).toBe(false);
@@ -168,7 +168,7 @@ describe("checkAdminPermission", () => {
 
   it("allows dev bypass when enabled and request is from localhost", () => {
     delete process.env.JFP_ADMIN_TOKEN;
-    process.env.NODE_ENV = "development";
+    vi.stubEnv("NODE_ENV", "development");
     process.env.JFP_ADMIN_DEV_BYPASS = "true";
     const req = makeRequest({});
     // Host/Origin are forbidden request headers that happy-dom drops;
@@ -185,7 +185,7 @@ describe("checkAdminPermission", () => {
 
   it("blocks dev bypass from external origin", () => {
     delete process.env.JFP_ADMIN_TOKEN;
-    process.env.NODE_ENV = "development";
+    vi.stubEnv("NODE_ENV", "development");
     process.env.JFP_ADMIN_DEV_BYPASS = "true";
     const req = makeRequest({
       host: "example.com",

@@ -114,9 +114,10 @@ function HomeContent() {
     let count = 0;
     if (filters.query) count++;
     if (filters.category) count++;
+    if (filters.minRating > 0) count++;
     count += filters.tags.length;
     return count;
-  }, [filters.query, filters.category, filters.tags]);
+  }, [filters.query, filters.category, filters.tags, filters.minRating]);
 
   // Get featured prompts (featured first, then by creation date)
   const featuredPrompts = useMemo(() => {

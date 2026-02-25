@@ -65,7 +65,7 @@ describe("GET /api/health/status", () => {
 
   it("allows access in development without token", async () => {
     delete process.env.JFP_HEALTH_STATUS_TOKEN;
-    process.env.NODE_ENV = "development";
+    vi.stubEnv("NODE_ENV", "development");
     const res = await GET(new NextRequest("http://localhost/api/health/status"));
     expect(res.status).toBe(200);
   });
