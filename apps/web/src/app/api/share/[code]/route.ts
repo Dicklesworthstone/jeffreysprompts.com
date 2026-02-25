@@ -157,6 +157,9 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ code: string }> }
 ) {
+  const rateLimitResponse = await checkRateLimit(request);
+  if (rateLimitResponse) return rateLimitResponse;
+
   const { code: rawCode } = await params;
   const code = rawCode?.trim();
   if (!code) {
@@ -239,6 +242,9 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ code: string }> }
 ) {
+  const rateLimitResponse = await checkRateLimit(request);
+  if (rateLimitResponse) return rateLimitResponse;
+
   const { code: rawCode } = await params;
   const code = rawCode?.trim();
   if (!code) {

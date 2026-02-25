@@ -76,7 +76,7 @@ export function useLeaderboard(options: UseLeaderboardOptions = {}): UseLeaderbo
 
   return {
     ...state,
-    refresh: fetchLeaderboard,
+    refresh: () => fetchLeaderboard(),
   };
 }
 

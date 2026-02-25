@@ -118,6 +118,6 @@ export function useRating({ contentType, contentId }: UseRatingOptions): UseRati
   return {
     ...state,
     rate,
-    refresh: fetchRating,
+    refresh: () => fetchRating(),
   };
 }

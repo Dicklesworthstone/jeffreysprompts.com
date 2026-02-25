@@ -4,9 +4,20 @@ import { getBundle } from "@jeffreysprompts/core/prompts/bundles";
 import { getWorkflow } from "@jeffreysprompts/core/prompts/workflows";
 import { createShareLink, type ShareContentType } from "@/lib/share-links/share-link-store";
 import { getOrCreateUserId } from "@/lib/user-id";
+import { createRateLimiter, getTrustedClientIp } from "@/lib/rate-limit";
 
 const MAX_PASSWORD_LENGTH = 64;
 const MAX_EXPIRES_IN_DAYS = 365;
+
+const MAX_CREATIONS_PER_WINDOW = 20;
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+const MAX_RATE_LIMIT_BUCKETS = 10_000;
+const shareCreationLimiter = createRateLimiter({
+  windowMs: RATE_LIMIT_WINDOW_MS,
+  maxRequests: MAX_CREATIONS_PER_WINDOW,
+  maxBuckets: MAX_RATE_LIMIT_BUCKETS,
+  name: "share-link-creation",
+});
 
 const CONTENT_TYPE_MAP: Record<string, ShareContentType> = {
   prompt: "prompt",
@@ -58,6 +69,19 @@ function parseExpiresAt(
 }
 
 export async function POST(request: NextRequest) {
+  const clientIp = getTrustedClientIp(request);
+  const rateLimitResult = await shareCreationLimiter.check(clientIp);
+
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: "Too many share links created. Please try again later." },
+      {
+        status: 429,
+        headers: { "Retry-After": rateLimitResult.retryAfterSeconds.toString() },
+      }
+    );
+  }
+
   let payload: {
     contentType?: string;
     contentId?: string;

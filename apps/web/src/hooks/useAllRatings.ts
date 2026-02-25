@@ -77,7 +77,7 @@ export function useAllRatings(): UseAllRatingsReturn {
 
   return {
     ...state,
-    refresh: fetchRatings,
+    refresh: () => fetchRatings(),
     getRating,
   };
 }
