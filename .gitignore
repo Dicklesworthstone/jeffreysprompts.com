@@ -138,3 +138,16 @@ ignore
 mcp_agent_mail
 .mcp_agent_mail_stub
 target/
+
+# Runtime SQLite databases
+storage.sqlite3
+storage.sqlite3-*
+*.sqlite3.bak
+
+# UBS scan output files
+.ubs-*.json
+.ubs-*.txt
+
+# Temporary fix scripts (agent-generated one-off patches)
+fix-*.js
+fix-*.mjs
