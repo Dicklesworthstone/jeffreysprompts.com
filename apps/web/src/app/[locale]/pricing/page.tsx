@@ -277,10 +277,10 @@ export default function PricingPage() {
                   Need a team plan?
                 </h3>
                 <p className="mt-1 text-sm text-violet-800/80 dark:text-violet-200/80">
-                  Reach out and we will set up a plan that fits your workflow.
+                  Reach out and I&apos;ll set up a plan that fits your workflow.
                 </p>
                 <Button asChild variant="outline" className="mt-4">
-                  <a href="mailto:team@jeffreysprompts.com">Contact us</a>
+                  <a href="mailto:jeff@jeffreysprompts.com">Get in touch</a>
                 </Button>
               </CardContent>
             </Card>

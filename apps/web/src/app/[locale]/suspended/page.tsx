@@ -75,7 +75,7 @@ export default async function SuspendedPage({ searchParams }: SuspendedPageProps
 
             <p className="text-muted-foreground mb-6">
               {isBanned ? (
-                "Your account has been permanently banned due to serious or repeated violations of our community guidelines."
+                "Your account has been permanently banned due to serious or repeated violations of the community guidelines."
               ) : (
                 <>
                   Your account has been suspended {endDateText}.
@@ -155,7 +155,7 @@ export default async function SuspendedPage({ searchParams }: SuspendedPageProps
             <p className="mt-6 text-xs text-muted-foreground">
               If you have questions about this {isBanned ? "ban" : "suspension"}, please{" "}
               <Link href="/contact" className="text-primary hover:underline">
-                contact our support team
+                contact support
               </Link>
               .
             </p>
@@ -172,7 +172,7 @@ export default async function SuspendedPage({ searchParams }: SuspendedPageProps
             <ul className="text-xs text-muted-foreground space-y-1.5">
               <li>• Be respectful and constructive in all interactions</li>
               <li>• Only share content you have rights to share</li>
-              <li>• Follow our community guidelines at all times</li>
+              <li>• Follow the community guidelines at all times</li>
               <li>• Report violations instead of engaging with them</li>
             </ul>
           </CardContent>

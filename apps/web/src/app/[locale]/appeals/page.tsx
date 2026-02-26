@@ -111,7 +111,7 @@ export default async function AppealsPage({ searchParams }: AppealsPageProps) {
             <p className="text-sm text-muted-foreground text-center">
               If you have questions about moderation or appeals, please{" "}
               <Link href="/contact" className="text-primary hover:underline">
-                contact our support team
+                contact support
               </Link>
               .
             </p>

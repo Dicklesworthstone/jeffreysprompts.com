@@ -203,7 +203,7 @@ export function ReportDialog({
       <DialogHeader>
         <DialogTitle>Report this content</DialogTitle>
         <DialogDescription>
-          Tell us what&apos;s wrong so we can take a closer look.
+          Tell me what&apos;s wrong so I can take a closer look.
         </DialogDescription>
       </DialogHeader>
       <DialogBody>{form}</DialogBody>

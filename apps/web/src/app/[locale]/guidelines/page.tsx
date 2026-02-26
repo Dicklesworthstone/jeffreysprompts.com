@@ -3,7 +3,7 @@ import { LegalPageLayout } from "@/components/legal/LegalPageLayout";
 
 export const metadata: Metadata = {
   title: "Community Guidelines",
-  description: "Community Guidelines for JeffreysPrompts.com - Our standards for respectful and constructive community participation.",
+  description: "Community Guidelines for JeffreysPrompts.com - Standards for respectful and constructive community participation.",
 };
 
 const tableOfContents = [
@@ -27,16 +27,16 @@ export default function GuidelinesPage() {
       tableOfContents={tableOfContents}
     >
       <p className="lead">
-        JeffreysPrompts.com is a community of developers and AI enthusiasts sharing prompts to
-        improve our work. These guidelines help us maintain a welcoming, helpful, and productive
+        JeffreysPrompts.com is a place for developers and AI enthusiasts to find prompts that
+        improve their work. These guidelines help maintain a welcoming, helpful, and productive
         environment for everyone.
       </p>
 
       <h2 id="be-respectful">1. Be Respectful</h2>
       <p>
-        Treat everyone with respect. We come from diverse backgrounds and have different
-        perspectives. What unites us is our interest in building better tools and workflows with
-        AI.
+        Treat everyone with respect. People here come from diverse backgrounds and have different
+        perspectives. What connects everyone is an interest in building better tools and workflows
+        with AI.
       </p>
       <ul>
         <li>Be kind and constructive in your feedback</li>
@@ -90,7 +90,7 @@ export default function GuidelinesPage() {
 
       <h2 id="quality-standards">3. Quality Standards</h2>
       <p>
-        We strive to maintain a high-quality library. When contributing prompts:
+        This library aims for high quality. When contributing prompts:
       </p>
       <ul>
         <li>
@@ -117,7 +117,7 @@ export default function GuidelinesPage() {
 
       <h2 id="attribution">4. Attribution and Credit</h2>
       <p>
-        Proper attribution matters in our community:
+        Proper attribution matters:
       </p>
       <ul>
         <li>
@@ -140,7 +140,7 @@ export default function GuidelinesPage() {
 
       <h2 id="enforcement">5. Enforcement</h2>
       <p>
-        We take violations of these guidelines seriously. Depending on the severity, we may:
+        Violations of these guidelines are taken seriously. Depending on the severity, consequences may include:
       </p>
       <ul>
         <li>
@@ -160,8 +160,8 @@ export default function GuidelinesPage() {
         </li>
       </ul>
       <p>
-        We aim to be fair and proportionate in our enforcement. Most issues can be resolved with a
-        friendly conversation.
+        Enforcement aims to be fair and proportionate. Most issues can be resolved with a friendly
+        conversation.
       </p>
 
       <h2 id="reporting">6. Reporting Violations</h2>
@@ -189,7 +189,7 @@ export default function GuidelinesPage() {
         <li>Any additional context</li>
       </ul>
       <p>
-        All reports are reviewed by a human. We keep reporter identities confidential.
+        All reports are reviewed personally. Reporter identities are kept confidential.
       </p>
 
       <h2 id="appeals">7. Appeals Process</h2>
@@ -242,11 +242,11 @@ export default function GuidelinesPage() {
 
       <div className="not-prose mt-8 p-6 bg-indigo-50 dark:bg-indigo-950/30 rounded-xl border border-indigo-100 dark:border-indigo-900/50">
         <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-2">
-          Thank you for being part of our community!
+          Thanks for being here!
         </h3>
         <p className="text-sm text-neutral-600 dark:text-neutral-400">
-          These guidelines exist to help us all work together effectively. By contributing to
-          JeffreysPrompts.com, you help make AI development better for everyone.
+          These guidelines exist to keep things running smoothly. By using JeffreysPrompts.com,
+          you help make AI development better for everyone.
         </p>
       </div>
     </LegalPageLayout>

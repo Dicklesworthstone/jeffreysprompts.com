@@ -9,7 +9,7 @@ export type FeatureType = "staff_pick" | "featured" | "spotlight";
 export type ResourceType = "prompt" | "bundle" | "workflow" | "collection" | "profile";
 
 export const FEATURE_TYPES = [
-  { value: "staff_pick", label: "Staff Pick", description: "Hand-picked by our team" },
+  { value: "staff_pick", label: "Staff Pick", description: "Hand-picked by Jeff" },
   { value: "featured", label: "Featured", description: "Highlighted content" },
   { value: "spotlight", label: "Spotlight", description: "Special spotlight feature" },
 ] as const;

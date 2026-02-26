@@ -30,7 +30,7 @@ export default function Error({ error, reset }: ErrorPageProps) {
         </h1>
 
         <p className="text-muted-foreground mb-2">
-          We encountered an unexpected error. Don&apos;t worry, our team has been notified.
+          An unexpected error occurred. Don&apos;t worry, it&apos;s been logged.
         </p>
 
         {error.digest && (
@@ -55,7 +55,7 @@ export default function Error({ error, reset }: ErrorPageProps) {
 
         <div className="pt-6 border-t border-border">
           <p className="text-sm text-muted-foreground mb-2">
-            If this problem persists, please let us know.
+            If this problem persists, please report it.
           </p>
           <a
             href="https://github.com/Dicklesworthstone/jeffreysprompts.com/issues/new"

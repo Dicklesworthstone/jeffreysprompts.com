@@ -123,9 +123,8 @@ export default function PrivacyPage() {
 
       <h3>Legal Requirements</h3>
       <p>
-        We may disclose your information if required by law, court order, or government request, or
-        if we believe disclosure is necessary to protect our rights, your safety, or the safety of
-        others.
+        Your information may be disclosed if required by law, court order, or government request, or
+        when disclosure is necessary to protect rights, your safety, or the safety of others.
       </p>
 
       <h3>Business Transfers</h3>

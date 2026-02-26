@@ -7,7 +7,7 @@ import { SUPPORT_CATEGORIES, SUPPORT_EMAIL } from "@/lib/support/tickets";
 
 export const metadata = {
   title: "Contact Support",
-  description: "Get help from the JeffreysPrompts support team.",
+  description: "Get help with JeffreysPrompts.",
 };
 
 export default function ContactPage() {
@@ -21,11 +21,11 @@ export default function ContactPage() {
               Contact support
             </div>
             <h1 className="text-4xl font-bold text-neutral-900 dark:text-white">
-              Tell us what you need
+              How can I help?
             </h1>
             <p className="text-lg text-neutral-600 dark:text-neutral-400 max-w-2xl">
-              We respond to support requests within one business day. Share the details below and we
-              will follow up with next steps.
+              I respond to support requests within one business day. Share the details below and I&apos;ll
+              follow up with next steps.
             </p>
             <div className="flex flex-wrap items-center gap-4 text-sm text-neutral-500 dark:text-neutral-400">
               <span className="inline-flex items-center gap-2">
@@ -78,7 +78,7 @@ export default function ContactPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm text-muted-foreground">
-                <p>Help us resolve issues faster by sharing:</p>
+                <p>Help me resolve issues faster by sharing:</p>
                 <ul className="list-disc pl-5 space-y-2">
                   <li>Steps to reproduce or a clear description of the problem.</li>
                   <li>Links, screenshots, or prompt IDs if relevant.</li>

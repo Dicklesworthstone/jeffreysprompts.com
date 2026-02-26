@@ -147,7 +147,7 @@ export default function AdminFeaturedPage() {
         {/* Staff Picks */}
         <FeaturedSection
           title="Staff Picks"
-          description="Hand-picked content by our team"
+          description="Hand-picked by Jeff"
           icon={Star}
           items={staffPicks}
           emptyMessage="No staff picks yet. Add your first pick!"

@@ -16,6 +16,10 @@ export type { BM25Document, BM25Index } from "./bm25";
 // Hash embedder fallback
 export { hashEmbed } from "./hash-embedder";
 
+// Multi-signal scorer (prefix/substring/exact matching)
+export { scorePrompt, scoreAll, FIELD_WEIGHTS } from "./scorer";
+export type { ScorerResult } from "./scorer";
+
 // Composite search engine
 export { searchPrompts, quickSearch, resetIndex } from "./engine";
 export type { SearchResult, SearchOptions } from "./engine";

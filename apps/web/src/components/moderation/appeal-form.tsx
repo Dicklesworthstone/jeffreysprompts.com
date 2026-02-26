@@ -99,7 +99,7 @@ export function AppealForm({
           <h3 className="text-lg font-semibold mb-2">Appeal Window Expired</h3>
           <p className="text-muted-foreground">
             The {APPEAL_SUBMISSION_WINDOW_DAYS}-day window to submit an appeal for this action has passed.
-            If you have concerns, please contact our support team.
+            If you have concerns, please contact support.
           </p>
         </CardContent>
       </Card>

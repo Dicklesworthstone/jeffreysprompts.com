@@ -54,7 +54,7 @@ export function enforceUserAccess(userId: string): EnforcementResult {
     return {
       allowed: true,
       status,
-      message: "You have received a warning. Please review our community guidelines.",
+      message: "You have received a warning. Please review the community guidelines.",
     };
   }
 
@@ -194,7 +194,7 @@ export function isBlockingAction(actionType: ActionType): boolean {
 export function getActionDescription(actionType: ActionType, endsAt?: string | null): string {
   switch (actionType) {
     case "warning":
-      return "You have received a warning for violating our community guidelines.";
+      return "You have received a warning for violating the community guidelines.";
     case "suspension":
       if (endsAt) {
         const date = new Date(endsAt);

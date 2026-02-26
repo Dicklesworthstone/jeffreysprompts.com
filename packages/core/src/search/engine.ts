@@ -1,11 +1,12 @@
 // packages/core/src/search/engine.ts
-// Composite search engine combining BM25 with optional semantic reranking
+// Composite search engine combining multi-signal scorer with BM25 tiebreaker
 
 import type { Prompt } from "../prompts/types";
-import { prompts, getPrompt, promptsById } from "../prompts/registry";
+import { prompts, promptsById } from "../prompts/registry";
 import { buildIndex, search as bm25Search, type BM25Index } from "./bm25";
 import { tokenize } from "./tokenize";
 import { expandQuery } from "./synonyms";
+import { scorePrompt } from "./scorer";
 
 export interface SearchResult {
   prompt: Prompt;
@@ -39,8 +40,16 @@ export function resetIndex(): void {
   _index = null;
 }
 
+/** Blend weights: multi-signal dominates, BM25 is tiebreaker */
+const MULTI_SIGNAL_WEIGHT = 0.9;
+const BM25_WEIGHT = 0.1;
+
 /**
- * Search prompts with BM25
+ * Search prompts with multi-signal scorer + BM25 tiebreaker.
+ *
+ * The scorer does prefix/substring/exact matching against each field,
+ * so partial queries like "rob" match "robot" immediately. BM25 serves
+ * as a tiebreaker for results with equal multi-signal scores.
  */
 export function searchPrompts(
   query: string,
@@ -55,61 +64,101 @@ export function searchPrompts(
     promptsMap = promptsById,
   } = options;
 
-  // Optionally expand query with synonyms
   const queryTokens = tokenize(query);
+  if (queryTokens.length === 0) return [];
+
   let searchTokens = queryTokens;
   if (expandSynonyms) {
     searchTokens = expandQuery(queryTokens);
   }
 
-  // Pass tokens directly to avoid re-tokenization
-  // We request ALL matches (no limit) so we can filter by category/tags correctly
+  // --- BM25 scores (keyed by id) ---
   const bm25Results = bm25Search(index, searchTokens);
+  const bm25Scores = new Map<string, number>();
+  let bm25Max = 0;
+  for (const { id, score } of bm25Results) {
+    bm25Scores.set(id, score);
+    if (score > bm25Max) bm25Max = score;
+  }
 
-  // 1. Filter first (cheaper than mapping/highlighting)
-  const filteredMatches = bm25Results.filter(({ id }) => {
-    const prompt = promptsMap.get(id);
-    if (!prompt) return false;
+  // --- Multi-signal scores + merge ---
+  const allPrompts = [...promptsMap.values()];
+  const merged = new Map<
+    string,
+    { multiSignal: number; bm25: number; matchedFields: string[] }
+  >();
 
-    // Apply category filter
-    if (category && prompt.category !== category) return false;
+  let multiMax = 0;
+  for (const prompt of allPrompts) {
+    const sr = scorePrompt(prompt, query);
+    const ms = sr?.score ?? 0;
+    const bm = bm25Scores.get(prompt.id) ?? 0;
 
-    // Apply tags filter (match any)
-    if (tags?.length && !tags.some((tag) => prompt.tags.includes(tag))) {
-      return false;
+    if (ms === 0 && bm === 0) continue;
+
+    if (ms > multiMax) multiMax = ms;
+
+    merged.set(prompt.id, {
+      multiSignal: ms,
+      bm25: bm,
+      matchedFields: sr?.matchedFields ?? [],
+    });
+  }
+
+  // Also include BM25-only hits (no multi-signal match)
+  for (const { id } of bm25Results) {
+    if (!merged.has(id)) {
+      merged.set(id, { multiSignal: 0, bm25: bm25Scores.get(id)!, matchedFields: [] });
     }
+  }
 
-    return true;
-  });
+  // Normalize and combine
+  const safeMultiMax = multiMax || 1;
+  const safeBm25Max = bm25Max || 1;
 
-  // 2. Slice FIRST to avoid expensive tokenization on results we won't show
-  const topMatches = filteredMatches.slice(0, limit);
+  const scored: Array<{ id: string; score: number; matchedFields: string[] }> = [];
+  for (const [id, { multiSignal, bm25, matchedFields }] of merged) {
+    const normalizedMS = multiSignal / safeMultiMax;
+    const normalizedBM = bm25 / safeBm25Max;
+    const finalScore =
+      normalizedMS * MULTI_SIGNAL_WEIGHT + normalizedBM * BM25_WEIGHT;
 
-  // 3. Map to full results with basic field matching info
-  const results: SearchResult[] = topMatches.flatMap(({ id, score }) => {
+    scored.push({ id, score: finalScore, matchedFields });
+  }
+
+  scored.sort((a, b) => b.score - a.score);
+
+  // Filter and limit
+  const results: SearchResult[] = [];
+  for (const { id, score, matchedFields } of scored) {
+    if (results.length >= limit) break;
+
     const prompt = promptsMap.get(id);
-    if (!prompt) return [];
+    if (!prompt) continue;
 
-    // Quickly determine which fields matched the query tokens
-    const matchedFields: string[] = [];
-    const searchableFields = {
-      id: prompt.id.toLowerCase(),
-      title: prompt.title.toLowerCase(),
-      description: prompt.description.toLowerCase(),
-      tags: prompt.tags.join(" ").toLowerCase(),
-      content: prompt.content.toLowerCase(),
-    };
+    if (category && prompt.category !== category) continue;
+    if (tags?.length && !tags.some((tag) => prompt.tags.includes(tag))) continue;
 
-    for (const term of searchTokens) {
-      for (const [fieldName, content] of Object.entries(searchableFields)) {
-        if (!matchedFields.includes(fieldName) && content.includes(term)) {
-          matchedFields.push(fieldName);
+    // Enrich matchedFields with BM25 field matches if scorer didn't find them
+    if (matchedFields.length === 0) {
+      const searchableFields: Record<string, string> = {
+        id: prompt.id.toLowerCase(),
+        title: prompt.title.toLowerCase(),
+        description: prompt.description.toLowerCase(),
+        tags: prompt.tags.join(" ").toLowerCase(),
+        content: prompt.content.toLowerCase(),
+      };
+      for (const term of searchTokens) {
+        for (const [fieldName, content] of Object.entries(searchableFields)) {
+          if (!matchedFields.includes(fieldName) && content.includes(term)) {
+            matchedFields.push(fieldName);
+          }
         }
       }
     }
 
-    return [{ prompt, score, matchedFields }];
-  });
+    results.push({ prompt, score, matchedFields });
+  }
 
   return results;
 }

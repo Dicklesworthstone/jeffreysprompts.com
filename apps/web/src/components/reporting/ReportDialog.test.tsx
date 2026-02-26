@@ -36,7 +36,7 @@ describe("ReportDialog", () => {
     );
     fireEvent.click(screen.getByLabelText("Report this content"));
     expect(screen.getByText("Report this content")).toBeInTheDocument();
-    expect(screen.getByText(/Tell us what's wrong/)).toBeInTheDocument();
+    expect(screen.getByText(/Tell me what's wrong/)).toBeInTheDocument();
   });
 
   it("shows trigger label when showLabel is true", () => {
