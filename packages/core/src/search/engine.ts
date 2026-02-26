@@ -105,13 +105,6 @@ export function searchPrompts(
     });
   }
 
-  // Also include BM25-only hits (no multi-signal match)
-  for (const { id } of bm25Results) {
-    if (!merged.has(id)) {
-      merged.set(id, { multiSignal: 0, bm25: bm25Scores.get(id)!, matchedFields: [] });
-    }
-  }
-
   // Normalize and combine
   const safeMultiMax = multiMax || 1;
   const safeBm25Max = bm25Max || 1;
