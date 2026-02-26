@@ -84,28 +84,59 @@ describe("scorePrompt", () => {
     });
   });
 
-  describe("substring matching", () => {
-    it("matches substring in description", () => {
+  describe("prefix matching across fields", () => {
+    it("prefix-matches in description when last token", () => {
       const prompt = makePrompt({
         title: "Some Tool",
         description: "Generates creative ideas for projects",
       });
       const result = scorePrompt(prompt, "creat");
       expect(result).not.toBeNull();
-      // "creat" is a substring of "creative" in description raw text
-      // It's also prefix of "creative" token and it's the last (only) token
-      // prefix: 3*0.7 = 2.1
+      // "creat" prefix-matches "creative" in description (last/only token)
       expect(result!.score).toBe(FIELD_WEIGHTS.description * 0.7);
     });
 
-    it("matches substring in content", () => {
+    it("exact-matches word in content", () => {
       const prompt = makePrompt({
         title: "Test",
         content: "Please analyze the codebase thoroughly",
       });
       const result = scorePrompt(prompt, "codebase");
       expect(result).not.toBeNull();
+      // "codebase" is an exact token in content
+      expect(result!.score).toBe(FIELD_WEIGHTS.content * 1.0);
       expect(result!.matchedFields).toContain("content");
+    });
+  });
+
+  describe("substring matching", () => {
+    it("falls back to substring when token is not prefix-eligible", () => {
+      const prompt = makePrompt({ title: "Robot Mode Maker" });
+      // "obot" is 4 chars, not last token → not prefix-eligible
+      // "obot" is not an exact token, not a prefix of any token
+      // but "robot mode maker" raw contains "obot" → substring match
+      const result = scorePrompt(prompt, "obot maker");
+      expect(result).not.toBeNull();
+      // "obot" → substring title (10*0.4=4), "maker" → exact title (10*1.0=10)
+      // coverage bonus: (4+10)*1.2 = 16.8
+      expect(result!.score).toBeCloseTo(16.8, 1);
+    });
+
+    it("substring matches in raw field text even when no token matches", () => {
+      // "sting" appears in raw "testing" but is not a prefix of "testing"
+      // and not an exact token
+      const prompt = makePrompt({
+        id: "other-id",
+        title: "Other Title",
+        tags: ["testing"],
+        description: "unrelated",
+        content: "unrelated",
+      });
+      const result = scorePrompt(prompt, "sting");
+      expect(result).not.toBeNull();
+      // "sting" substring of "testing" in tags raw → 5 * 0.4 = 2.0
+      expect(result!.score).toBe(FIELD_WEIGHTS.tags * 0.4);
+      expect(result!.matchedFields).toContain("tags");
     });
   });
 
