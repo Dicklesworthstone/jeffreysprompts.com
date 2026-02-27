@@ -149,11 +149,21 @@ export async function PATCH(
     );
   }
 
+  // Use the admin token prefix as a reviewer identifier since the auth
+  // system is token-based without individual user identities.
+  const authHeader = request.headers.get("authorization");
+  const providedToken = (authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : null)
+    ?? request.headers.get("x-jfp-admin-token")
+    ?? "";
+  const reviewerId = providedToken
+    ? `${auth.role}:${providedToken.slice(0, 8)}`
+    : auth.role;
+
   // Update the appeal
   const updated = updateAppealStatus({
     appealId: id,
     status: newStatus,
-    reviewedBy: auth.role,
+    reviewedBy: reviewerId,
     adminResponse: adminResponse || null,
   });
 
@@ -168,7 +178,7 @@ export async function PATCH(
     if (action && !action.reversedAt) {
       const reversed = reverseModerationAction({
         actionId: appeal.actionId,
-        reversedBy: `appeal:${auth.role}`,
+        reversedBy: `appeal:${reviewerId}`,
         reason: `Appeal approved: ${adminResponse}`,
       });
       actionReversed = !!reversed;

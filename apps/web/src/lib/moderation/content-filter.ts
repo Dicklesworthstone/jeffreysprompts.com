@@ -11,7 +11,6 @@ export interface ContentScanResult {
   repeatedCharRuns: number;
 }
 
-const URL_REGEX = /\bhttps?:\/\/[^\s]+/gi;
 const SPAM_TERMS = [
   "free money",
   "work from home",
@@ -31,7 +30,7 @@ function normalizeContent(content: string): string {
 }
 
 function countUrls(content: string): number {
-  return (content.match(URL_REGEX) || []).length;
+  return (content.match(/\bhttps?:\/\/[^\s]+/gi) || []).length;
 }
 
 function calcUppercaseRatio(content: string): number {

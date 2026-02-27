@@ -143,7 +143,7 @@ class InMemoryRateLimiter {
     const retryAfterSeconds = Math.max(1, Math.ceil((existing.resetAt - now) / 1000));
 
     return {
-      allowed: existing.count < this.config.maxRequests,
+      allowed: existing.count <= this.config.maxRequests,
       remaining,
       resetAt: existing.resetAt,
       retryAfterSeconds,

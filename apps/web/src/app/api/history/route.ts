@@ -3,11 +3,18 @@ import type { NextRequest } from "next/server";
 import { clearHistory, listHistory, recordView } from "@/lib/history/history-store";
 import { isHistoryResourceType } from "@/lib/history/types";
 import { getOrCreateUserId } from "@/lib/user-id";
+import { createRateLimiter, getTrustedClientIp } from "@/lib/rate-limit";
 
 const MAX_ID_LENGTH = 200;
 const MAX_SOURCE_LENGTH = 100;
 const MAX_QUERY_LENGTH = 500;
 const MAX_LIMIT = 100;
+
+const historyWriteLimiter = createRateLimiter({
+  name: "history-write-ip",
+  windowMs: 60 * 1000, // 1 minute
+  maxRequests: 60,
+});
 
 function normalizeText(value: string) {
   return value.trim();
@@ -58,6 +65,17 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const writeLimit = await historyWriteLimiter.check(getTrustedClientIp(request));
+  if (!writeLimit.allowed) {
+    return NextResponse.json(
+      { error: "Too many requests. Please try again later." },
+      {
+        status: 429,
+        headers: { "Retry-After": writeLimit.retryAfterSeconds.toString() },
+      }
+    );
+  }
+
   let payload: Record<string, unknown>;
 
   try {

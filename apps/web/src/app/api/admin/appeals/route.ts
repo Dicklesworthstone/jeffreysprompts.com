@@ -40,35 +40,36 @@ export async function GET(request: NextRequest) {
   const parsedLimit = parseInt(searchParams.get("limit") ?? "20", 10);
   const limit = Number.isFinite(parsedLimit) ? Math.min(50, Math.max(1, parsedLimit)) : 20;
 
-  const appeals = listAppeals({
+  // Fetch ALL matching appeals so we can sort before paginating
+  const allAppeals = listAppeals({
     status: status === "all" ? "all" : (status as AppealStatus),
-    page,
-    limit,
-  });
-
-  // Get total count for pagination
-  const totalAppeals = listAppeals({
-    status: status === "all" ? "all" : (status as AppealStatus),
-    page: 1,
     limit: 10000,
   });
 
-  // Sort by deadline for pending/under_review, by recent for others
-  const sortedAppeals = [...appeals].sort((a, b) => {
+  // Sort BEFORE pagination so page boundaries are correct
+  const sortedAppeals = [...allAppeals].sort((a, b) => {
     if (sort === "deadline") {
-      // For pending/under_review, sort by deadline (earliest first)
-      if (a.status === "pending" || a.status === "under_review") {
+      const aActionable = a.status === "pending" || a.status === "under_review";
+      const bActionable = b.status === "pending" || b.status === "under_review";
+      // Actionable appeals (pending/under_review) come first, sorted by deadline
+      if (aActionable && bActionable) {
         return new Date(a.deadlineAt).getTime() - new Date(b.deadlineAt).getTime();
       }
+      if (aActionable) return -1;
+      if (bActionable) return 1;
     }
-    // Default: sort by submission date (most recent first)
+    // Default: most recent first
     return new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime();
   });
+
+  // Paginate after sorting
+  const start = (page - 1) * limit;
+  const paginatedAppeals = sortedAppeals.slice(start, start + limit);
 
   const now = Date.now();
 
   // Enrich appeals with action details
-  const payload = sortedAppeals.map((appeal) => {
+  const payload = paginatedAppeals.map((appeal) => {
     const action = getModerationAction(appeal.actionId);
     const deadline = new Date(appeal.deadlineAt).getTime();
     const isOverdue = (appeal.status === "pending" || appeal.status === "under_review") && now > deadline;
@@ -109,8 +110,8 @@ export async function GET(request: NextRequest) {
     pagination: {
       page,
       limit,
-      total: totalAppeals.length,
-      totalPages: Math.ceil(totalAppeals.length / limit),
+      total: sortedAppeals.length,
+      totalPages: Math.ceil(sortedAppeals.length / limit),
     },
     stats: {
       total: stats.total,

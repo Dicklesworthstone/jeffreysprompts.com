@@ -23,7 +23,9 @@ const CONTENT_TYPE_MAP: Record<string, ShareContentType> = {
   prompt: "prompt",
   user_prompt: "prompt",
   bundle: "bundle",
+  pack: "bundle",     // ShareDialog sends "pack" for bundles
   workflow: "workflow",
+  skill: "prompt",    // ShareDialog sends "skill" for individual prompts
   // "collection" is defined in ShareContentType but not yet resolvable
   // (no getCollection function exists). Uncomment when collections are implemented.
 };

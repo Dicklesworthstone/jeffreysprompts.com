@@ -19,11 +19,13 @@ import { createRateLimiter, checkMultipleLimits, getTrustedClientIp } from "@/li
 function safeTokenEqual(a: string, b: string): boolean {
   const aBuf = Buffer.from(a, "utf8");
   const bBuf = Buffer.from(b, "utf8");
-  if (aBuf.length !== bBuf.length) {
-    timingSafeEqual(aBuf, aBuf); // constant-time even on length mismatch
-    return false;
-  }
-  return timingSafeEqual(aBuf, bBuf);
+  const maxLen = Math.max(aBuf.length, bBuf.length);
+  const paddedA = Buffer.alloc(maxLen);
+  const paddedB = Buffer.alloc(maxLen);
+  aBuf.copy(paddedA);
+  bBuf.copy(paddedB);
+  const equal = timingSafeEqual(paddedA, paddedB);
+  return equal && aBuf.length === bBuf.length;
 }
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -278,6 +280,17 @@ export async function PUT(request: NextRequest) {
     );
   }
 
+  // Authenticate before rate limiting to avoid leaking ticket existence
+  // via rate limit bucket consumption on unauthenticated requests.
+  const ticket = getSupportTicket(ticketNumber);
+  if (!ticket || !safeTokenEqual(ticket.accessToken, ticketToken)) {
+    return NextResponse.json({ error: "Ticket not found." }, { status: 404, headers: NO_STORE_HEADERS });
+  }
+
+  if (ticket.status === "closed") {
+    return NextResponse.json({ error: "This ticket is closed." }, { status: 400, headers: NO_STORE_HEADERS });
+  }
+
   const clientIp = getTrustedClientIp(request);
   const ipReplyLimit = await replyIpRateLimiter.check(`ip:${clientIp}`);
   if (!ipReplyLimit.allowed) {
@@ -291,15 +304,6 @@ export async function PUT(request: NextRequest) {
         },
       }
     );
-  }
-
-  const ticket = getSupportTicket(ticketNumber);
-  if (!ticket || !safeTokenEqual(ticket.accessToken, ticketToken)) {
-    return NextResponse.json({ error: "Ticket not found." }, { status: 404, headers: NO_STORE_HEADERS });
-  }
-
-  if (ticket.status === "closed") {
-    return NextResponse.json({ error: "This ticket is closed." }, { status: 400, headers: NO_STORE_HEADERS });
   }
 
   // Apply per-ticket throttling only after the request is authenticated.

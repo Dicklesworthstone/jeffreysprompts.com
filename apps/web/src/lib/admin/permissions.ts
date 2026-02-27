@@ -66,21 +66,23 @@ function getTokenFromRequest(request: NextRequest): string | null {
 
 /**
  * Constant-time string comparison to prevent timing attacks.
- * Returns true if strings are equal, false otherwise.
+ * Pads both buffers to equal length so neither the comparison nor the
+ * branch reveals the expected token's length via timing.
  */
 function safeCompareTokens(provided: string, expected: string): boolean {
   const providedBuf = Buffer.from(provided, "utf8");
   const expectedBuf = Buffer.from(expected, "utf8");
 
-  // If lengths differ, still do the comparison to maintain constant time
-  // but ensure we return false
-  if (providedBuf.length !== expectedBuf.length) {
-    // Compare against expected to prevent length-based timing leak
-    timingSafeEqual(expectedBuf, expectedBuf);
-    return false;
-  }
+  const maxLen = Math.max(providedBuf.length, expectedBuf.length);
+  const paddedProvided = Buffer.alloc(maxLen);
+  const paddedExpected = Buffer.alloc(maxLen);
+  providedBuf.copy(paddedProvided);
+  expectedBuf.copy(paddedExpected);
 
-  return timingSafeEqual(providedBuf, expectedBuf);
+  // timingSafeEqual is constant-time; the length check is hidden by padding
+  const equal = timingSafeEqual(paddedProvided, paddedExpected);
+  // Lengths must also match for a true comparison
+  return equal && providedBuf.length === expectedBuf.length;
 }
 
 function isLocalHost(host: string | null): boolean {
