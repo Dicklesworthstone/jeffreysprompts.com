@@ -102,7 +102,7 @@ export function enforceUserAccess(userId: string): EnforcementResult {
 export function getSuspensionInfo(userId: string): SuspensionInfo | null {
   const status = checkUserStatus(userId);
 
-  if (status.status === "active") {
+  if (status.status === "active" || status.status === "warning") {
     return null;
   }
 

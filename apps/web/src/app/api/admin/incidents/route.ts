@@ -127,20 +127,21 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: "Incident not found." }, { status: 404 });
   }
 
-  // Update impact if provided
+  // Validate all inputs before any mutations
+  if (impact && !VALID_IMPACTS.includes(impact)) {
+    return NextResponse.json({ error: "Invalid impact level." }, { status: 400 });
+  }
+  if (status && trimmedMessage && !VALID_STATUSES.includes(status)) {
+    return NextResponse.json({ error: "Invalid status." }, { status: 400 });
+  }
+
+  // Apply mutations after all validation passes
   if (impact) {
-    if (!VALID_IMPACTS.includes(impact)) {
-      return NextResponse.json({ error: "Invalid impact level." }, { status: 400 });
-    }
     updateIncidentImpact(incidentId, impact);
   }
 
   // Add status update if provided
   if (status && trimmedMessage) {
-    if (!VALID_STATUSES.includes(status)) {
-      return NextResponse.json({ error: "Invalid status." }, { status: 400 });
-    }
-
     const updated = addIncidentUpdate({
       incidentId,
       status,

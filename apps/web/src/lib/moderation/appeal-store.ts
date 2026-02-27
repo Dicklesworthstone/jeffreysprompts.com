@@ -118,6 +118,7 @@ export function canAppealAction(actionId: string, actionCreatedAt: string): {
 
 export function createAppeal(input: {
   actionId: string;
+  actionCreatedAt?: string;
   userId: string;
   userEmail?: string | null;
   userName?: string | null;
@@ -128,6 +129,14 @@ export function createAppeal(input: {
   // Check if appeal already exists
   if (store.appealsByAction.has(input.actionId)) {
     return { error: "An appeal has already been submitted for this action" };
+  }
+
+  // Enforce submission window if actionCreatedAt is provided
+  if (input.actionCreatedAt) {
+    const check = canAppealAction(input.actionId, input.actionCreatedAt);
+    if (!check.canAppeal) {
+      return { error: check.reason ?? "Cannot appeal this action" };
+    }
   }
 
   const now = new Date();

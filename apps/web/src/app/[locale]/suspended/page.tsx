@@ -35,7 +35,7 @@ export default async function SuspendedPage({ searchParams }: SuspendedPageProps
   // Build appeal URL if we have the required params
   const canBuildAppealUrl = !isBanned && actionId && userId && userEmail;
   const appealUrl = canBuildAppealUrl
-    ? `/appeals/new?actionId=${actionId}&userId=${userId}&email=${encodeURIComponent(userEmail)}`
+    ? `/appeals/new?actionId=${encodeURIComponent(actionId)}&userId=${encodeURIComponent(userId)}&email=${encodeURIComponent(userEmail)}`
     : "/contact?subject=suspension-appeal";
 
   let endDateText = "indefinitely";

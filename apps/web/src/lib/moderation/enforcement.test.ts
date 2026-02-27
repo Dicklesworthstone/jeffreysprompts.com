@@ -153,7 +153,7 @@ describe("enforcement", () => {
       expect(info?.isPermanent).toBe(true);
     });
 
-    it("returns warning info", () => {
+    it("returns null for warned users (warnings are not suspensions)", () => {
       createModerationAction({
         userId: "warned",
         actionType: "warning",
@@ -162,9 +162,7 @@ describe("enforcement", () => {
       });
 
       const info = getSuspensionInfo("warned");
-      expect(info).not.toBeNull();
-      expect(info?.isSuspended).toBe(false);
-      expect(info?.isBanned).toBe(false);
+      expect(info).toBeNull();
     });
   });
 

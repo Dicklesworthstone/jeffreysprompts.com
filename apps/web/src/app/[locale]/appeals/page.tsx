@@ -38,7 +38,7 @@ export default async function AppealsPage({ searchParams }: AppealsPageProps) {
             </p>
             <Button asChild>
               <Link
-                href={`/appeals/new?actionId=${actionId}&userId=${userId}&email=${encodeURIComponent(email)}`}
+                href={`/appeals/new?actionId=${encodeURIComponent(actionId)}&userId=${encodeURIComponent(userId)}&email=${encodeURIComponent(email)}`}
               >
                 Continue to Appeal Form
                 <ArrowRight className="ml-2 h-4 w-4" />

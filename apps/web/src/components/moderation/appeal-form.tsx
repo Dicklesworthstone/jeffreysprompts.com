@@ -70,11 +70,18 @@ export function AppealForm({
         }),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => null);
 
       if (!response.ok) {
-        setError(data.error || "Failed to submit appeal");
-        toast.error("Appeal Failed", data.error || "Failed to submit appeal");
+        const msg = data?.error || "Failed to submit appeal";
+        setError(msg);
+        toast.error("Appeal Failed", msg);
+        return;
+      }
+
+      if (!data) {
+        setError("Received an invalid response from the server.");
+        toast.error("Error", "Received an invalid response from the server.");
         return;
       }
 
