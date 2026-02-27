@@ -60,7 +60,7 @@ export interface FeaturedContent {
 
 interface FeaturedStore {
   items: Map<string, FeaturedContent>;
-  byResourceKey: Map<string, string>;
+  byResourceKey: Map<string, Set<string>>;
   order: string[];
 }
 
@@ -177,7 +177,12 @@ export function createFeaturedContent(input: {
   };
 
   store.items.set(item.id, item);
-  store.byResourceKey.set(resourceKey, item.id);
+  let resourceSet = store.byResourceKey.get(resourceKey);
+  if (!resourceSet) {
+    resourceSet = new Set();
+    store.byResourceKey.set(resourceKey, resourceSet);
+  }
+  resourceSet.add(item.id);
   touchItem(store, item.id);
   return item;
 }
@@ -193,25 +198,27 @@ export function getFeaturedByResource(
 ): FeaturedContent | null {
   const store = getStore();
   const resourceKey = makeResourceKey(resourceType, resourceId);
-  const mappedItemId = store.byResourceKey.get(resourceKey);
-  if (mappedItemId) {
-    const mappedItem = store.items.get(mappedItemId);
-    if (
-      mappedItem &&
-      mappedItem.resourceType === resourceType &&
-      mappedItem.resourceId === resourceId &&
-      isCurrentlyActive(mappedItem)
-    ) {
-      return mappedItem;
+  const mappedIds = store.byResourceKey.get(resourceKey);
+  if (mappedIds) {
+    // Check cached IDs for an active item
+    for (const mappedItemId of mappedIds) {
+      const mappedItem = store.items.get(mappedItemId);
+      if (
+        mappedItem &&
+        mappedItem.resourceType === resourceType &&
+        mappedItem.resourceId === resourceId &&
+        isCurrentlyActive(mappedItem)
+      ) {
+        return mappedItem;
+      }
     }
   }
 
   // Heal stale/missing key map by deriving the best active item.
   const activeItems = listActiveItemsForResource(store, resourceType, resourceId);
-  const best = activeItems[0] ?? null;
-  if (best) {
-    store.byResourceKey.set(resourceKey, best.id);
-    return best;
+  if (activeItems.length > 0) {
+    store.byResourceKey.set(resourceKey, new Set(activeItems.map((i) => i.id)));
+    return activeItems[0];
   }
 
   store.byResourceKey.delete(resourceKey);
@@ -312,15 +319,10 @@ export function removeFeaturedContent(id: string): FeaturedContent | null {
   store.items.set(item.id, item);
 
   const resourceKey = makeResourceKey(item.resourceType, item.resourceId);
-  if (store.byResourceKey.get(resourceKey) === item.id) {
-    const replacement = listActiveItemsForResource(
-      store,
-      item.resourceType,
-      item.resourceId
-    )[0];
-    if (replacement) {
-      store.byResourceKey.set(resourceKey, replacement.id);
-    } else {
+  const resourceSet = store.byResourceKey.get(resourceKey);
+  if (resourceSet) {
+    resourceSet.delete(item.id);
+    if (resourceSet.size === 0) {
       store.byResourceKey.delete(resourceKey);
     }
   }

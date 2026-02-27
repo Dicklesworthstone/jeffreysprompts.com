@@ -85,25 +85,36 @@ const MAX_RESPONSE_LENGTH = 1000;
  * 4. Remove event handlers (onclick, onerror, etc.)
  */
 function sanitizeUserInput(input: string): string {
-  return (
-    input
-      // Remove script and style tags with content
-      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
-      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
-      // Remove all HTML tags
-      .replace(/<[^>]*>/g, "")
-      // Remove javascript: and data: URLs that might be in attributes
-      .replace(/javascript:/gi, "")
-      .replace(/data:/gi, "")
-      // Remove common event handlers patterns
-      .replace(/on\w+\s*=/gi, "")
-      // Encode remaining special characters
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#x27;")
-  );
+  let text = input;
+
+  // Remove script and style tags with content
+  text = text.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
+  text = text.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "");
+  // Remove all HTML tags
+  text = text.replace(/<[^>]*>/g, "");
+  // Remove javascript: URLs (only in URL-like contexts, not bare text)
+  text = text.replace(/javascript:/gi, "");
+  // Remove common event handlers patterns
+  text = text.replace(/on\w+\s*=/gi, "");
+
+  // Decode any existing entities first to prevent double-encoding on re-edits,
+  // then re-encode. This makes sanitization idempotent.
+  text = text
+    .replace(/&#x27;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&gt;/g, ">")
+    .replace(/&lt;/g, "<")
+    .replace(/&amp;/g, "&");
+
+  // Encode special characters
+  text = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
+
+  return text;
 }
 
 function getStore(): ReviewStore {

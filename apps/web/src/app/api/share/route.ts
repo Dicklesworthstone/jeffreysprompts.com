@@ -24,7 +24,8 @@ const CONTENT_TYPE_MAP: Record<string, ShareContentType> = {
   user_prompt: "prompt",
   bundle: "bundle",
   workflow: "workflow",
-  collection: "collection",
+  // "collection" is defined in ShareContentType but not yet resolvable
+  // (no getCollection function exists). Uncomment when collections are implemented.
 };
 
 function resolveContent(type: ShareContentType, id: string): unknown | null {
@@ -152,7 +153,7 @@ export async function POST(request: NextRequest) {
 
   const response = NextResponse.json({
     linkCode: link.linkCode,
-    url: `https://jeffreysprompts.com/share/${link.linkCode}`,
+    url: `${request.nextUrl.origin}/share/${link.linkCode}`,
     expiresAt: link.expiresAt,
   });
 
