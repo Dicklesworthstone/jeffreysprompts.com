@@ -84,21 +84,20 @@ export function buildScorerIndex(promptsList: Prompt[]): ScorerIndex {
         .split(/\s+/)
         .filter((w) => w.length > 0 && !STOPWORDS.has(w));
 
+      const tagTokens = p.tags.flatMap((t) => tokenize(t));
+
       return {
         id: p.id,
         fields: [
           buildField("title", p.title, FIELD_WEIGHTS.title),
           buildField("id", p.id, FIELD_WEIGHTS.id),
-          (() => {
-            const tagTokens = p.tags.flatMap((t) => tokenize(t));
-            return {
-              name: "tags",
-              tokens: tagTokens,
-              tokenSet: new Set(tagTokens),
-              raw: p.tags.join(" ").toLowerCase(),
-              weight: FIELD_WEIGHTS.tags,
-            };
-          })(),
+          {
+            name: "tags",
+            tokens: tagTokens,
+            tokenSet: new Set(tagTokens),
+            raw: p.tags.join(" ").toLowerCase(),
+            weight: FIELD_WEIGHTS.tags,
+          },
           buildField("description", p.description, FIELD_WEIGHTS.description),
           buildField("content", p.content, FIELD_WEIGHTS.content),
         ],
@@ -356,7 +355,7 @@ export function searchScorerIndex(
   const synonymOnlyTokens = new Set<string>();
   let allTokens = rawTokens;
   if (options.expandSynonyms) {
-    const expanded = [...new Set(expandQuery(rawTokens))];
+    const expanded = expandQuery(rawTokens);
     const originalSet = new Set(rawTokens);
     for (const t of expanded) {
       if (!originalSet.has(t)) synonymOnlyTokens.add(t);
