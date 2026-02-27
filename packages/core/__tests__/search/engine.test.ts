@@ -48,7 +48,7 @@ describe("searchPrompts filters", () => {
 
     for (const result of results) {
       const hasTag = result.prompt.tags.some((tag) =>
-        ["brainstorming", "documentation"].includes(tag)
+        ["brainstorming", "documentation"].includes(tag),
       );
       expect(hasTag).toBe(true);
     }
@@ -74,55 +74,103 @@ describe("prefix / substring search (Algolia-style instant search)", () => {
     resetIndex();
   });
 
-  it('finds "robot-mode-maker" when typing partial prefix "rob"', () => {
+  it('finds "robot-mode-maker" for partial prefix "rob"', () => {
     const results = searchPrompts("rob", { expandSynonyms: false });
     const ids = results.map((r) => r.prompt.id);
     expect(ids).toContain("robot-mode-maker");
-    // Should be ranked near the top (title prefix match)
     expect(ids.indexOf("robot-mode-maker")).toBeLessThan(5);
   });
 
-  it('finds "idea-wizard" when typing partial prefix "ide"', () => {
+  it('finds "idea-wizard" for partial prefix "ide"', () => {
     const results = searchPrompts("ide", { expandSynonyms: false });
     const ids = results.map((r) => r.prompt.id);
     expect(ids).toContain("idea-wizard");
     expect(ids.indexOf("idea-wizard")).toBeLessThan(5);
   });
 
-  it("still finds prompts by exact full word (existing behavior)", () => {
+  it("finds prompts by exact full word", () => {
     const results = searchPrompts("ultrathink", { expandSynonyms: false });
     expect(results.length).toBeGreaterThan(0);
   });
 
-  it("still finds prompts by exact ID", () => {
+  it("finds prompts by exact ID", () => {
     const results = searchPrompts("idea-wizard", { expandSynonyms: false });
     const ids = results.map((r) => r.prompt.id);
     expect(ids).toContain("idea-wizard");
+    // Exact-ID boost: should be #1
+    expect(ids[0]).toBe("idea-wizard");
   });
 
-  it("multi-word prefix query narrows results", () => {
+  it("multi-word prefix query ranks best match first", () => {
     const results = searchPrompts("robot mode", { expandSynonyms: false });
     const ids = results.map((r) => r.prompt.id);
     expect(ids).toContain("robot-mode-maker");
-    // Multi-word match with coverage bonus should rank it first
     expect(ids[0]).toBe("robot-mode-maker");
   });
 
-  it("quickSearch returns results for prefix queries", () => {
-    const results = quickSearch("rob");
-    const ids = results.map((p) => p.id);
+  it("quickSearch returns prefix results", () => {
+    const ids = quickSearch("rob").map((p) => p.id);
     expect(ids).toContain("robot-mode-maker");
   });
 
-  it("returns matchedFields for prefix matches", () => {
+  it("matchedFields populated for prefix matches", () => {
     const results = searchPrompts("rob", { expandSynonyms: false });
-    const robotResult = results.find((r) => r.prompt.id === "robot-mode-maker");
-    expect(robotResult).toBeDefined();
-    expect(robotResult!.matchedFields.length).toBeGreaterThan(0);
+    const robot = results.find((r) => r.prompt.id === "robot-mode-maker");
+    expect(robot).toBeDefined();
+    expect(robot!.matchedFields.length).toBeGreaterThan(0);
   });
 
-  it("returns empty array for empty query", () => {
-    const results = searchPrompts("", { expandSynonyms: false });
-    expect(results).toEqual([]);
+  it("empty query → empty results", () => {
+    expect(searchPrompts("", { expandSynonyms: false })).toEqual([]);
+  });
+});
+
+describe("acronym search", () => {
+  beforeEach(() => {
+    resetIndex();
+  });
+
+  it('"rmm" finds Robot-Mode Maker', () => {
+    const results = searchPrompts("rmm", { expandSynonyms: false });
+    const ids = results.map((r) => r.prompt.id);
+    expect(ids).toContain("robot-mode-maker");
+  });
+
+  it('"bh" finds Bug Hunter', () => {
+    const results = searchPrompts("bh", { expandSynonyms: false });
+    const ids = results.map((r) => r.prompt.id);
+    expect(ids).toContain("bug-hunter");
+  });
+});
+
+describe("fuzzy search (typo tolerance)", () => {
+  beforeEach(() => {
+    resetIndex();
+  });
+
+  it('"robor" finds robot-mode-maker', () => {
+    const results = searchPrompts("robor", { expandSynonyms: false });
+    const ids = results.map((r) => r.prompt.id);
+    expect(ids).toContain("robot-mode-maker");
+  });
+});
+
+describe("synonym search", () => {
+  beforeEach(() => {
+    resetIndex();
+  });
+
+  it("finds prompts via synonym expansion", () => {
+    // "debug" has synonyms including "fix", and bug-hunter has "debug" in tags
+    const results = searchPrompts("debug", { expandSynonyms: true });
+    expect(results.length).toBeGreaterThan(0);
+  });
+
+  it("direct match ranks above synonym match", () => {
+    const direct = searchPrompts("debug", { expandSynonyms: false });
+    const withSynonyms = searchPrompts("debug", { expandSynonyms: true });
+    // Both should find results, synonym expansion may find more
+    expect(direct.length).toBeGreaterThan(0);
+    expect(withSynonyms.length).toBeGreaterThanOrEqual(direct.length);
   });
 });

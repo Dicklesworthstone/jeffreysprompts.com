@@ -1,8 +1,13 @@
 import { describe, it, expect } from "bun:test";
-import { scorePrompt, scoreAll, FIELD_WEIGHTS } from "../../src/search/scorer";
+import {
+  scorePrompt,
+  scoreAll,
+  buildScorerIndex,
+  searchScorerIndex,
+  FIELD_WEIGHTS,
+} from "../../src/search/scorer";
 import type { Prompt } from "../../src/prompts/types";
 
-/** Minimal prompt factory */
 function makePrompt(overrides: Partial<Prompt> = {}): Prompt {
   return {
     id: overrides.id ?? "test-prompt",
@@ -17,235 +22,441 @@ function makePrompt(overrides: Partial<Prompt> = {}): Prompt {
   };
 }
 
-describe("scorePrompt", () => {
-  describe("exact word matching", () => {
-    it("returns full field weight for exact title word match", () => {
-      const prompt = makePrompt({ title: "Robot Mode Maker" });
-      const result = scorePrompt(prompt, "robot");
-      expect(result).not.toBeNull();
-      expect(result!.score).toBe(FIELD_WEIGHTS.title * 1.0);
-      expect(result!.matchedFields).toContain("title");
-    });
+// ---------------------------------------------------------------------------
+// Exact matching
+// ---------------------------------------------------------------------------
 
-    it("returns full weight for exact tag match", () => {
-      const prompt = makePrompt({ tags: ["brainstorming", "creative"] });
-      const result = scorePrompt(prompt, "brainstorming");
-      expect(result).not.toBeNull();
-      expect(result!.score).toBe(FIELD_WEIGHTS.tags * 1.0);
-      expect(result!.matchedFields).toContain("tags");
-    });
-
-    it("returns full weight for exact id match", () => {
-      const prompt = makePrompt({ id: "idea-wizard" });
-      const result = scorePrompt(prompt, "idea");
-      expect(result).not.toBeNull();
-      // "idea" is an exact token in "idea-wizard" after tokenization
-      expect(result!.score).toBe(FIELD_WEIGHTS.id * 1.0);
-    });
+describe("exact matching", () => {
+  it("exact title word → full title weight", () => {
+    const r = scorePrompt(makePrompt({ title: "Robot Mode Maker" }), "robot");
+    expect(r).not.toBeNull();
+    expect(r!.score).toBe(FIELD_WEIGHTS.title);
+    expect(r!.matchedFields).toContain("title");
   });
 
-  describe("prefix matching", () => {
-    it("matches prefix of title word (last token)", () => {
-      const prompt = makePrompt({ title: "The Robot-Mode Maker" });
-      const result = scorePrompt(prompt, "rob");
-      expect(result).not.toBeNull();
-      // "rob" prefix-matches "robot" in title
-      expect(result!.score).toBe(FIELD_WEIGHTS.title * 0.7);
-      expect(result!.matchedFields).toContain("title");
-    });
-
-    it("matches prefix of id token", () => {
-      const prompt = makePrompt({ id: "idea-wizard" });
-      const result = scorePrompt(prompt, "ide");
-      expect(result).not.toBeNull();
-      // "ide" prefix-matches "idea" in id
-      expect(result!.score).toBe(FIELD_WEIGHTS.id * 0.7);
-    });
-
-    it("short tokens (<=3 chars) are prefix-eligible at any position", () => {
-      const prompt = makePrompt({ title: "Robot Mode Maker" });
-      // "rob" is <=3 chars so prefix-eligible even as first of two tokens
-      const result = scorePrompt(prompt, "rob mode");
-      expect(result).not.toBeNull();
-      // rob -> prefix title (10*0.7=7), mode -> exact title (10*1.0=10)
-      // coverage bonus: (7+10)*1.2 = 20.4
-      expect(result!.score).toBeCloseTo(20.4, 1);
-    });
-
-    it("longer non-last tokens are NOT prefix-eligible", () => {
-      const prompt = makePrompt({ title: "Robot Mode Maker" });
-      // "robo" is 4 chars and NOT the last token, so not prefix-eligible
-      const result = scorePrompt(prompt, "robo maker");
-      expect(result).not.toBeNull();
-      // "robo" -> substring match in title raw (10*0.4=4)
-      // "maker" -> exact title (10*1.0=10)
-      // coverage bonus: (4+10)*1.2 = 16.8
-      expect(result!.score).toBeCloseTo(16.8, 1);
-    });
+  it("exact tag token → full tag weight", () => {
+    const r = scorePrompt(
+      makePrompt({ tags: ["brainstorming", "creative"] }),
+      "brainstorming",
+    );
+    expect(r).not.toBeNull();
+    expect(r!.score).toBe(FIELD_WEIGHTS.tags);
+    expect(r!.matchedFields).toContain("tags");
   });
 
-  describe("prefix matching across fields", () => {
-    it("prefix-matches in description when last token", () => {
-      const prompt = makePrompt({
-        title: "Some Tool",
-        description: "Generates creative ideas for projects",
-      });
-      const result = scorePrompt(prompt, "creat");
-      expect(result).not.toBeNull();
-      // "creat" prefix-matches "creative" in description (last/only token)
-      expect(result!.score).toBe(FIELD_WEIGHTS.description * 0.7);
-    });
+  it("exact id token → full id weight", () => {
+    const r = scorePrompt(makePrompt({ id: "idea-wizard" }), "idea");
+    expect(r).not.toBeNull();
+    expect(r!.score).toBe(FIELD_WEIGHTS.id);
+  });
+});
 
-    it("exact-matches word in content", () => {
-      const prompt = makePrompt({
-        title: "Test",
-        content: "Please analyze the codebase thoroughly",
-      });
-      const result = scorePrompt(prompt, "codebase");
-      expect(result).not.toBeNull();
-      // "codebase" is an exact token in content
-      expect(result!.score).toBe(FIELD_WEIGHTS.content * 1.0);
-      expect(result!.matchedFields).toContain("content");
-    });
+// ---------------------------------------------------------------------------
+// Prefix matching (proportional)
+// ---------------------------------------------------------------------------
+
+describe("prefix matching", () => {
+  it("prefix-matches title word proportionally", () => {
+    const r = scorePrompt(
+      makePrompt({ title: "The Robot-Mode Maker" }),
+      "rob",
+    );
+    expect(r).not.toBeNull();
+    // 10 * (0.3 + 0.65 * 3/5) = 10 * 0.69 = 6.9
+    expect(r!.score).toBeCloseTo(6.9, 1);
+    expect(r!.matchedFields).toContain("title");
   });
 
-  describe("substring matching", () => {
-    it("falls back to substring when token is not prefix-eligible", () => {
-      const prompt = makePrompt({ title: "Robot Mode Maker" });
-      // "obot" is 4 chars, not last token → not prefix-eligible
-      // "obot" is not an exact token, not a prefix of any token
-      // but "robot mode maker" raw contains "obot" → substring match
-      const result = scorePrompt(prompt, "obot maker");
-      expect(result).not.toBeNull();
-      // "obot" → substring title (10*0.4=4), "maker" → exact title (10*1.0=10)
-      // coverage bonus: (4+10)*1.2 = 16.8
-      expect(result!.score).toBeCloseTo(16.8, 1);
-    });
+  it("longer prefix scores higher than shorter prefix", () => {
+    const p = makePrompt({ title: "Robot Mode Maker" });
+    const short = scorePrompt(p, "ro")!;
+    const long = scorePrompt(p, "robo")!;
+    expect(long.score).toBeGreaterThan(short.score);
+  });
 
-    it("substring matches in raw field text even when no token matches", () => {
-      // "sting" appears in raw "testing" but is not a prefix of "testing"
-      // and not an exact token
-      const prompt = makePrompt({
+  it("near-complete prefix ≈ exact score", () => {
+    const p = makePrompt({ title: "Robot Mode Maker" });
+    const prefix = scorePrompt(p, "robo")!;
+    const exact = scorePrompt(p, "robot")!;
+    expect(prefix.score).toBeGreaterThan(exact.score * 0.8);
+  });
+
+  it("short tokens (<=3 chars) prefix-eligible at any position", () => {
+    const p = makePrompt({ title: "Robot Mode Maker" });
+    const multi = scorePrompt(p, "rob mode")!;
+    const single = scorePrompt(p, "rob")!;
+    expect(multi.score).toBeGreaterThan(single.score);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Fuzzy matching
+// ---------------------------------------------------------------------------
+
+describe("fuzzy matching", () => {
+  it("tolerates 1 edit for tokens >= 4 chars", () => {
+    const r = scorePrompt(
+      makePrompt({ title: "Robot Mode Maker" }),
+      "robor",
+    );
+    expect(r).not.toBeNull();
+    expect(r!.matchedFields).toContain("title");
+  });
+
+  it("tolerates 2 edits for tokens >= 7 chars", () => {
+    const r = scorePrompt(
+      makePrompt({ tags: ["brainstorming"] }),
+      "brainstrming",
+    );
+    expect(r).not.toBeNull();
+    expect(r!.matchedFields).toContain("tags");
+  });
+
+  it("does NOT fuzzy-match tokens < 4 chars", () => {
+    const r = scorePrompt(
+      makePrompt({
+        id: "xyz-only",
+        title: "XYZ Only",
+        tags: [],
+        description: "nothing",
+        content: "nothing",
+      }),
+      "xya",
+    );
+    expect(r).toBeNull();
+  });
+
+  it("fuzzy < prefix < exact in score", () => {
+    const p = makePrompt({ title: "Robot Mode Maker" });
+    const exact = scorePrompt(p, "robot")!.score;
+    const prefix = scorePrompt(p, "robo")!.score;
+    const fuzzy = scorePrompt(p, "robor")!.score;
+    expect(exact).toBeGreaterThan(prefix);
+    expect(prefix).toBeGreaterThan(fuzzy);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Substring matching
+// ---------------------------------------------------------------------------
+
+describe("substring matching", () => {
+  it("matches in raw field text", () => {
+    const r = scorePrompt(
+      makePrompt({
         id: "other-id",
         title: "Other Title",
         tags: ["testing"],
         description: "unrelated",
         content: "unrelated",
-      });
-      const result = scorePrompt(prompt, "sting");
-      expect(result).not.toBeNull();
-      // "sting" substring of "testing" in tags raw → 5 * 0.4 = 2.0
-      expect(result!.score).toBe(FIELD_WEIGHTS.tags * 0.4);
-      expect(result!.matchedFields).toContain("tags");
-    });
+      }),
+      "sting",
+    );
+    expect(r).not.toBeNull();
+    expect(r!.matchedFields).toContain("tags");
   });
 
-  describe("field priority", () => {
-    it("title match scores higher than description match", () => {
-      const titleMatch = makePrompt({
-        title: "Robot Helper",
-        description: "Something else",
-      });
-      const descMatch = makePrompt({
-        title: "Something Else",
-        description: "Robot helper tool",
-      });
-
-      const titleResult = scorePrompt(titleMatch, "robot");
-      const descResult = scorePrompt(descMatch, "robot");
-
-      expect(titleResult!.score).toBeGreaterThan(descResult!.score);
-    });
-
-    it("id match scores higher than tags match", () => {
-      const idMatch = makePrompt({ id: "robot-mode", tags: ["other"] });
-      const tagMatch = makePrompt({ id: "other-thing", tags: ["robot"] });
-
-      const idResult = scorePrompt(idMatch, "robot");
-      const tagResult = scorePrompt(tagMatch, "robot");
-
-      expect(idResult!.score).toBeGreaterThan(tagResult!.score);
-    });
-  });
-
-  describe("coverage bonus", () => {
-    it("applies 1.2x bonus when all tokens match (multi-word query)", () => {
-      const prompt = makePrompt({ title: "Robot Mode Maker" });
-      const result = scorePrompt(prompt, "robot maker");
-      expect(result).not.toBeNull();
-      // robot -> exact title (10), maker -> exact title (10)
-      // coverage bonus: (10+10)*1.2 = 24
-      expect(result!.score).toBeCloseTo(24, 1);
-    });
-
-    it("does NOT apply bonus for single-token queries", () => {
-      const prompt = makePrompt({ title: "Robot Mode Maker" });
-      const result = scorePrompt(prompt, "robot");
-      expect(result).not.toBeNull();
-      expect(result!.score).toBe(10); // no 1.2x
-    });
-
-    it("does NOT apply bonus when a token has no match", () => {
-      const prompt = makePrompt({ title: "Robot Mode Maker" });
-      const result = scorePrompt(prompt, "robot xyznonexistent");
-      expect(result).not.toBeNull();
-      // Only "robot" matches, no coverage bonus
-      expect(result!.score).toBe(FIELD_WEIGHTS.title * 1.0);
-    });
-  });
-
-  describe("edge cases", () => {
-    it("returns null for empty query", () => {
-      const prompt = makePrompt();
-      expect(scorePrompt(prompt, "")).toBeNull();
-    });
-
-    it("returns null for stopword-only query", () => {
-      const prompt = makePrompt({ title: "The Best Tool" });
-      expect(scorePrompt(prompt, "the")).toBeNull();
-    });
-
-    it("returns null when no fields match", () => {
-      const prompt = makePrompt({ title: "Robot Helper" });
-      expect(scorePrompt(prompt, "xyznonexistent")).toBeNull();
-    });
-
-    it("handles prompts with empty tags", () => {
-      const prompt = makePrompt({ tags: [] });
-      const result = scorePrompt(prompt, "test");
-      // Should still work, matching other fields
-      expect(result).not.toBeNull();
-    });
+  it("substring < exact", () => {
+    const substr = scorePrompt(
+      makePrompt({ tags: ["xyztesting"] }),
+      "xyztest",
+    )!.score;
+    const exact = scorePrompt(
+      makePrompt({ tags: ["xyztest"] }),
+      "xyztest",
+    )!.score;
+    expect(exact).toBeGreaterThan(substr);
   });
 });
 
-describe("scoreAll", () => {
-  it("returns results sorted by score descending", () => {
-    const prompts = [
-      makePrompt({ id: "low-match", title: "Some Tool", description: "Robot helper" }),
-      makePrompt({ id: "high-match", title: "Robot Mode Maker", description: "A tool" }),
-    ];
+// ---------------------------------------------------------------------------
+// Acronym matching
+// ---------------------------------------------------------------------------
 
-    const results = scoreAll(prompts, "robot");
-    expect(results.length).toBe(2);
-    expect(results[0].id).toBe("high-match");
+describe("acronym matching", () => {
+  it("matches title initials", () => {
+    const r = scorePrompt(
+      makePrompt({ title: "Robot Mode Maker" }),
+      "rmm",
+    );
+    expect(r).not.toBeNull();
+    expect(r!.matchedFields).toContain("title");
+  });
+
+  it("requires >= 2 characters", () => {
+    const r = scorePrompt(
+      makePrompt({
+        id: "z-thing",
+        title: "Zebra",
+        tags: [],
+        description: "n",
+        content: "n",
+      }),
+      "z",
+    );
+    // Single-char acronym should not match via acronym bonus
+    // (might still match via prefix)
+    // "z" goes through tokenize which keeps single chars in ALLOWLIST
+    // but "z" is not in ALLOWLIST (only c,r,v,x,k), so tokenize drops it
+    // rawQueryNormalized = "z", titleAcronym = "z", but len < 2 → no acronym bonus
+    // No token matches either → null
+    expect(r).toBeNull();
+  });
+
+  it("case-insensitive", () => {
+    const r = scorePrompt(
+      makePrompt({ title: "Bug Hunter" }),
+      "BH",
+    );
+    expect(r).not.toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Exact-ID boost
+// ---------------------------------------------------------------------------
+
+describe("exact-ID boost", () => {
+  it("query matching full ID gets massive bonus", () => {
+    const p = makePrompt({ id: "idea-wizard", title: "The Idea Wizard" });
+    const exactId = scorePrompt(p, "idea-wizard")!;
+    const partialId = scorePrompt(p, "idea")!;
+    expect(exactId.score).toBeGreaterThan(partialId.score * 3);
+  });
+
+  it("works with spaces instead of hyphens", () => {
+    const p = makePrompt({ id: "idea-wizard", title: "The Idea Wizard" });
+    const r = scorePrompt(p, "idea wizard")!;
+    expect(r.matchedFields).toContain("id");
+    // Should still get the exact-ID bonus since normalized forms match
+    expect(r.score).toBeGreaterThan(40);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Synonym expansion
+// ---------------------------------------------------------------------------
+
+describe("synonym expansion", () => {
+  it("synonym tokens score at discount", () => {
+    const prompts = [
+      makePrompt({ id: "a", title: "Fix The Bug", tags: ["debug"] }),
+    ];
+    const idx = buildScorerIndex(prompts);
+
+    // "repair" is a synonym of "fix" (via synonyms.ts)
+    const withSynonyms = searchScorerIndex(idx, "repair", {
+      expandSynonyms: true,
+    });
+    const direct = searchScorerIndex(idx, "fix");
+
+    expect(withSynonyms.length).toBeGreaterThan(0);
+    expect(direct.length).toBeGreaterThan(0);
+    // Direct match should score higher than synonym match
+    expect(direct[0].score).toBeGreaterThan(withSynonyms[0].score);
+  });
+
+  it("finds prompts through synonym expansion", () => {
+    const prompts = [
+      makePrompt({ id: "a", title: "Optimize Performance" }),
+    ];
+    const idx = buildScorerIndex(prompts);
+    // "perf" has synonyms ["performance", "speed", "optimize", "fast"]
+    // Reverse: "optimize" → "improve" (via reverse synonyms)
+    // "improve" has synonyms ["enhance", "optimize", "upgrade", "better"]
+    const results = searchScorerIndex(idx, "improve", {
+      expandSynonyms: true,
+    });
+    expect(results.length).toBeGreaterThan(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Coverage bonus
+// ---------------------------------------------------------------------------
+
+describe("coverage bonus", () => {
+  it("multi-word all-match > 2x single match", () => {
+    const p = makePrompt({ title: "Robot Mode Maker" });
+    const multi = scorePrompt(p, "robot maker")!;
+    const single = scorePrompt(p, "robot")!;
+    expect(multi.score).toBeGreaterThan(single.score * 2);
+  });
+
+  it("no bonus for single token", () => {
+    const r = scorePrompt(
+      makePrompt({ title: "Robot Mode Maker" }),
+      "robot",
+    )!;
+    expect(r.score).toBe(FIELD_WEIGHTS.title);
+  });
+
+  it("no bonus when a token misses", () => {
+    const p = makePrompt({ title: "Robot Mode Maker" });
+    const partial = scorePrompt(p, "robot xyznonexistent")!;
+    const single = scorePrompt(p, "robot")!;
+    expect(partial.score).toBe(single.score);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Phrase bonus
+// ---------------------------------------------------------------------------
+
+describe("phrase bonus", () => {
+  it("consecutive > scattered", () => {
+    const p = makePrompt({ title: "Robot Mode Maker" });
+    const consec = scorePrompt(p, "robot mode")!;
+    const scatter = scorePrompt(p, "robot maker")!;
+    expect(consec.score).toBeGreaterThan(scatter.score);
+  });
+
+  it("full phrase > partial phrase", () => {
+    const p = makePrompt({ title: "Robot Mode Maker" });
+    const full = scorePrompt(p, "robot mode maker")!;
+    const partial = scorePrompt(p, "robot maker")!;
+    expect(full.score).toBeGreaterThan(partial.score);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Deduplication
+// ---------------------------------------------------------------------------
+
+describe("deduplication", () => {
+  it("duplicate tokens don't inflate score", () => {
+    const p = makePrompt({ title: "Robot Mode Maker" });
+    const single = scorePrompt(p, "robot")!;
+    const doubled = scorePrompt(p, "robot robot")!;
+    expect(doubled.score).toBe(single.score);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Field priority
+// ---------------------------------------------------------------------------
+
+describe("field priority", () => {
+  it("title > description", () => {
+    const a = scorePrompt(
+      makePrompt({ title: "Robot Helper", description: "Something else" }),
+      "robot",
+    )!;
+    const b = scorePrompt(
+      makePrompt({
+        title: "Something Else",
+        description: "Robot helper tool",
+      }),
+      "robot",
+    )!;
+    expect(a.score).toBeGreaterThan(b.score);
+  });
+
+  it("id > tags", () => {
+    const a = scorePrompt(
+      makePrompt({ id: "robot-mode", tags: ["other"] }),
+      "robot",
+    )!;
+    const b = scorePrompt(
+      makePrompt({ id: "other-thing", tags: ["robot"] }),
+      "robot",
+    )!;
+    expect(a.score).toBeGreaterThan(b.score);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Edge cases
+// ---------------------------------------------------------------------------
+
+describe("edge cases", () => {
+  it("empty query → null", () => {
+    expect(scorePrompt(makePrompt(), "")).toBeNull();
+  });
+
+  it("stopword-only query → null", () => {
+    expect(
+      scorePrompt(makePrompt({ title: "The Best Tool" }), "the"),
+    ).toBeNull();
+  });
+
+  it("no match → null", () => {
+    expect(
+      scorePrompt(makePrompt({ title: "Robot Helper" }), "xyznonexistent"),
+    ).toBeNull();
+  });
+
+  it("empty tags handled", () => {
+    expect(scorePrompt(makePrompt({ tags: [] }), "test")).not.toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Index API
+// ---------------------------------------------------------------------------
+
+describe("buildScorerIndex + searchScorerIndex", () => {
+  it("builds and searches", () => {
+    const idx = buildScorerIndex([
+      makePrompt({ id: "a", title: "Robot Mode" }),
+      makePrompt({ id: "b", title: "Idea Wizard" }),
+    ]);
+    expect(searchScorerIndex(idx, "robot")[0].id).toBe("a");
+  });
+
+  it("reuses index across queries", () => {
+    const idx = buildScorerIndex([
+      makePrompt({ id: "a", title: "Robot Mode" }),
+      makePrompt({ id: "b", title: "Idea Wizard" }),
+    ]);
+    expect(searchScorerIndex(idx, "robot")[0].id).toBe("a");
+    expect(searchScorerIndex(idx, "idea")[0].id).toBe("b");
+    expect(searchScorerIndex(idx, "wiz")[0].id).toBe("b");
+  });
+
+  it("empty query → empty", () => {
+    const idx = buildScorerIndex([makePrompt()]);
+    expect(searchScorerIndex(idx, "")).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// scoreAll
+// ---------------------------------------------------------------------------
+
+describe("scoreAll", () => {
+  it("sorted descending", () => {
+    const results = scoreAll(
+      [
+        makePrompt({ id: "lo", title: "Some Tool", description: "Robot helper" }),
+        makePrompt({ id: "hi", title: "Robot Mode Maker" }),
+      ],
+      "robot",
+    );
+    expect(results[0].id).toBe("hi");
     expect(results[0].score).toBeGreaterThan(results[1].score);
   });
 
-  it("filters out prompts with no match", () => {
-    const prompts = [
-      makePrompt({ id: "match", title: "Robot Mode" }),
-      makePrompt({ id: "no-match", title: "Idea Wizard", description: "brainstorming", content: "no overlap" }),
-    ];
-
-    const results = scoreAll(prompts, "robot");
+  it("filters non-matches", () => {
+    const results = scoreAll(
+      [
+        makePrompt({ id: "match", title: "Robot Mode" }),
+        makePrompt({
+          id: "no-match",
+          title: "Idea Wizard",
+          description: "brainstorming",
+          content: "no overlap",
+        }),
+      ],
+      "robot",
+    );
     expect(results.length).toBe(1);
     expect(results[0].id).toBe("match");
   });
 
-  it("returns empty array for no matches", () => {
-    const prompts = [makePrompt({ title: "Hello World" })];
-    const results = scoreAll(prompts, "xyznonexistent");
-    expect(results).toEqual([]);
+  it("empty for no matches", () => {
+    expect(
+      scoreAll([makePrompt({ title: "Hello World" })], "xyznonexistent"),
+    ).toEqual([]);
   });
 });

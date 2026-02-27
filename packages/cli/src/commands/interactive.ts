@@ -1,6 +1,6 @@
 import { select, search, Separator } from "@inquirer/prompts";
 import { type Prompt } from "@jeffreysprompts/core/prompts";
-import { searchPrompts, buildIndex } from "@jeffreysprompts/core/search";
+import { searchPrompts, buildScorerIndex } from "@jeffreysprompts/core/search";
 import { generatePromptMarkdown } from "@jeffreysprompts/core/export";
 import chalk from "chalk";
 import boxen from "boxen";
@@ -84,7 +84,7 @@ export async function interactiveCommand(_options: InteractiveOptions): Promise<
   
   // Build lookup map and search index
   const promptsMap = new Map(dynamicPrompts.map((p) => [p.id, p]));
-  const searchIndex = buildIndex(dynamicPrompts);
+  const searchIndex = buildScorerIndex(dynamicPrompts);
 
   console.log(chalk.bold.cyan("\n🎯 JeffreysPrompts Interactive Mode"));
   console.log(chalk.dim("Type to search, use arrow keys to select, Enter to choose\n"));
@@ -104,10 +104,9 @@ export async function interactiveCommand(_options: InteractiveOptions): Promise<
             }));
           }
 
-          // Use BM25 search with dynamic index and map
-          const results = searchPrompts(input.trim(), { 
+          const results = searchPrompts(input.trim(), {
             limit: 15,
-            index: searchIndex,
+            scorerIndex: searchIndex,
             promptsMap: promptsMap
           });
           

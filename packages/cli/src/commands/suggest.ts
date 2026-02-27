@@ -1,4 +1,4 @@
-import { searchPrompts, semanticRerank, buildIndex, type SearchResult, type RankedResult } from "@jeffreysprompts/core/search";
+import { searchPrompts, semanticRerank, buildScorerIndex, type SearchResult, type RankedResult } from "@jeffreysprompts/core/search";
 import { type Prompt } from "@jeffreysprompts/core/prompts";
 import chalk from "chalk";
 import { shouldOutputJson } from "../lib/utils";
@@ -27,7 +27,7 @@ interface SuggestOutput {
 /**
  * jfp suggest <task> - Suggest prompts for a task
  *
- * Uses BM25 search to find relevant prompts for a task description.
+ * Uses multi-signal scorer to find relevant prompts for a task description.
  * With --semantic flag, applies MiniLM reranking for better semantic matching.
  * Falls back to hash-based embeddings if the model is unavailable.
  * Returns scored results with explanations of why they match.
@@ -65,13 +65,13 @@ export async function suggestCommand(task: string, options: SuggestOptions) {
   
   // Build lookup map and search index
   const promptsMap = new Map(prompts.map((p) => [p.id, p]));
-  const searchIndex = buildIndex(prompts);
+  const searchIndex = buildScorerIndex(prompts);
 
-  // Search using BM25 - get more results if semantic reranking will be applied
+  // Search - get more results if semantic reranking will be applied
   const searchLimit = options.semantic ? Math.max(clampedLimit * 3, 10) : clampedLimit;
-  let results = searchPrompts(task, { 
+  let results = searchPrompts(task, {
     limit: searchLimit,
-    index: searchIndex,
+    scorerIndex: searchIndex,
     promptsMap: promptsMap
   });
 
@@ -138,8 +138,8 @@ export async function suggestCommand(task: string, options: SuggestOptions) {
 
   for (let i = 0; i < results.length; i++) {
     const { prompt, score, matchedFields } = results[i];
-    // Semantic scores are 0-1 (need * 100), BM25 scores are typically 0-5 (need * 20)
-    const relevancePercent = Math.max(0, Math.min(100, Math.round(options.semantic ? score * 100 : score * 20)));
+    // Semantic scores are 0-1 (need * 100), scorer scores are typically 1-50 (need * 2)
+    const relevancePercent = Math.max(0, Math.min(100, Math.round(options.semantic ? score * 100 : score * 2)));
     const relevanceBar = getRelevanceBar(relevancePercent);
 
     // Header: rank, title, relevance
@@ -277,8 +277,8 @@ function generateTip(
  * Format a suggestion for JSON output
  */
 function formatSuggestion(result: SearchResult, task: string, semantic?: boolean): SuggestOutput["suggestions"][0] {
-  // Normalize relevance to 0-1 scale (semantic scores are 0-1, BM25 scores are ~0-5)
-  const normalizedRelevance = Math.max(0, Math.min(1, semantic ? result.score : result.score / 5));
+  // Normalize relevance to 0-1 scale (semantic scores are 0-1, scorer scores are ~1-50)
+  const normalizedRelevance = Math.max(0, Math.min(1, semantic ? result.score : result.score / 50));
   return {
     id: result.prompt.id,
     title: result.prompt.title,

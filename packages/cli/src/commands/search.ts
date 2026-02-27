@@ -10,7 +10,7 @@
  * - --local: Search only local registry (default for free/unauthenticated users)
  */
 
-import { searchPrompts, buildIndex, type SearchResult, type BM25Index } from "@jeffreysprompts/core/search";
+import { searchPrompts, buildScorerIndex, type ScorerIndex } from "@jeffreysprompts/core/search";
 import { type Prompt } from "@jeffreysprompts/core/prompts";
 import chalk from "chalk";
 import { shouldOutputJson } from "../lib/utils";
@@ -70,10 +70,10 @@ interface MergedSearchResult {
 function searchLocal(
   query: string,
   limit: number,
-  index: BM25Index,
+  scorerIndex: ScorerIndex,
   promptsMap: Map<string, Prompt>
 ): MergedSearchResult[] {
-  const results = searchPrompts(query, { limit, index, promptsMap });
+  const results = searchPrompts(query, { limit, scorerIndex, promptsMap });
   return results.map((r) => ({
     id: r.prompt.id,
     title: r.prompt.title,
@@ -87,7 +87,7 @@ function searchLocal(
 }
 
 /**
- * Search the offline library cache using BM25
+ * Search the offline library cache
  */
 function searchOffline(query: string, limit: number): MergedSearchResult[] {
   const offlineLib = readOfflineLibrary();
@@ -105,8 +105,8 @@ function searchOffline(query: string, limit: number): MergedSearchResult[] {
   }));
 
   const promptsMap = new Map(prompts.map((p) => [p.id, p]));
-  const index = buildIndex(prompts);
-  const results = searchPrompts(query, { limit, index, promptsMap });
+  const scorerIndex = buildScorerIndex(prompts);
+  const results = searchPrompts(query, { limit, scorerIndex, promptsMap });
 
   return results.map((r) => ({
     id: r.prompt.id,
@@ -256,7 +256,7 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
   
   // Build lookup map and search index
   const promptsMap = new Map(prompts.map((p) => [p.id, p]));
-  const searchIndex = buildIndex(prompts);
+  const searchIndex = buildScorerIndex(prompts);
 
   const loggedIn = await isLoggedIn();
   const creds = loggedIn ? await loadCredentials() : null;

@@ -1,6 +1,6 @@
 /**
  * Search module
- * BM25 search engine, tokenization, synonyms, and optional semantic search
+ * Multi-signal scorer, tokenization, synonyms, and optional semantic search
  */
 
 // Tokenization
@@ -16,9 +16,15 @@ export type { BM25Document, BM25Index } from "./bm25";
 // Hash embedder fallback
 export { hashEmbed } from "./hash-embedder";
 
-// Multi-signal scorer (prefix/substring/exact matching)
-export { scorePrompt, scoreAll, FIELD_WEIGHTS } from "./scorer";
-export type { ScorerResult } from "./scorer";
+// Multi-signal scorer (prefix/substring/exact/fuzzy matching)
+export {
+  buildScorerIndex,
+  searchScorerIndex,
+  scorePrompt,
+  scoreAll,
+  FIELD_WEIGHTS,
+} from "./scorer";
+export type { ScorerIndex, ScorerResult } from "./scorer";
 
 // Composite search engine
 export { searchPrompts, quickSearch, resetIndex } from "./engine";

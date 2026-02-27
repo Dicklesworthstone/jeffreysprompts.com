@@ -23,7 +23,7 @@ import {
   ListToolsRequestSchema,
   ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import { searchPrompts, buildIndex } from "@jeffreysprompts/core/search";
+import { searchPrompts, buildScorerIndex } from "@jeffreysprompts/core/search";
 import { renderPrompt } from "@jeffreysprompts/core/template";
 import { loadRegistry } from "../lib/registry-loader";
 import { type Prompt } from "@jeffreysprompts/core/prompts";
@@ -72,7 +72,7 @@ export async function serveCommand(options: ServeOptions): Promise<void> {
   
   // Build lookup map and search index from loaded prompts
   const promptsMap = new Map(prompts.map((p) => [p.id, p]));
-  const searchIndex = buildIndex(prompts);
+  const searchIndex = buildScorerIndex(prompts);
 
   function getPrompt(id: string): Prompt | undefined {
     return promptsMap.get(id);
@@ -211,7 +211,7 @@ export async function serveCommand(options: ServeOptions): Promise<void> {
       let results = trimmedQuery
         ? searchPrompts(trimmedQuery, {
             limit: Math.max(limit * 3, 50),
-            index: searchIndex,
+            scorerIndex: searchIndex,
             promptsMap: promptsMap,
             category,
             tags,
