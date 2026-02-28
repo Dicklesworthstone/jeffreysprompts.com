@@ -34,10 +34,24 @@ export const DEFAULT_MODEL = "gpt-4o-mini";
 
 // Prices are per 1k tokens. Update as vendor pricing changes.
 export const DEFAULT_PRICING_TABLE: PricingTable = {
-  "gpt-4o": { inputPer1k: 0.005, outputPer1k: 0.015, currency: "USD" },
+  // OpenAI
+  "gpt-4o": { inputPer1k: 0.0025, outputPer1k: 0.010, currency: "USD" },
   "gpt-4o-mini": { inputPer1k: 0.00015, outputPer1k: 0.0006, currency: "USD" },
   "gpt-4-turbo": { inputPer1k: 0.01, outputPer1k: 0.03, currency: "USD" },
   "gpt-3.5-turbo": { inputPer1k: 0.0005, outputPer1k: 0.0015, currency: "USD" },
+  
+  // Anthropic
+  "claude-3-5-sonnet": { inputPer1k: 0.003, outputPer1k: 0.015, currency: "USD" },
+  "claude-3-5-haiku": { inputPer1k: 0.001, outputPer1k: 0.005, currency: "USD" },
+  "claude-3-opus": { inputPer1k: 0.015, outputPer1k: 0.075, currency: "USD" },
+  
+  // Google
+  "gemini-1.5-pro": { inputPer1k: 0.00125, outputPer1k: 0.005, currency: "USD" },
+  "gemini-1.5-flash": { inputPer1k: 0.000075, outputPer1k: 0.0003, currency: "USD" },
+  
+  // Open Source / Other (via providers like Together/Fireworks)
+  "meta-llama-3.1-70b": { inputPer1k: 0.00088, outputPer1k: 0.00088, currency: "USD" },
+  "meta-llama-3.1-8b": { inputPer1k: 0.00018, outputPer1k: 0.00018, currency: "USD" },
 };
 
 function roundCurrency(value: number): number {
