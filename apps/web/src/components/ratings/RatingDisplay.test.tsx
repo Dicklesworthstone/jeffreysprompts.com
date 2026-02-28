@@ -10,15 +10,16 @@ const mockSummary = {
 };
 
 vi.mock("@/hooks/use-rating", () => ({
-  useRating: vi.fn(() => ({ summary: mockSummary as any, loading: false })),
+  useRating: vi.fn(() => ({ summary: mockSummary as unknown as RatingSummary, loading: false })),
 }));
 
 import { useRating } from "@/hooks/use-rating";
+import type { RatingSummary } from "@/lib/ratings/rating-store";
 
 describe("RatingDisplay", () => {
   beforeEach(() => {
     vi.mocked(useRating).mockReturnValue({
-      summary: mockSummary as any,
+      summary: mockSummary as unknown as RatingSummary,
       loading: false, userRating: null, error: null,
       
       rate: vi.fn(), refresh: vi.fn(),

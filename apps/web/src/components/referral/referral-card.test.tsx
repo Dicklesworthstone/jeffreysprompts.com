@@ -36,7 +36,7 @@ describe("ReferralCard", () => {
 
   it("shows loading skeleton initially", () => {
     // Fetch never resolves
-    globalThis.fetch = vi.fn(() => new Promise(() => {})) as any;
+    globalThis.fetch = vi.fn(() => new Promise(() => {})) as unknown as typeof fetch;
     const { container } = render(<ReferralCard />);
     expect(container.querySelector(".animate-pulse")).toBeInTheDocument();
   });

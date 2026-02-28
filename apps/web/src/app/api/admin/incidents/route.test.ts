@@ -13,7 +13,7 @@ function authedRequest(
 ): NextRequest {
   const headers = new Headers(init?.headers);
   headers.set("authorization", `Bearer ${TOKEN}`);
-  return new NextRequest(url, { ...init, headers, signal: (init as any)?.signal || undefined } as any);
+  return new NextRequest(url, { ...init, headers, signal: (init as unknown as Record<string, unknown>)?.signal || undefined } as unknown as Record<string, unknown>);
 }
 
 function clearStore() {

@@ -79,13 +79,13 @@ describe("useViewTransition", () => {
     let origStartViewTransition: unknown;
 
     beforeEach(() => {
-      origStartViewTransition = (document as any).startViewTransition;
+      origStartViewTransition = (document as unknown as Record<string, unknown>).startViewTransition;
       const mockTransition = {
         finished: Promise.resolve(),
         ready: Promise.resolve(),
         updateCallbackDone: Promise.resolve(),
       };
-      (document as any).startViewTransition = vi.fn((cb: () => void) => {
+      (document as unknown as Record<string, unknown>).startViewTransition = vi.fn((cb: () => void) => {
         cb();
         return mockTransition;
       });
@@ -96,9 +96,9 @@ describe("useViewTransition", () => {
 
     afterEach(() => {
       if (origStartViewTransition === undefined) {
-        delete (document as any).startViewTransition;
+        delete (document as unknown as Record<string, unknown>).startViewTransition;
       } else {
-        (document as any).startViewTransition = origStartViewTransition;
+        (document as unknown as Record<string, unknown>).startViewTransition = origStartViewTransition;
       }
     });
 

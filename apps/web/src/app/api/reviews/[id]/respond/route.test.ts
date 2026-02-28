@@ -18,7 +18,7 @@ vi.mock("@/lib/reviews/review-store", async (importOriginal) => {
 
 import { POST, DELETE } from "./route";
 import { getUserIdFromRequest } from "@/lib/user-id";
-import { getReviewById } from "@/lib/reviews/review-store";
+import { getReviewById, type Review } from "@/lib/reviews/review-store";
 
 const mockGetUserId = vi.mocked(getUserIdFromRequest);
 const mockGetReview = vi.mocked(getReviewById);
@@ -74,7 +74,7 @@ describe("/api/reviews/[id]/respond", () => {
         contentType: "prompt",
         contentId: "p1",
         userId: "other-user",
-        rating: 4 as any,
+        rating: 4 as unknown as Record<string, unknown>,
         // title: "Test",
         // body: "A review",
         createdAt: new Date().toISOString(),
@@ -83,7 +83,7 @@ describe("/api/reviews/[id]/respond", () => {
         // unhelpfulVotes: 0,
         status: "published",
         authorResponse: null,
-      } as any);
+      } as unknown as Review);
       vi.stubEnv("NODE_ENV", "production");
       const res = await POST(
         new NextRequest("http://localhost/api/reviews/review1/respond", {
