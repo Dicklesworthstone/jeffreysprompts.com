@@ -91,6 +91,7 @@ interface ReportStore {
 }
 
 const STORE_KEY = "__jfp_content_report_store__";
+const MAX_REPORTS_IN_MEMORY = 50000;
 const REPORT_COUNT_CAP = 5;
 const AGE_SCORE_CAP_HOURS = 72;
 const SLA_WARNING_HOURS = 24;
@@ -128,6 +129,18 @@ function getStore(): ReportStore {
 
 function touchReport(store: ReportStore, reportId: string) {
   store.order = [reportId, ...store.order.filter((id) => id !== reportId)];
+}
+
+function evictOldestReportsIfNeeded(store: ReportStore): void {
+  if (store.reports.size <= MAX_REPORTS_IN_MEMORY) return;
+
+  const numToRemove = Math.ceil(MAX_REPORTS_IN_MEMORY * 0.1);
+  for (let i = 0; i < numToRemove; i++) {
+    const oldestId = store.order.pop();
+    if (oldestId) {
+      store.reports.delete(oldestId);
+    }
+  }
 }
 
 function getReportAgeHours(createdAt: string): number {
@@ -238,6 +251,8 @@ export function createContentReport(input: {
   authorTier?: ReportAuthorTier | null;
 }): ContentReport {
   const store = getStore();
+  evictOldestReportsIfNeeded(store);
+
   const now = new Date().toISOString();
 
   const report: ContentReport = {

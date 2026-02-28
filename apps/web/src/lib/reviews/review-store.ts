@@ -73,6 +73,7 @@ interface ReviewStore {
 const STORE_KEY = "__jfp_review_store__";
 const MAX_REVIEW_LENGTH = 2000;
 const MAX_RESPONSE_LENGTH = 1000;
+const MAX_REVIEWS_IN_MEMORY = 50000;
 
 /**
  * Sanitize user input to prevent XSS attacks.
@@ -144,6 +145,34 @@ function makeVoteKey(reviewId: string, visitorId: string): string {
 
 function touchReview(store: ReviewStore, reviewId: string): void {
   store.order = [reviewId, ...store.order.filter((id) => id !== reviewId)];
+}
+
+function evictOldestReviewsIfNeeded(store: ReviewStore): void {
+  if (store.reviews.size <= MAX_REVIEWS_IN_MEMORY) return;
+
+  // store.order is newest first, so pop from the end
+  const numToRemove = Math.ceil(MAX_REVIEWS_IN_MEMORY * 0.1); // remove 10% to amortize
+  for (let i = 0; i < numToRemove; i++) {
+    const oldestId = store.order.pop();
+    if (oldestId) {
+      const review = store.reviews.get(oldestId);
+      if (review) {
+        store.reviews.delete(oldestId);
+        
+        // Clean up votes for this review
+        for (const [key, vote] of store.votes) {
+          if (vote.reviewId === oldestId) {
+            store.votes.delete(key);
+          }
+        }
+
+        // Clean up author response
+        if (review.authorResponse) {
+          store.responses.delete(review.authorResponse.id);
+        }
+      }
+    }
+  }
 }
 
 export function getReviewById(reviewId: string): Review | null {
@@ -245,6 +274,8 @@ export interface SubmitReviewResult {
 
 export function submitReview(input: SubmitReviewInput): SubmitReviewResult {
   const store = getStore();
+  evictOldestReviewsIfNeeded(store);
+
   const now = new Date().toISOString();
   const reviewId = makeReviewId(input.contentType, input.contentId, input.userId);
   const existing = store.reviews.get(reviewId);

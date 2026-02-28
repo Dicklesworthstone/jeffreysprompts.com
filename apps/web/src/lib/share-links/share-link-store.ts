@@ -41,6 +41,7 @@ const STORE_KEY = "__jfp_share_link_store__";
 const CODE_LENGTH = 12;
 const MAX_CODE_ATTEMPTS = 10;
 const MAX_VIEWS_PER_LINK = 1000;
+const MAX_LINKS_IN_MEMORY = 50000;
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
 
 function getStore(): ShareLinkStore {
@@ -62,6 +63,23 @@ function getStore(): ShareLinkStore {
 
 function touchLink(store: ShareLinkStore, linkId: string) {
   store.order = [linkId, ...store.order.filter((id) => id !== linkId)];
+}
+
+function evictOldestLinksIfNeeded(store: ShareLinkStore): void {
+  if (store.links.size <= MAX_LINKS_IN_MEMORY) return;
+
+  const numToRemove = Math.ceil(MAX_LINKS_IN_MEMORY * 0.1);
+  for (let i = 0; i < numToRemove; i++) {
+    const oldestId = store.order.pop();
+    if (oldestId) {
+      const link = store.links.get(oldestId);
+      if (link) {
+        store.linksByCode.delete(link.linkCode);
+      }
+      store.links.delete(oldestId);
+      store.views.delete(oldestId);
+    }
+  }
 }
 
 /**
@@ -167,6 +185,8 @@ export function createShareLink(input: {
   expiresAt?: string | null;
 }): ShareLink {
   const store = getStore();
+  evictOldestLinksIfNeeded(store);
+
   const now = new Date().toISOString();
 
   let linkCode = "";

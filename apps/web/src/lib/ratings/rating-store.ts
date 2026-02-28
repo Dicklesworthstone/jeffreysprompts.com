@@ -45,6 +45,7 @@ interface RatingStore {
 }
 
 const STORE_KEY = "__jfp_rating_store__";
+const MAX_RATINGS_IN_MEMORY = 100000;
 
 function getStore(): RatingStore {
   const globalStore = globalThis as typeof globalThis & {
@@ -71,6 +72,19 @@ function makeRatingKey(input: {
 
 function touchRating(store: RatingStore, ratingId: string) {
   store.order = [ratingId, ...store.order.filter((id) => id !== ratingId)];
+}
+
+function evictOldestRatingsIfNeeded(store: RatingStore): void {
+  if (store.ratings.size <= MAX_RATINGS_IN_MEMORY) return;
+
+  // order is newest first, pop from end
+  const numToRemove = Math.ceil(MAX_RATINGS_IN_MEMORY * 0.1);
+  for (let i = 0; i < numToRemove; i++) {
+    const oldestId = store.order.pop();
+    if (oldestId) {
+      store.ratings.delete(oldestId);
+    }
+  }
 }
 
 export function getUserRating(input: {
@@ -123,6 +137,8 @@ export function submitRating(input: {
   value: RatingValue;
 }): { rating: ContentRating; summary: RatingSummary } {
   const store = getStore();
+  evictOldestRatingsIfNeeded(store);
+
   const now = new Date().toISOString();
   const key = makeRatingKey(input);
   const existing = store.ratings.get(key);

@@ -60,6 +60,7 @@ interface AppealStore {
 }
 
 const STORE_KEY = "__jfp_moderation_appeal_store__";
+const MAX_APPEALS_IN_MEMORY = 50000;
 
 function getStore(): AppealStore {
   const globalStore = globalThis as typeof globalThis & {
@@ -80,6 +81,24 @@ function getStore(): AppealStore {
 
 function touchAppeal(store: AppealStore, appealId: string) {
   store.order = [appealId, ...store.order.filter((id) => id !== appealId)];
+}
+
+function evictOldestAppealsIfNeeded(store: AppealStore): void {
+  if (store.appeals.size <= MAX_APPEALS_IN_MEMORY) return;
+
+  const numToRemove = Math.ceil(MAX_APPEALS_IN_MEMORY * 0.1);
+  for (let i = 0; i < numToRemove; i++) {
+    const oldestId = store.order.pop();
+    if (oldestId) {
+      const appeal = store.appeals.get(oldestId);
+      if (appeal) {
+        store.appealsByAction.delete(appeal.actionId);
+        // We'll leave appealsByUser dangling array entries as they are just strings
+        // and a full cleanup scan would be O(N) over users.
+      }
+      store.appeals.delete(oldestId);
+    }
+  }
 }
 
 function createAppealAccessToken(): string {
@@ -125,6 +144,7 @@ export function createAppeal(input: {
   explanation: string;
 }): ModerationAppeal | { error: string } {
   const store = getStore();
+  evictOldestAppealsIfNeeded(store);
 
   // Check if appeal already exists
   if (store.appealsByAction.has(input.actionId)) {

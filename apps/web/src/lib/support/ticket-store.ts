@@ -44,6 +44,7 @@ interface SupportTicketStore {
 }
 
 const STORE_KEY = "__jfp_support_ticket_store__";
+const MAX_TICKETS_IN_MEMORY = 10000;
 
 function getStore(): SupportTicketStore {
   const globalStore = globalThis as typeof globalThis & {
@@ -62,6 +63,18 @@ function getStore(): SupportTicketStore {
 
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
+}
+
+function evictOldestTicketsIfNeeded(store: SupportTicketStore): void {
+  if (store.tickets.size <= MAX_TICKETS_IN_MEMORY) return;
+
+  const numToRemove = Math.ceil(MAX_TICKETS_IN_MEMORY * 0.1);
+  for (let i = 0; i < numToRemove; i++) {
+    const oldestId = store.order.pop();
+    if (oldestId) {
+      store.tickets.delete(oldestId);
+    }
+  }
 }
 
 function createTicketNumber(store: SupportTicketStore): string {
@@ -99,6 +112,8 @@ export function createSupportTicket(input: {
   status?: SupportStatus;
 }): SupportTicket {
   const store = getStore();
+  evictOldestTicketsIfNeeded(store);
+
   const now = new Date().toISOString();
   const ticketNumber = createTicketNumber(store);
 

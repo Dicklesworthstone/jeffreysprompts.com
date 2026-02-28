@@ -9,6 +9,7 @@ const STORE_KEY = "__jfp_view_history_store__";
 const DEDUPE_WINDOW_MS = 5 * 60 * 1000;
 const HISTORY_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const PRUNE_INTERVAL_MS = 60 * 1000; // Only prune once per minute per user
+const MAX_USERS_IN_MEMORY = 10_000; // Bound memory to prevent DoS
 
 // Track last prune time per user to avoid O(n) scan on every call
 const lastPruneTime = new Map<string, number>();
@@ -41,6 +42,26 @@ function safeDateMs(value: string): number | null {
 }
 
 /**
+ * Enforce a strict upper bound on the number of users tracked in memory
+ * to prevent Out-Of-Memory (OOM) Denial of Service attacks from bots
+ * that continuously hit endpoints without sending back the visitor cookie.
+ */
+function evictOldestUsersIfNeeded(store: HistoryStore): void {
+  if (store.entriesByUser.size <= MAX_USERS_IN_MEMORY) return;
+
+  // Since Maps maintain insertion order, the first keys are the oldest.
+  // We remove the oldest 10% to amortize the cost.
+  const numToRemove = Math.ceil(MAX_USERS_IN_MEMORY * 0.1);
+  let removedCount = 0;
+
+  for (const userId of store.entriesByUser.keys()) {
+    clearHistory(userId); // This correctly deletes from both entries and entriesByUser
+    removedCount++;
+    if (removedCount >= numToRemove) break;
+  }
+}
+
+/**
  * Prune expired history entries for a user.
  *
  * Throttled to run at most once per PRUNE_INTERVAL_MS to avoid
@@ -49,6 +70,8 @@ function safeDateMs(value: string): number | null {
  * the end and are cleaned up periodically.
  */
 function pruneUserHistory(store: HistoryStore, userId: string, force = false) {
+  evictOldestUsersIfNeeded(store);
+
   const now = Date.now();
   const entries = store.entriesByUser.get(userId);
 

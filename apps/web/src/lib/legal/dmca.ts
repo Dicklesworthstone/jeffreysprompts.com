@@ -77,6 +77,7 @@ interface DmcaStore {
 }
 
 const STORE_KEY = "__jfp_dmca_store__";
+const MAX_DMCA_REQUESTS_IN_MEMORY = 10000;
 
 function getStore(): DmcaStore {
   const globalStore = globalThis as typeof globalThis & {
@@ -97,6 +98,18 @@ function getStore(): DmcaStore {
 
 function touchRequest(store: DmcaStore, requestId: string) {
   store.order = [requestId, ...store.order.filter((id) => id !== requestId)];
+}
+
+function evictOldestDmcaRequestsIfNeeded(store: DmcaStore): void {
+  if (store.requests.size <= MAX_DMCA_REQUESTS_IN_MEMORY) return;
+
+  const numToRemove = Math.ceil(MAX_DMCA_REQUESTS_IN_MEMORY * 0.1);
+  for (let i = 0; i < numToRemove; i++) {
+    const oldestId = store.order.pop();
+    if (oldestId) {
+      store.requests.delete(oldestId);
+    }
+  }
 }
 
 function touchStrike(store: DmcaStore, strikeId: string) {
@@ -125,6 +138,8 @@ export function createDmcaRequest(input: {
   contentOwnerId?: string | null;
 }): DmcaRequest {
   const store = getStore();
+  evictOldestDmcaRequestsIfNeeded(store);
+
   const now = new Date().toISOString();
 
   const request: DmcaRequest = {
