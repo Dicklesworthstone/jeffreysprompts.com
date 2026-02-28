@@ -578,6 +578,8 @@ export async function doctorCommand(options: JsonOptions): Promise<void> {
 /**
  * Show about information with ASCII banner
  */
+import { version } from "../../package.json";
+
 export async function aboutCommand(options: JsonOptions): Promise<void> {
   const registry = await loadRegistry();
   // Recalculate dynamic stats
@@ -587,7 +589,7 @@ export async function aboutCommand(options: JsonOptions): Promise<void> {
   const info = {
     name: "jfp",
     description: "JeffreysPrompts CLI - Agent-optimized prompt access",
-    version: "1.0.0",
+    version,
     website: "https://jeffreysprompts.com",
     github: "https://github.com/Dicklesworthstone/jeffreysprompts.com",
     author: "Jeffrey Emanuel",
