@@ -44,14 +44,13 @@ const mockStatsData = {
 
 describe("ReferralStats", () => {
   beforeEach(() => {
-    // @ts-ignore
+    // @ts-expect-error: Mocking global fetch for tests
     globalThis.fetch = vi.fn().mockResolvedValue({
       json: () => Promise.resolve(mockStatsData),
     });
   });
 
   it("shows loading skeleton initially", () => {
-    // @ts-ignore
     globalThis.fetch = vi.fn(() => new Promise(() => {})) as unknown as typeof fetch;
     const { container } = render(<ReferralStats />);
     expect(container.querySelector(".animate-pulse")).toBeInTheDocument();
@@ -95,7 +94,7 @@ describe("ReferralStats", () => {
   });
 
   it("shows error state on failure", async () => {
-    // @ts-ignore
+    // @ts-expect-error: Mocking global fetch for tests
     globalThis.fetch = vi.fn().mockResolvedValue({
       json: () => Promise.resolve({ success: false }),
     });

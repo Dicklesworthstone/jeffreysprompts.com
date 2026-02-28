@@ -4,7 +4,7 @@ import { getBundle } from "@jeffreysprompts/core/prompts/bundles";
 export const runtime = "edge";
 export const size = {
   width: 1200,
-  height: 630,
+  height: 600,
 };
 export const contentType = "image/png";
 
@@ -13,7 +13,7 @@ function truncate(text: string, max: number): string {
   return text.slice(0, Math.max(0, max - 3)).trimEnd() + "...";
 }
 
-export default async function BundleOpenGraphImage({
+export default async function BundleTwitterImage({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -35,7 +35,7 @@ export default async function BundleOpenGraphImage({
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          padding: "64px",
+          padding: "56px 64px",
           background: "linear-gradient(135deg, #fff7ed 0%, #fde68a 100%)",
           color: "#0f172a",
           fontFamily: "Geist, system-ui, sans-serif",
@@ -53,11 +53,11 @@ export default async function BundleOpenGraphImage({
           {"Jeffrey's Prompts · Bundle"}
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div
             style={{
               display: "flex",
-              fontSize: 56,
+              fontSize: 52,
               fontWeight: 700,
               lineHeight: 1.05,
               letterSpacing: "-0.03em",
@@ -68,7 +68,7 @@ export default async function BundleOpenGraphImage({
           <div
             style={{
               display: "flex",
-              fontSize: 24,
+              fontSize: 22,
               color: "#7c2d12",
               maxWidth: 920,
             }}

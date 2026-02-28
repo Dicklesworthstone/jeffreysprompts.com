@@ -49,7 +49,6 @@ describe("useLeaderboard", () => {
   });
 
   afterEach(() => {
-    // @ts-ignore
     globalThis.fetch = originalFetch;
     vi.useRealTimers();
   });
@@ -57,7 +56,7 @@ describe("useLeaderboard", () => {
   it("starts with loading state and empty entries", () => {
     // Keep request pending so this test asserts only the initial render state
     // without triggering a post-test state update warning.
-    // @ts-ignore
+    // @ts-expect-error: Mocking global fetch for tests
     globalThis.fetch = vi.fn().mockImplementation(
       () => new Promise(() => undefined)
     ) as typeof fetch;
@@ -69,7 +68,7 @@ describe("useLeaderboard", () => {
 
   it("fetches leaderboard on mount", async () => {
     const fetchMock = mockFetchSuccess({ entries: mockEntries, generated_at: "2026-01-15T00:00:00Z" });
-    // @ts-ignore
+    // @ts-expect-error: Mocking global fetch for tests
     globalThis.fetch = fetchMock;
 
     const { result } = renderHook(() => useLeaderboard());
@@ -83,7 +82,7 @@ describe("useLeaderboard", () => {
 
   it("passes default limit and minVotes params", async () => {
     const fetchMock = mockFetchSuccess({ entries: [], generated_at: "" });
-    // @ts-ignore
+    // @ts-expect-error: Mocking global fetch for tests
     globalThis.fetch = fetchMock;
 
     renderHook(() => useLeaderboard());
@@ -97,7 +96,7 @@ describe("useLeaderboard", () => {
 
   it("passes custom limit and minVotes", async () => {
     const fetchMock = mockFetchSuccess({ entries: [], generated_at: "" });
-    // @ts-ignore
+    // @ts-expect-error: Mocking global fetch for tests
     globalThis.fetch = fetchMock;
 
     renderHook(() => useLeaderboard({ limit: 5, minVotes: 3 }));
@@ -110,7 +109,7 @@ describe("useLeaderboard", () => {
   });
 
   it("sets error on fetch failure", async () => {
-    // @ts-ignore
+    // @ts-expect-error: Mocking global fetch for tests
     globalThis.fetch = mockFetchError();
 
     const { result } = renderHook(() => useLeaderboard());
@@ -121,7 +120,7 @@ describe("useLeaderboard", () => {
   });
 
   it("handles network error", async () => {
-    // @ts-ignore
+    // @ts-expect-error: Mocking global fetch for tests
     globalThis.fetch = vi.fn().mockRejectedValue(new Error("Network down"));
 
     const { result } = renderHook(() => useLeaderboard());
@@ -140,7 +139,7 @@ describe("useLeaderboard", () => {
         ok: false,
         json: () => Promise.resolve({ error: "Oops" }),
       });
-    // @ts-ignore
+    // @ts-expect-error: Mocking global fetch for tests
     globalThis.fetch = fetchMock;
 
     const { result } = renderHook(() => useLeaderboard());
@@ -160,7 +159,7 @@ describe("useLeaderboard", () => {
 
   it("refresh triggers a new fetch", async () => {
     const fetchMock = mockFetchSuccess({ entries: mockEntries, generated_at: "" });
-    // @ts-ignore
+    // @ts-expect-error: Mocking global fetch for tests
     globalThis.fetch = fetchMock;
 
     const { result } = renderHook(() => useLeaderboard());

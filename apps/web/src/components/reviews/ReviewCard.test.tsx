@@ -64,7 +64,7 @@ function makeReview(overrides: Partial<Review> = {}): Review {
 describe("ReviewCard", () => {
   beforeEach(() => {
     mockVote.mockClear();
-    // @ts-ignore
+    // @ts-expect-error: Mocking global fetch for tests
     globalThis.fetch = vi.fn();
   });
 

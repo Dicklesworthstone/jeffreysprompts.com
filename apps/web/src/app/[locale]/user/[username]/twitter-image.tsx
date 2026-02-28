@@ -4,7 +4,7 @@ export const runtime = "edge";
 export const alt = "User Profile";
 export const size = {
   width: 1200,
-  height: 630,
+  height: 600,
 };
 export const contentType = "image/png";
 
@@ -38,7 +38,7 @@ function getInitials(name: string): string {
     .slice(0, 2) || "?";
 }
 
-export default async function UserOpenGraphImage({
+export default async function UserTwitterImage({
   params,
 }: {
   params: Promise<{ username: string }>;
@@ -59,7 +59,7 @@ export default async function UserOpenGraphImage({
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          padding: "64px",
+          padding: "56px 64px",
           background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)",
           color: "#f8fafc",
           fontFamily: "system-ui, sans-serif",
@@ -79,18 +79,18 @@ export default async function UserOpenGraphImage({
         </div>
 
         {/* Profile Content */}
-        <div style={{ display: "flex", alignItems: "center", gap: 40 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 36 }}>
           {/* Avatar */}
           <div
             style={{
-              width: 140,
-              height: 140,
+              width: 120,
+              height: 120,
               borderRadius: "50%",
               background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: 56,
+              fontSize: 48,
               fontWeight: 700,
               color: "#ffffff",
               flexShrink: 0,
@@ -100,11 +100,11 @@ export default async function UserOpenGraphImage({
           </div>
 
           {/* Info */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <div
               style={{
                 display: "flex",
-                fontSize: 52,
+                fontSize: 48,
                 fontWeight: 700,
                 lineHeight: 1.1,
                 letterSpacing: "-0.03em",
@@ -115,7 +115,7 @@ export default async function UserOpenGraphImage({
             <div
               style={{
                 display: "flex",
-                fontSize: 24,
+                fontSize: 22,
                 color: "#e2e8f0",
                 maxWidth: 700,
                 lineHeight: 1.4,

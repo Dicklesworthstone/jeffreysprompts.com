@@ -18,13 +18,12 @@ describe("useAllRatings", () => {
   });
 
   afterEach(() => {
-    // @ts-ignore
     globalThis.fetch = originalFetch;
     vi.useRealTimers();
   });
 
   it("starts in loading state", () => {
-    // @ts-ignore
+    // @ts-expect-error: Mocking global fetch for tests
     globalThis.fetch = vi.fn().mockImplementation(() => new Promise(() => {})) as typeof fetch;
     const { result } = renderHook(() => useAllRatings());
     expect(result.current.loading).toBe(true);
@@ -37,7 +36,7 @@ describe("useAllRatings", () => {
       ok: true,
       json: () => Promise.resolve({ summaries: mockSummaries, generated_at: "2026-01-15T00:00:00Z" }),
     });
-    // @ts-ignore
+    // @ts-expect-error: Mocking global fetch for tests
     globalThis.fetch = fetchMock;
 
     const { result } = renderHook(() => useAllRatings());
@@ -53,7 +52,7 @@ describe("useAllRatings", () => {
       ok: true,
       json: () => Promise.resolve({ summaries: {}, generated_at: "" }),
     });
-    // @ts-ignore
+    // @ts-expect-error: Mocking global fetch for tests
     globalThis.fetch = fetchMock;
 
     renderHook(() => useAllRatings());
@@ -63,7 +62,7 @@ describe("useAllRatings", () => {
   });
 
   it("handles fetch error", async () => {
-    // @ts-ignore
+    // @ts-expect-error: Mocking global fetch for tests
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 500,
@@ -76,7 +75,7 @@ describe("useAllRatings", () => {
   });
 
   it("handles network error", async () => {
-    // @ts-ignore
+    // @ts-expect-error: Mocking global fetch for tests
     globalThis.fetch = vi.fn().mockRejectedValue(new Error("Network error"));
 
     const { result } = renderHook(() => useAllRatings());
@@ -86,7 +85,7 @@ describe("useAllRatings", () => {
   });
 
   it("getRating returns summary for known content", async () => {
-    // @ts-ignore
+    // @ts-expect-error: Mocking global fetch for tests
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({ summaries: mockSummaries, generated_at: "" }),
@@ -99,7 +98,7 @@ describe("useAllRatings", () => {
   });
 
   it("getRating returns null for unknown content", async () => {
-    // @ts-ignore
+    // @ts-expect-error: Mocking global fetch for tests
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({ summaries: mockSummaries, generated_at: "" }),
@@ -116,7 +115,7 @@ describe("useAllRatings", () => {
       ok: true,
       json: () => Promise.resolve({ summaries: mockSummaries, generated_at: "" }),
     });
-    // @ts-ignore
+    // @ts-expect-error: Mocking global fetch for tests
     globalThis.fetch = fetchMock;
 
     const { result } = renderHook(() => useAllRatings());

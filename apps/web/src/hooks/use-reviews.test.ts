@@ -50,7 +50,6 @@ describe("useReviews", () => {
   });
 
   afterEach(() => {
-    // @ts-ignore
     globalThis.fetch = originalFetch;
     vi.useRealTimers();
   });
@@ -62,7 +61,7 @@ describe("useReviews", () => {
       userReview: null,
       pagination: { total: 1, limit: 10, offset: 0, hasMore: false },
     });
-    // @ts-ignore
+    // @ts-expect-error: Mocking global fetch for tests
     globalThis.fetch = fetchMock;
 
     const { result } = renderHook(() =>
@@ -84,7 +83,7 @@ describe("useReviews", () => {
       userReview: null,
       pagination: { total: 0, limit: 10, offset: 0, hasMore: false },
     });
-    // @ts-ignore
+    // @ts-expect-error: Mocking global fetch for tests
     globalThis.fetch = fetchMock;
 
     renderHook(() =>
@@ -102,7 +101,7 @@ describe("useReviews", () => {
   });
 
   it("handles fetch error gracefully", async () => {
-    // @ts-ignore
+    // @ts-expect-error: Mocking global fetch for tests
     globalThis.fetch = mockFetchError();
 
     const { result } = renderHook(() =>
@@ -118,7 +117,7 @@ describe("useReviews", () => {
   it("submits a new review", async () => {
     // First call: initial fetch; second call: POST submit
     let callCount = 0;
-    // @ts-ignore
+    // @ts-expect-error: Mocking global fetch for tests
     globalThis.fetch = vi.fn().mockImplementation(() => {
       callCount++;
       if (callCount === 1) {
@@ -166,7 +165,7 @@ describe("useReviews", () => {
 
   it("handles submit error", async () => {
     let callCount = 0;
-    // @ts-ignore
+    // @ts-expect-error: Mocking global fetch for tests
     globalThis.fetch = vi.fn().mockImplementation(() => {
       callCount++;
       if (callCount === 1) {
@@ -207,7 +206,7 @@ describe("useReviews", () => {
 
   it("loads more reviews with pagination", async () => {
     let callCount = 0;
-    // @ts-ignore
+    // @ts-expect-error: Mocking global fetch for tests
     globalThis.fetch = vi.fn().mockImplementation(() => {
       callCount++;
       if (callCount === 1) {
@@ -260,13 +259,12 @@ describe("useReviewVote", () => {
   });
 
   afterEach(() => {
-    // @ts-ignore
     globalThis.fetch = originalFetch;
     vi.useRealTimers();
   });
 
   it("fetches existing vote on mount", async () => {
-    // @ts-ignore
+    // @ts-expect-error: Mocking global fetch for tests
     globalThis.fetch = mockFetchSuccess({ vote: { isHelpful: true } });
 
     const { result } = renderHook(() =>
@@ -281,7 +279,7 @@ describe("useReviewVote", () => {
 
   it("submits a vote", async () => {
     let callCount = 0;
-    // @ts-ignore
+    // @ts-expect-error: Mocking global fetch for tests
     globalThis.fetch = vi.fn().mockImplementation(() => {
       callCount++;
       if (callCount === 1) {
@@ -319,7 +317,7 @@ describe("useReviewVote", () => {
 
   it("handles vote error", async () => {
     let callCount = 0;
-    // @ts-ignore
+    // @ts-expect-error: Mocking global fetch for tests
     globalThis.fetch = vi.fn().mockImplementation(() => {
       callCount++;
       if (callCount === 1) {

@@ -1,30 +1,17 @@
 import { ImageResponse } from "next/og";
-import { getBundle } from "@jeffreysprompts/core/prompts/bundles";
+import { bundles } from "@jeffreysprompts/core/prompts/bundles";
 
 export const runtime = "edge";
+export const alt = "Prompt Bundles - Curated collections for agentic coding";
 export const size = {
   width: 1200,
-  height: 630,
+  height: 600,
 };
 export const contentType = "image/png";
 
-function truncate(text: string, max: number): string {
-  if (text.length <= max) return text;
-  return text.slice(0, Math.max(0, max - 3)).trimEnd() + "...";
-}
-
-export default async function BundleOpenGraphImage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const bundle = getBundle(id);
-  const title = bundle?.title ?? "Bundle Not Found";
-  const description = bundle?.description
-    ? truncate(bundle.description, 180)
-    : "Curated prompt bundles for agentic coding workflows.";
-  const promptCount = bundle?.promptIds.length ?? 0;
+export default function BundlesTwitterImage() {
+  const bundleCount = bundles.length;
+  const totalPrompts = bundles.reduce((sum, b) => sum + b.promptIds.length, 0);
 
   return new ImageResponse(
     (
@@ -35,10 +22,10 @@ export default async function BundleOpenGraphImage({
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          padding: "64px",
+          padding: "56px 64px",
           background: "linear-gradient(135deg, #fff7ed 0%, #fde68a 100%)",
           color: "#0f172a",
-          fontFamily: "Geist, system-ui, sans-serif",
+          fontFamily: "system-ui, sans-serif",
         }}
       >
         <div
@@ -50,30 +37,30 @@ export default async function BundleOpenGraphImage({
             color: "#b45309",
           }}
         >
-          {"Jeffrey's Prompts · Bundle"}
+          {"Jeffrey's Prompts"}
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div
             style={{
               display: "flex",
-              fontSize: 56,
+              fontSize: 60,
               fontWeight: 700,
               lineHeight: 1.05,
               letterSpacing: "-0.03em",
             }}
           >
-            {title}
+            Prompt Bundles
           </div>
           <div
             style={{
               display: "flex",
-              fontSize: 24,
+              fontSize: 26,
               color: "#7c2d12",
               maxWidth: 920,
             }}
           >
-            {description}
+            Curated collections of related prompts. Install all prompts in a bundle with a single command.
           </div>
         </div>
 
@@ -81,16 +68,15 @@ export default async function BundleOpenGraphImage({
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 12,
+            gap: 24,
             fontSize: 20,
             color: "#9a3412",
           }}
         >
-          <span style={{ display: "flex", textTransform: "uppercase", letterSpacing: "0.16em" }}>
-            {promptCount} prompts
-          </span>
+          <span style={{ display: "flex", fontWeight: 600 }}>{bundleCount} bundles</span>
           <span style={{ display: "flex" }}>·</span>
-          <span style={{ display: "flex" }}>jeffreysprompts.com</span>
+          <span style={{ display: "flex", fontWeight: 600 }}>{totalPrompts} prompts</span>
+          <span style={{ display: "flex", marginLeft: "auto" }}>jeffreysprompts.com</span>
         </div>
       </div>
     ),
