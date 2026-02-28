@@ -53,6 +53,7 @@ export default async function Image() {
           </svg>
           <span
             style={{
+              display: "flex",
               fontSize: "16px",
               fontWeight: 500,
               color: "#a5b4fc",
@@ -72,6 +73,7 @@ export default async function Image() {
         >
           <h1
             style={{
+              display: "flex",
               fontSize: "72px",
               fontWeight: 700,
               background: "linear-gradient(135deg, #818cf8 0%, #c084fc 50%, #f472b6 100%)",
@@ -88,6 +90,7 @@ export default async function Image() {
         {/* Subtitle */}
         <p
           style={{
+            display: "flex",
             fontSize: "28px",
             color: "#a1a1aa",
             marginTop: "24px",
@@ -111,7 +114,7 @@ export default async function Image() {
             fontSize: "20px",
           }}
         >
-          <span>jeffreysprompts.com</span>
+          <span style={{ display: "flex" }}>jeffreysprompts.com</span>
         </div>
       </div>
     ),

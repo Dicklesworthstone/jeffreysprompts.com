@@ -13,12 +13,13 @@ function truncate(text: string, max: number): string {
   return text.slice(0, Math.max(0, max - 3)).trimEnd() + "...";
 }
 
-export default function PromptOpenGraphImage({
+export default async function PromptOpenGraphImage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const prompt = getPrompt(params.id);
+  const { id } = await params;
+  const prompt = getPrompt(id);
   const title = prompt?.title ?? "Prompt Not Found";
   const description = prompt?.description
     ? truncate(prompt.description, 180)
@@ -42,6 +43,7 @@ export default function PromptOpenGraphImage({
       >
         <div
           style={{
+            display: "flex",
             fontSize: 24,
             fontWeight: 600,
             letterSpacing: "-0.02em",
@@ -54,6 +56,7 @@ export default function PromptOpenGraphImage({
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           <div
             style={{
+              display: "flex",
               fontSize: 56,
               fontWeight: 700,
               lineHeight: 1.05,
@@ -64,6 +67,7 @@ export default function PromptOpenGraphImage({
           </div>
           <div
             style={{
+              display: "flex",
               fontSize: 24,
               color: "#e2e8f0",
               maxWidth: 920,
@@ -82,11 +86,11 @@ export default function PromptOpenGraphImage({
             color: "#94a3b8",
           }}
         >
-          <span style={{ textTransform: "uppercase", letterSpacing: "0.18em" }}>
+          <span style={{ display: "flex", textTransform: "uppercase", letterSpacing: "0.18em" }}>
             {category}
           </span>
-          <span>·</span>
-          <span>jeffreysprompts.com</span>
+          <span style={{ display: "flex" }}>·</span>
+          <span style={{ display: "flex" }}>jeffreysprompts.com</span>
         </div>
       </div>
     ),

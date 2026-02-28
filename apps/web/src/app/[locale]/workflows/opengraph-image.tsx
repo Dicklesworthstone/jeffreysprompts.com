@@ -29,6 +29,7 @@ export default function WorkflowsOpenGraphImage() {
       >
         <div
           style={{
+            display: "flex",
             fontSize: 24,
             fontWeight: 600,
             letterSpacing: "-0.02em",
@@ -41,6 +42,7 @@ export default function WorkflowsOpenGraphImage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           <div
             style={{
+              display: "flex",
               fontSize: 64,
               fontWeight: 700,
               lineHeight: 1.05,
@@ -51,6 +53,7 @@ export default function WorkflowsOpenGraphImage() {
           </div>
           <div
             style={{
+              display: "flex",
               fontSize: 28,
               color: "#e2e8f0",
               maxWidth: 920,
@@ -69,8 +72,8 @@ export default function WorkflowsOpenGraphImage() {
             color: "#94a3b8",
           }}
         >
-          <span style={{ fontWeight: 600, color: "#c7d2fe" }}>{workflowCount} curated workflows</span>
-          <span style={{ marginLeft: "auto" }}>jeffreysprompts.com</span>
+          <span style={{ display: "flex", fontWeight: 600, color: "#c7d2fe" }}>{workflowCount} curated workflows</span>
+          <span style={{ display: "flex", marginLeft: "auto" }}>jeffreysprompts.com</span>
         </div>
       </div>
     ),

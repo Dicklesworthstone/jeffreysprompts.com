@@ -67,6 +67,7 @@ export default function UserOpenGraphImage({
         {/* Header */}
         <div
           style={{
+            display: "flex",
             fontSize: 24,
             fontWeight: 600,
             letterSpacing: "-0.02em",
@@ -101,6 +102,7 @@ export default function UserOpenGraphImage({
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <div
               style={{
+                display: "flex",
                 fontSize: 52,
                 fontWeight: 700,
                 lineHeight: 1.1,
@@ -111,6 +113,7 @@ export default function UserOpenGraphImage({
             </div>
             <div
               style={{
+                display: "flex",
                 fontSize: 24,
                 color: "#e2e8f0",
                 maxWidth: 700,
@@ -132,16 +135,16 @@ export default function UserOpenGraphImage({
             color: "#94a3b8",
           }}
         >
-          <span>
-            <span style={{ fontWeight: 600, color: "#e2e8f0" }}>{stats.prompts}</span> prompts
+          <span style={{ display: "flex" }}>
+            <span style={{ display: "flex", fontWeight: 600, color: "#e2e8f0" }}>{stats.prompts}</span> prompts
           </span>
-          <span>
-            <span style={{ fontWeight: 600, color: "#e2e8f0" }}>{stats.packs}</span> packs
+          <span style={{ display: "flex" }}>
+            <span style={{ display: "flex", fontWeight: 600, color: "#e2e8f0" }}>{stats.packs}</span> packs
           </span>
-          <span>
-            <span style={{ fontWeight: 600, color: "#e2e8f0" }}>{stats.skills}</span> skills
+          <span style={{ display: "flex" }}>
+            <span style={{ display: "flex", fontWeight: 600, color: "#e2e8f0" }}>{stats.skills}</span> skills
           </span>
-          <span style={{ marginLeft: "auto" }}>jeffreysprompts.com</span>
+          <span style={{ display: "flex", marginLeft: "auto" }}>jeffreysprompts.com</span>
         </div>
       </div>
     ),

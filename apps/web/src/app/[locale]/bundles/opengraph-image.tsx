@@ -30,6 +30,7 @@ export default function BundlesOpenGraphImage() {
       >
         <div
           style={{
+            display: "flex",
             fontSize: 24,
             fontWeight: 600,
             letterSpacing: "-0.02em",
@@ -42,6 +43,7 @@ export default function BundlesOpenGraphImage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           <div
             style={{
+              display: "flex",
               fontSize: 64,
               fontWeight: 700,
               lineHeight: 1.05,
@@ -52,6 +54,7 @@ export default function BundlesOpenGraphImage() {
           </div>
           <div
             style={{
+              display: "flex",
               fontSize: 28,
               color: "#7c2d12",
               maxWidth: 920,
@@ -70,10 +73,10 @@ export default function BundlesOpenGraphImage() {
             color: "#9a3412",
           }}
         >
-          <span style={{ fontWeight: 600 }}>{bundleCount} bundles</span>
-          <span>·</span>
-          <span style={{ fontWeight: 600 }}>{totalPrompts} prompts</span>
-          <span style={{ marginLeft: "auto" }}>jeffreysprompts.com</span>
+          <span style={{ display: "flex", fontWeight: 600 }}>{bundleCount} bundles</span>
+          <span style={{ display: "flex" }}>·</span>
+          <span style={{ display: "flex", fontWeight: 600 }}>{totalPrompts} prompts</span>
+          <span style={{ display: "flex", marginLeft: "auto" }}>jeffreysprompts.com</span>
         </div>
       </div>
     ),
