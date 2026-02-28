@@ -4,7 +4,7 @@ import { searchPrompts, buildScorerIndex } from "@jeffreysprompts/core/search";
 import { generatePromptMarkdown } from "@jeffreysprompts/core/export";
 import chalk from "chalk";
 import boxen from "boxen";
-import { writeFileSync } from "fs";
+import { atomicWriteFileSync } from "../lib/utils";
 import { loadRegistry } from "../lib/registry-loader";
 import { copyToClipboard } from "../lib/clipboard";
 
@@ -34,7 +34,7 @@ function displayPrompt(prompt: Prompt): void {
 async function exportToMd(prompt: Prompt): Promise<void> {
   const md = generatePromptMarkdown(prompt);
   const filename = `${prompt.id}.md`;
-  writeFileSync(filename, md);
+  atomicWriteFileSync(filename, md);
   console.log(chalk.green(`✓ Exported to ${chalk.bold(filename)}`));
 }
 

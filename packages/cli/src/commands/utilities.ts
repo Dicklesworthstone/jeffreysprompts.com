@@ -462,26 +462,47 @@ export async function doctorCommand(options: JsonOptions): Promise<void> {
   }
 
   // Check clipboard availability
-  const clipboardCmd =
-    platform() === "darwin"
-      ? "pbcopy"
-      : platform() === "win32"
-        ? "clip"
-        : "xclip";
+  let hasClipboard = false;
+  let clipboardCmdStr = platform() === "darwin" ? "pbcopy" : platform() === "win32" ? "clip" : "wl-copy, xclip, or xsel";
 
   try {
     // Use 'where' on Windows, 'which' on Unix
     const whichCmd = platform() === "win32" ? "where" : "which";
-    const which = spawn(whichCmd, [clipboardCmd]);
-    const hasClipboard = await new Promise<boolean>((resolve) => {
-      which.on("close", (code) => resolve(code === 0));
-      which.on("error", () => resolve(false));
-    });
+    
+    const checkCmd = async (cmd: string) => {
+      return new Promise<boolean>((resolve) => {
+        const which = spawn(whichCmd, [cmd]);
+        which.on("close", (code) => resolve(code === 0));
+        which.on("error", () => resolve(false));
+      });
+    };
+
+    if (platform() === "darwin") {
+      hasClipboard = await checkCmd("pbcopy");
+      if (hasClipboard) clipboardCmdStr = "pbcopy";
+    } else if (platform() === "win32") {
+      hasClipboard = await checkCmd("clip");
+      if (hasClipboard) clipboardCmdStr = "clip";
+    } else {
+      if (await checkCmd("wl-copy")) {
+        hasClipboard = true;
+        clipboardCmdStr = "wl-copy";
+      } else if (await checkCmd("xclip")) {
+        hasClipboard = true;
+        clipboardCmdStr = "xclip";
+      } else if (await checkCmd("xsel")) {
+        hasClipboard = true;
+        clipboardCmdStr = "xsel";
+      } else if (await checkCmd("pbcopy")) { // WSL or unusual setups
+        hasClipboard = true;
+        clipboardCmdStr = "pbcopy";
+      }
+    }
 
     results.push({
       check: "Clipboard command",
       status: hasClipboard ? "ok" : "warning",
-      message: hasClipboard ? `${clipboardCmd} available` : `${clipboardCmd} not found`,
+      message: hasClipboard ? `${clipboardCmdStr} available` : `${clipboardCmdStr} not found`,
     });
   } catch {
     results.push({

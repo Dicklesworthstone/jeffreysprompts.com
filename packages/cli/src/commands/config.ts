@@ -38,6 +38,7 @@ function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
   let current: unknown = obj;
 
   for (const part of parts) {
+    if (part === "__proto__" || part === "constructor" || part === "prototype") return undefined;
     if (current === null || current === undefined) return undefined;
     if (typeof current !== "object") return undefined;
     current = (current as Record<string, unknown>)[part];
@@ -55,6 +56,9 @@ function setNestedValue(obj: Record<string, unknown>, path: string, value: unkno
 
   for (let i = 0; i < parts.length - 1; i++) {
     const part = parts[i]!;
+    if (part === "__proto__" || part === "constructor" || part === "prototype") {
+      throw new Error(`Invalid configuration key: ${part} is a reserved word`);
+    }
     // Check for null explicitly since typeof null === "object"
     if (!(part in current) || current[part] === null || typeof current[part] !== "object") {
       current[part] = {};
@@ -64,6 +68,9 @@ function setNestedValue(obj: Record<string, unknown>, path: string, value: unkno
 
   const lastPart = parts[parts.length - 1];
   if (lastPart) {
+    if (lastPart === "__proto__" || lastPart === "constructor" || lastPart === "prototype") {
+      throw new Error(`Invalid configuration key: ${lastPart} is a reserved word`);
+    }
     current[lastPart] = value;
   }
 }

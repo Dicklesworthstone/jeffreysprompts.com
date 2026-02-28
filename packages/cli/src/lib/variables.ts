@@ -49,7 +49,7 @@ export function readFileVariable(path: string, varName: string): string {
       const bytesRead = readSync(fd, buffer, 0, MAX_FILE_VAR_SIZE, 0);
       const truncatedBuffer = buffer.subarray(0, bytesRead);
       // Decode, replacing any incomplete multi-byte sequences at the end
-      const content = truncatedBuffer.toString("utf-8");
+      const content = truncatedBuffer.toString("utf-8").replace(/\uFFFD/g, "");
       return content + `\n\n[File truncated to ${MAX_FILE_VAR_SIZE} bytes from ${stats.size} bytes]`;
     } finally {
       closeSync(fd);

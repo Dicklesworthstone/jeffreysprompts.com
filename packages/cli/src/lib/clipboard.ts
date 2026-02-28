@@ -61,16 +61,19 @@ async function trySpawn(cmd: string[], input: string): Promise<boolean> {
       stderr: "ignore", // Silence errors (e.g. missing tool)
     });
 
-    if (proc.stdin && typeof proc.stdin !== "number") {
-      const encoder = new TextEncoder();
-      const data = encoder.encode(input);
-      await proc.stdin.write(data);
-      await proc.stdin.end();
-    }
+    const writeAndWait = async () => {
+      if (proc!.stdin && typeof proc!.stdin !== "number") {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(input);
+        await proc!.stdin.write(data);
+        await proc!.stdin.end();
+      }
+      return proc!.exited;
+    };
 
     // Race between process exit and timeout
     const exitCode = await Promise.race([
-      proc.exited,
+      writeAndWait(),
       new Promise<number | null>((resolve) => setTimeout(() => resolve(null), TIMEOUT_MS)),
     ]);
 

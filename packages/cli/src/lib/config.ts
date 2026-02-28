@@ -207,18 +207,45 @@ export function loadStoredConfig(): JfpConfig {
     const raw = readFileSync(configFile, "utf-8");
     const jsonParsed = JSON.parse(raw);
 
-    // Validate with Zod schema - invalid fields are stripped, valid fields are kept
-    const validated = PartialConfigSchema.safeParse(jsonParsed);
-    if (!validated.success) {
-      // Log validation errors in debug mode
-      if (process.env.JFP_DEBUG) {
-        console.warn("[Config] Validation errors:", validated.error.flatten());
-      }
-      // Fall back to defaults for invalid config
-      return defaultConfig;
+    // Validate sections independently so one error doesn't nuke the whole config
+    const parsed: any = {};
+    
+    if (jsonParsed.registry) {
+      const res = RegistryConfigSchema.safeParse(jsonParsed.registry);
+      if (res.success) parsed.registry = res.data;
+      else if (process.env.JFP_DEBUG) console.warn("[Config] registry errors:", res.error.flatten());
+    }
+    if (jsonParsed.updates) {
+      const res = UpdatesConfigSchema.safeParse(jsonParsed.updates);
+      if (res.success) parsed.updates = res.data;
+      else if (process.env.JFP_DEBUG) console.warn("[Config] updates errors:", res.error.flatten());
+    }
+    if (jsonParsed.skills) {
+      const res = SkillsConfigSchema.safeParse(jsonParsed.skills);
+      if (res.success) parsed.skills = res.data;
+      else if (process.env.JFP_DEBUG) console.warn("[Config] skills errors:", res.error.flatten());
+    }
+    if (jsonParsed.output) {
+      const res = OutputConfigSchema.safeParse(jsonParsed.output);
+      if (res.success) parsed.output = res.data;
+      else if (process.env.JFP_DEBUG) console.warn("[Config] output errors:", res.error.flatten());
+    }
+    if (jsonParsed.localPrompts) {
+      const res = LocalPromptsConfigSchema.safeParse(jsonParsed.localPrompts);
+      if (res.success) parsed.localPrompts = res.data;
+      else if (process.env.JFP_DEBUG) console.warn("[Config] localPrompts errors:", res.error.flatten());
+    }
+    if (jsonParsed.analytics) {
+      const res = AnalyticsConfigSchema.safeParse(jsonParsed.analytics);
+      if (res.success) parsed.analytics = res.data;
+      else if (process.env.JFP_DEBUG) console.warn("[Config] analytics errors:", res.error.flatten());
+    }
+    if (jsonParsed.budgets) {
+      const res = BudgetsConfigSchema.safeParse(jsonParsed.budgets);
+      if (res.success) parsed.budgets = res.data;
+      else if (process.env.JFP_DEBUG) console.warn("[Config] budgets errors:", res.error.flatten());
     }
 
-    const parsed = validated.data;
     const merged: JfpConfig = {
       ...defaultConfig,
       ...parsed,

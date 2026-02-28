@@ -46,16 +46,20 @@ const transformerState: TransformerState = {
  * Uses "/" on most platforms; uses "\\" on Windows when process is available.
  */
 function joinPath(...parts: string[]): string {
-  const sep = "/";
+  const sep = typeof process !== "undefined" && process.platform === "win32" ? "\\" : "/";
 
   return parts
     .filter((part) => typeof part === "string" && part.length > 0)
     .map((part, index) => {
+      // Create regex using the platform-specific separator
+      // Double escape for regex creation: once for string literal, once for regex engine
+      const sepRegex = sep === "\\" ? /\\+/g : /\/+/g;
       const normalized = part.replace(/[\\/]+/g, sep);
+      
       if (index === 0) {
-        return normalized.replace(/\/+$/, "");
+        return normalized.replace(sep === "\\" ? /\\+$/ : /\/+$/, "");
       }
-      return normalized.replace(/^\/+/, "").replace(/\/+$/, "");
+      return normalized.replace(sep === "\\" ? /^\\+/ : /^\/+/, "").replace(sep === "\\" ? /\\+$/ : /\/+$/, "");
     })
     .filter(Boolean)
     .join(sep);

@@ -151,53 +151,44 @@ const LOCK_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
  * Uses a simple file-based lock with timestamp to handle stale locks
  * from crashed processes.
  */
-export function acquireSyncLock(): boolean {
+export function acquireSyncLock(isRetry = false): boolean {
   const lockPath = getLockPath();
   const lockDir = dirname(lockPath);
 
   // Ensure directory exists
   mkdirSync(lockDir, { recursive: true });
 
-  // Check for existing lock
-  if (existsSync(lockPath)) {
-    try {
-      const lockContent = readFileSync(lockPath, "utf-8");
-      const lockTime = Number.parseInt(lockContent, 10);
-
-      // If lock is valid (not stale), another process holds it
-      if (Number.isFinite(lockTime) && Date.now() - lockTime < LOCK_TIMEOUT_MS) {
-        return false; // Lock is held by another process
-      }
-      // Lock is stale - overwrite it with our timestamp
-      writeFileSync(lockPath, String(Date.now()));
-      return true;
-    } catch {
-      // Can't read lock file, try to acquire it below
-    }
-  }
-
-  // No existing lock (or couldn't read it) - try to create exclusively
+  // No existing lock - try to create exclusively
   try {
     writeFileSync(lockPath, String(Date.now()), { flag: "wx" });
-    return true;
+    return true; // We successfully created the lock atomically
   } catch (err) {
-    // If file already exists (race condition), check if it's stale
+    // If file already exists, check if it's stale
     if ((err as NodeJS.ErrnoException).code === "EEXIST") {
-      // Another process beat us to it - try to check if their lock is stale
       try {
         const lockContent = readFileSync(lockPath, "utf-8");
         const lockTime = Number.parseInt(lockContent, 10);
+        
         if (Number.isFinite(lockTime) && Date.now() - lockTime >= LOCK_TIMEOUT_MS) {
-          // Stale lock, overwrite it
-          writeFileSync(lockPath, String(Date.now()));
-          return true;
+          // Stale lock: prevent race condition by unlinking instead of overwriting,
+          // then retrying the atomic 'wx' creation.
+          if (!isRetry) {
+             try {
+               unlinkSync(lockPath);
+               return acquireSyncLock(true);
+             } catch {
+               // Ignore unlink errors (another process may have unlinked it)
+               return acquireSyncLock(true);
+             }
+          }
         }
       } catch {
         // Can't read/write, give up
       }
-      return false;
+      return false; // Lock is held and not stale, or we failed to read it
     }
-    // Any non-EEXIST error means we failed to acquire a lock.
+    
+    // Any non-EEXIST error means we failed to acquire a lock (permissions, etc.)
     return false;
   }
 }
