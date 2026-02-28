@@ -11,8 +11,11 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-// Base URL for releases (update when release hosting is configured)
-const RELEASE_BASE_URL = "https://github.com/Dicklesworthstone/jeffreysprompts.com/releases/latest/download";
+// Primary release host (Cloudflare R2 public bucket).
+// Keep GitHub Releases as fallback in case the R2 object is missing.
+const RELEASE_BASE_URL = "https://pub-346a8b7b59de4fa1ae66eb2e1d84d53d.r2.dev/jfp/v0.1.0";
+const RELEASE_FALLBACK_URL =
+  "https://github.com/Dicklesworthstone/jeffreysprompts.com/releases/latest/download";
 
 // Generate CLI installer script
 function generateCLIInstaller(): string {
@@ -134,22 +137,39 @@ download() {
   fi
 }
 
+# Download with fallback host
+download_with_fallback() {
+  local primary_url="$1"
+  local fallback_url="$2"
+  local dest="$3"
+
+  if download "$primary_url" "$dest"; then
+    return 0
+  fi
+
+  warn "Primary download failed, trying fallback host"
+  download "$fallback_url" "$dest"
+}
+
 # Install from prebuilt release artifact
 install_from_release() {
   local download_url="$1"
   local install_path="$2"
-  local temp_file checksum_url checksum_file expected_hash actual_hash
+  local fallback_url temp_file checksum_url checksum_file expected_hash actual_hash
+
+  fallback_url="${RELEASE_FALLBACK_URL}/$(basename "$download_url")"
 
   temp_file="$(make_temp_file)"
 
-  if ! download "$download_url" "$temp_file"; then
+  if ! download_with_fallback "$download_url" "$fallback_url" "$temp_file"; then
     rm -f "$temp_file"
     return 1
   fi
 
   checksum_url="\${download_url}.sha256"
+  local fallback_checksum_url="\${fallback_url}.sha256"
   checksum_file="$(make_temp_file)"
-  if download "$checksum_url" "$checksum_file" 2>/dev/null; then
+  if download_with_fallback "$checksum_url" "$fallback_checksum_url" "$checksum_file" 2>/dev/null; then
     info "Verifying SHA256 checksum..."
     expected_hash="$(cat "$checksum_file" | awk '{print $1}')"
 
