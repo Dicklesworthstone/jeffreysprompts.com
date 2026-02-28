@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type ReactNode, type MouseEvent } from "react";
+import { useRef, useState, useMemo, type ReactNode, type MouseEvent } from "react";
 import { motion, useSpring, useTransform, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -61,6 +61,8 @@ export function MagneticButton({
 }: MagneticButtonProps) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const prefersReducedMotion = useReducedMotion();
+  const isTouch = useMemo(() => typeof window !== "undefined" && !window.matchMedia("(hover: hover)").matches, []);
+  const enableMagnetic = !prefersReducedMotion && !isTouch && !disabled;
   const [isHovered, setIsHovered] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
   const [glowPosition, setGlowPosition] = useState({ x: 50, y: 50 });
@@ -75,8 +77,7 @@ export function MagneticButton({
   const contentY = useTransform(y, (val) => val * 0.5);
 
   const handleMouseMove = (e: MouseEvent<HTMLButtonElement>) => {
-    // Skip magnetic effect for reduced motion
-    if (!buttonRef.current || disabled || prefersReducedMotion) return;
+    if (!buttonRef.current || !enableMagnetic) return;
 
     const rect = buttonRef.current.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;

@@ -11,7 +11,7 @@
  * - Haptic feedback integration
  */
 
-import { useState, useCallback, useRef, useEffect, type MouseEvent, type KeyboardEvent } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo, type MouseEvent, type KeyboardEvent } from "react";
 import { motion, AnimatePresence, useReducedMotion, useSpring, useMotionTemplate } from "framer-motion";
 import {
   Copy,
@@ -73,7 +73,11 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
   const [isHovered, setIsHovered] = useState(false);
   const prefersReducedMotion = useReducedMotion();
   const cardRef = useRef<HTMLDivElement>(null);
-  
+
+  // Skip expensive hover effects on touch devices
+  const isTouch = useMemo(() => typeof window !== "undefined" && !window.matchMedia("(hover: hover)").matches, []);
+  const enableTilt = !prefersReducedMotion && !isTouch;
+
   const { motionPercentageX, motionPercentageY, handleMouseMove, resetMousePosition } = useMousePosition();
 
   // Spring configuration for smooth tilt
@@ -88,7 +92,7 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
   const inBasket = isInBasket(prompt.id);
 
   useEffect(() => {
-    if (!isHovered || prefersReducedMotion) {
+    if (!isHovered || !enableTilt) {
       rotateX.set(0);
       rotateY.set(0);
       return;
@@ -108,7 +112,7 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
     });
 
     return () => { unsubX(); unsubY(); };
-  }, [isHovered, rotateX, rotateY, motionPercentageX, motionPercentageY, prefersReducedMotion]);
+  }, [isHovered, rotateX, rotateY, motionPercentageX, motionPercentageY, enableTilt]);
 
   const handleMouseEnter = useCallback(() => {
     setIsHovered(true);
@@ -188,9 +192,9 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
         ease: [0.23, 1, 0.32, 1],
       }}
       className="h-full perspective-1000"
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      onMouseMove={handleMouseMove}
+      onMouseEnter={enableTilt ? handleMouseEnter : undefined}
+      onMouseLeave={enableTilt ? handleMouseLeave : undefined}
+      onMouseMove={enableTilt ? handleMouseMove : undefined}
     >
       <motion.div
         style={{
@@ -215,7 +219,7 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
           onKeyDown={handleKeyDown}
         >
           {/* Dynamic Glow Effect */}
-          {!prefersReducedMotion && (
+          {enableTilt && (
             <motion.div
               className="absolute inset-0 pointer-events-none z-0"
               style={{ background: glowBackground }}
@@ -224,7 +228,7 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
           )}
 
           {/* Shimmer Sweep on Mount */}
-          {!prefersReducedMotion && (
+          {enableTilt && (
             <motion.div
               initial={{ x: "-100%" }}
               animate={{ x: "200%" }}
@@ -277,7 +281,7 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
               {prompt.tags.slice(0, 3).map((tag) => (
                 <motion.span
                   key={tag}
-                  whileHover={{ scale: 1.05 }}
+                  whileHover={enableTilt ? { scale: 1.05 } : undefined}
                   className="text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-500 bg-neutral-100/80 dark:bg-neutral-800/80 px-2 py-1 rounded-md border border-neutral-200/30 dark:border-neutral-700/30"
                 >
                   {tag}

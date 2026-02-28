@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useEffect, useState } from "react";
 
 /**
@@ -15,14 +15,7 @@ import { useEffect, useState } from "react";
  */
 export function HeroBackground() {
   const prefersReducedMotion = useReducedMotion();
-  const { scrollY } = useScroll();
   const [mounted, setMounted] = useState(false);
-
-  // Parallax transforms
-  const y1 = useTransform(scrollY, [0, 500], [0, -50]);
-  const y2 = useTransform(scrollY, [0, 500], [0, 50]);
-  const rotate1 = useTransform(scrollY, [0, 1000], [0, 45]);
-  const rotate2 = useTransform(scrollY, [0, 1000], [0, -45]);
 
   useEffect(() => {
     setMounted(true); // eslint-disable-line react-hooks/set-state-in-effect -- hydration safety pattern
@@ -40,7 +33,6 @@ export function HeroBackground() {
         <>
           {/* Cyan Blob */}
           <motion.div
-            style={{ y: y1, rotate: rotate1 }}
             animate={{
               x: [0, 50, -30, 0],
               y: [0, -40, 60, 0],
@@ -51,12 +43,11 @@ export function HeroBackground() {
               repeat: Infinity,
               ease: "easeInOut",
             }}
-            className="absolute -top-[10%] -left-[10%] w-[50%] h-[60%] rounded-full bg-cyan-400/20 dark:bg-cyan-500/10 blur-[120px] mix-blend-multiply dark:mix-blend-screen"
+            className="absolute -top-[10%] -left-[10%] w-[50%] h-[60%] rounded-full bg-cyan-400/20 dark:bg-cyan-500/10 blur-[120px] mix-blend-multiply dark:mix-blend-screen will-change-transform"
           />
 
           {/* Amber Blob */}
           <motion.div
-            style={{ y: y2, rotate: rotate2 }}
             animate={{
               x: [0, -60, 40, 0],
               y: [0, 50, -40, 0],
@@ -68,7 +59,7 @@ export function HeroBackground() {
               ease: "easeInOut",
               delay: 1,
             }}
-            className="absolute top-[20%] -right-[10%] w-[45%] h-[55%] rounded-full bg-amber-400/15 dark:bg-amber-500/10 blur-[100px] mix-blend-multiply dark:mix-blend-screen"
+            className="absolute top-[20%] -right-[10%] w-[45%] h-[55%] rounded-full bg-amber-400/15 dark:bg-amber-500/10 blur-[100px] mix-blend-multiply dark:mix-blend-screen will-change-transform"
           />
 
           {/* Purple Blob */}
@@ -84,7 +75,7 @@ export function HeroBackground() {
               ease: "easeInOut",
               delay: 2,
             }}
-            className="absolute -bottom-[20%] left-[20%] w-[60%] h-[50%] rounded-full bg-purple-400/10 dark:bg-purple-500/10 blur-[140px] mix-blend-multiply dark:mix-blend-screen"
+            className="absolute -bottom-[20%] left-[20%] w-[60%] h-[50%] rounded-full bg-purple-400/10 dark:bg-purple-500/10 blur-[140px] mix-blend-multiply dark:mix-blend-screen will-change-transform"
           />
         </>
       )}

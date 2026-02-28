@@ -39,7 +39,7 @@ export function CategoryFilter({
         aria-pressed={selected === null}
         onClick={() => handleSelect(null)}
         className={cn(
-          "inline-flex items-center rounded-full px-4 py-2 text-sm font-medium",
+          "inline-flex items-center rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap",
           "min-h-[44px] sm:min-h-0 touch-manipulation",
           "transition-colors",
           "focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 dark:focus-visible:ring-white",
@@ -63,7 +63,7 @@ export function CategoryFilter({
           aria-pressed={selected === category}
           onClick={() => handleSelect(category)}
           className={cn(
-            "inline-flex items-center rounded-full px-4 py-2 text-sm font-medium capitalize",
+            "inline-flex items-center rounded-full px-4 py-2 text-sm font-medium capitalize whitespace-nowrap",
             "min-h-[44px] sm:min-h-0 touch-manipulation",
             "transition-colors",
             "focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 dark:focus-visible:ring-white",

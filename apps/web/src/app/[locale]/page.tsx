@@ -352,13 +352,13 @@ function HomeContent() {
               counts={categoryCounts}
             />
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {/* Rating filter */}
               <RatingFilter
                 value={filters.minRating}
                 onChange={setMinRating}
                 disabled={ratingsLoading}
-                className="w-[140px]"
+                className="w-full sm:w-[140px]"
               />
 
               {/* Sort selector */}
@@ -366,7 +366,7 @@ function HomeContent() {
                 value={filters.sortBy}
                 onChange={setSortBy}
                 disabled={ratingsLoading}
-                className="w-[160px]"
+                className="w-full sm:w-[160px]"
               />
 
               {/* Clear all filters */}

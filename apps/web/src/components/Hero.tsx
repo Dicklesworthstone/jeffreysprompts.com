@@ -231,7 +231,7 @@ export function Hero({
             <div
               role="group"
               aria-label="Filter by category"
-              className="flex items-center justify-center gap-3 flex-nowrap"
+              className="flex items-center gap-3 w-max mx-auto"
             >
               <MagneticButton
                 type="button"
@@ -239,7 +239,7 @@ export function Hero({
                 strength={0.2}
                 glowColor="rgba(99, 102, 241, 0.4)"
                 className={cn(
-                  "min-h-0 py-2 px-6 rounded-full text-sm",
+                  "min-h-0 py-2 px-6 rounded-full text-sm whitespace-nowrap shrink-0",
                   selectedCategory === null
                     ? ""
                     : "bg-neutral-100/50 dark:bg-neutral-800/50 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
@@ -257,7 +257,7 @@ export function Hero({
                   strength={0.15}
                   glowColor="rgba(99, 102, 241, 0.4)"
                   className={cn(
-                    "min-h-0 py-2 px-6 rounded-full text-sm capitalize",
+                    "min-h-0 py-2 px-6 rounded-full text-sm capitalize whitespace-nowrap shrink-0",
                     selectedCategory === category
                       ? ""
                       : "bg-neutral-100/50 dark:bg-neutral-800/50 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"

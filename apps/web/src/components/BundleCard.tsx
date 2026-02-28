@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef, type ComponentType, type MouseEvent } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo, type ComponentType, type MouseEvent } from "react";
 import Link from "next/link";
 import { Copy, Check, Sparkles, Rocket, Code, FileText, Brain, Zap, Package, Star, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence, useReducedMotion, useSpring, useMotionTemplate } from "framer-motion";
@@ -54,7 +54,9 @@ export function BundleCard({ bundle, index = 0 }: BundleCardProps) {
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prefersReducedMotion = useReducedMotion();
   const cardRef = useRef<HTMLDivElement>(null);
-  
+  const isTouch = useMemo(() => typeof window !== "undefined" && !window.matchMedia("(hover: hover)").matches, []);
+  const enableTilt = !prefersReducedMotion && !isTouch;
+
   const { motionPercentageX, motionPercentageY, handleMouseMove, resetMousePosition } = useMousePosition();
 
   // Spring configuration for smooth tilt
@@ -65,7 +67,7 @@ export function BundleCard({ bundle, index = 0 }: BundleCardProps) {
   const glowBackground = useMotionTemplate`radial-gradient(circle at ${motionPercentageX}% ${motionPercentageY}%, rgba(139, 92, 246, 0.1), transparent 70%)`;
 
   useEffect(() => {
-    if (!isHovered || prefersReducedMotion) {
+    if (!isHovered || !enableTilt) {
       rotateX.set(0);
       rotateY.set(0);
       return;
@@ -85,7 +87,7 @@ export function BundleCard({ bundle, index = 0 }: BundleCardProps) {
     });
 
     return () => { unsubX(); unsubY(); };
-  }, [isHovered, rotateX, rotateY, motionPercentageX, motionPercentageY, prefersReducedMotion]);
+  }, [isHovered, rotateX, rotateY, motionPercentageX, motionPercentageY, enableTilt]);
 
   useEffect(() => {
     return () => {
@@ -134,12 +136,12 @@ export function BundleCard({ bundle, index = 0 }: BundleCardProps) {
         ease: [0.23, 1, 0.32, 1],
       }}
       className="h-full perspective-1000"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => {
+      onMouseEnter={enableTilt ? () => setIsHovered(true) : undefined}
+      onMouseLeave={enableTilt ? () => {
         setIsHovered(false);
         resetMousePosition();
-      }}
-      onMouseMove={handleMouseMove}
+      } : undefined}
+      onMouseMove={enableTilt ? handleMouseMove : undefined}
     >
       <motion.div
         style={{
@@ -159,7 +161,7 @@ export function BundleCard({ bundle, index = 0 }: BundleCardProps) {
           )}
         >
           {/* Dynamic Glow */}
-          {!prefersReducedMotion && (
+          {enableTilt && (
             <motion.div
               className="absolute inset-0 pointer-events-none z-0"
               style={{ background: glowBackground }}
