@@ -9,8 +9,7 @@
 
 import { NextResponse } from "next/server";
 
-export const dynamic = "force-static";
-export const revalidate = 3600; // Revalidate every hour
+export const dynamic = "force-dynamic";
 
 // Base URL for releases (update when release hosting is configured)
 const RELEASE_BASE_URL = "https://github.com/Dicklesworthstone/jeffreysprompts.com/releases/latest/download";
@@ -135,6 +134,90 @@ download() {
   fi
 }
 
+# Install from prebuilt release artifact
+install_from_release() {
+  local download_url="$1"
+  local install_path="$2"
+  local temp_file checksum_url checksum_file expected_hash actual_hash
+
+  temp_file="$(make_temp_file)"
+
+  if ! download "$download_url" "$temp_file"; then
+    rm -f "$temp_file"
+    return 1
+  fi
+
+  checksum_url="\${download_url}.sha256"
+  checksum_file="$(make_temp_file)"
+  if download "$checksum_url" "$checksum_file" 2>/dev/null; then
+    info "Verifying SHA256 checksum..."
+    expected_hash="$(cat "$checksum_file" | awk '{print $1}')"
+
+    if command_exists sha256sum; then
+      actual_hash="$(sha256sum "$temp_file" | awk '{print $1}')"
+    elif command_exists shasum; then
+      actual_hash="$(shasum -a 256 "$temp_file" | awk '{print $1}')"
+    else
+      warn "No SHA256 tool found, skipping verification"
+      expected_hash=""
+    fi
+
+    if [ -n "$expected_hash" ] && [ "$expected_hash" != "$actual_hash" ]; then
+      rm -f "$temp_file" "$checksum_file"
+      error "Checksum verification failed!\\n  Expected: $expected_hash\\n  Actual:   $actual_hash"
+    elif [ -n "$expected_hash" ]; then
+      success "Checksum verified"
+    fi
+  else
+    warn "No checksum file available, skipping verification"
+  fi
+  rm -f "$checksum_file"
+
+  info "Installing to $install_path..."
+  mv "$temp_file" "$install_path"
+  chmod +x "$install_path"
+  return 0
+}
+
+# Fallback when prebuilt binaries are unavailable:
+# clone the repo and compile with Bun on the user's machine.
+install_from_source() {
+  local install_path="$1"
+  local temp_dir repo_dir
+
+  if ! command_exists git; then
+    error "Prebuilt binaries are unavailable and git is not installed."
+  fi
+  if ! command_exists bun; then
+    error "Prebuilt binaries are unavailable and Bun is not installed. Install Bun: https://bun.sh/"
+  fi
+
+  temp_dir="$(mktemp -d -t jfp-src.XXXXXX 2>/dev/null || mktemp -d "\${TMPDIR:-/tmp}/jfp-src.XXXXXX")"
+  repo_dir="$temp_dir/repo"
+
+  info "Falling back to source build using Bun..."
+  info "Cloning repository..."
+  git clone --depth 1 https://github.com/Dicklesworthstone/jeffreysprompts.com.git "$repo_dir" >/dev/null 2>&1
+
+  info "Building jfp binary from source (this may take a minute)..."
+  (
+    cd "$repo_dir"
+    bun install --frozen-lockfile >/dev/null
+    bun build --compile ./jfp.ts --outfile jfp >/dev/null
+  )
+
+  if [ ! -f "$repo_dir/jfp" ]; then
+    rm -rf "$temp_dir"
+    error "Source build failed: jfp binary was not produced."
+  fi
+
+  info "Installing to $install_path..."
+  mv "$repo_dir/jfp" "$install_path"
+  chmod +x "$install_path"
+  rm -rf "$temp_dir"
+  return 0
+}
+
 # Main installation
 main() {
   echo ""
@@ -164,49 +247,11 @@ main() {
     mkdir -p "$install_dir"
   fi
 
-  # Download binary
-  info "Downloading jfp..."
-  local temp_file
-  temp_file="$(make_temp_file)"
-  trap "rm -f '$temp_file'" EXIT
-
-  if ! download "$download_url" "$temp_file"; then
-    error "Failed to download jfp binary"
+  info "Attempting prebuilt binary install..."
+  if ! install_from_release "$download_url" "$install_path"; then
+    warn "Prebuilt binary not available at release URL."
+    install_from_source "$install_path"
   fi
-
-  # Download and verify checksum if available
-  local checksum_url="\${download_url}.sha256"
-  local checksum_file
-  checksum_file="$(make_temp_file)"
-
-  if download "$checksum_url" "$checksum_file" 2>/dev/null; then
-    info "Verifying SHA256 checksum..."
-    local expected_hash actual_hash
-    expected_hash="$(cat "$checksum_file" | awk '{print $1}')"
-
-    if command_exists sha256sum; then
-      actual_hash="$(sha256sum "$temp_file" | awk '{print $1}')"
-    elif command_exists shasum; then
-      actual_hash="$(shasum -a 256 "$temp_file" | awk '{print $1}')"
-    else
-      warn "No SHA256 tool found, skipping verification"
-      expected_hash=""
-    fi
-
-    if [ -n "$expected_hash" ] && [ "$expected_hash" != "$actual_hash" ]; then
-      error "Checksum verification failed!\\n  Expected: $expected_hash\\n  Actual:   $actual_hash"
-    elif [ -n "$expected_hash" ]; then
-      success "Checksum verified"
-    fi
-    rm -f "$checksum_file"
-  else
-    warn "No checksum file available, skipping verification"
-  fi
-
-  # Install binary
-  info "Installing to $install_path..."
-  mv "$temp_file" "$install_path"
-  chmod +x "$install_path"
 
   # Verify installation
   if [ -x "$install_path" ]; then
