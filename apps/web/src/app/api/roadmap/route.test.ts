@@ -26,6 +26,13 @@ vi.mock("@/lib/user-id", () => ({
   }),
 }));
 
+vi.mock("@/lib/rate-limit", () => ({
+  createRateLimiter: () => ({
+    check: vi.fn().mockResolvedValue({ allowed: true, remaining: 10, retryAfterSeconds: 0 }),
+  }),
+  getTrustedClientIp: vi.fn().mockReturnValue("127.0.0.1"),
+}));
+
 const sampleFeatures = [
   {
     id: "feat-001",

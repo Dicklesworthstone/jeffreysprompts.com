@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { checkAdminPermission } from "@/lib/admin/permissions";
+import { createRateLimiter, getTrustedClientIp } from "@/lib/rate-limit";
 import type { DmcaStatus } from "@/lib/legal/dmca";
 import {
   createDmcaRequest,
@@ -11,6 +12,12 @@ import {
   submitCounterNotice,
   updateDmcaRequestStatus,
 } from "@/lib/legal/dmca";
+
+const dmcaRateLimiter = createRateLimiter({
+  name: "dmca",
+  windowMs: 60 * 60 * 1000, // 1 hour
+  maxRequests: 10,
+});
 
 const MAX_TEXT_LENGTH = 2000;
 const MAX_NAME_LENGTH = 140;
@@ -49,6 +56,15 @@ function normalizeDate(value?: string | null) {
 }
 
 export async function POST(request: NextRequest) {
+  const clientIp = getTrustedClientIp(request);
+  const rateLimit = await dmcaRateLimiter.check(clientIp);
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Too many requests", message: "You have exceeded the maximum number of DMCA requests." },
+      { status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds) } }
+    );
+  }
+
   let payload: Record<string, unknown>;
 
   try {

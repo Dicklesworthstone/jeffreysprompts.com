@@ -7,6 +7,13 @@ import {
   type FeatureStatus,
 } from "@/lib/roadmap/roadmap-store";
 import { getOrCreateUserId } from "@/lib/user-id";
+import { createRateLimiter, getTrustedClientIp } from "@/lib/rate-limit";
+
+const roadmapRateLimiter = createRateLimiter({
+  name: "roadmap",
+  windowMs: 60 * 60 * 1000, // 1 hour
+  maxRequests: 5, // Limit feature requests to 5 per hour per IP
+});
 
 /**
  * GET /api/roadmap
@@ -93,6 +100,18 @@ export async function GET(request: NextRequest) {
  * Uses the signed anonymous user cookie to track the submitter.
  */
 export async function POST(request: NextRequest) {
+  const clientIp = getTrustedClientIp(request);
+  const rateLimit = await roadmapRateLimiter.check(clientIp);
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Too many requests", message: "You can only submit 5 feature requests per hour." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
+      }
+    );
+  }
+
   try {
     const body = await request.json();
 

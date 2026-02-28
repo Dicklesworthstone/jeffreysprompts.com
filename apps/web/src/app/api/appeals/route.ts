@@ -9,6 +9,13 @@ import {
 import { getModerationAction } from "@/lib/moderation/action-store";
 import { checkContentForSpam } from "@/lib/moderation/spam-check";
 import { getUserIdFromRequest } from "@/lib/user-id";
+import { createRateLimiter, getTrustedClientIp } from "@/lib/rate-limit";
+
+const appealRateLimiter = createRateLimiter({
+  name: "appeals",
+  windowMs: 60 * 60 * 1000, // 1 hour
+  maxRequests: 5,
+});
 
 /** Constant-time token comparison to prevent timing attacks */
 function safeTokenEqual(a: string, b: string): boolean {
@@ -37,6 +44,15 @@ const MIN_EXPLANATION_LENGTH = 50;
  * - explanation: string - Why the user is appealing (50-2000 chars)
  */
 export async function POST(request: NextRequest) {
+  const clientIp = getTrustedClientIp(request);
+  const rateLimit = await appealRateLimiter.check(clientIp);
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Too many requests", message: "You have exceeded the maximum number of appeals." },
+      { status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds) } }
+    );
+  }
+
   let payload: {
     actionId?: string;
     userId?: string;
@@ -52,12 +68,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  const actionId = payload.actionId?.trim() ?? "";
-  const userId = payload.userId?.trim() ?? "";
-  const userEmail = payload.userEmail?.trim().toLowerCase() ?? "";
-  const userName = payload.userName?.trim() ?? "";
-  const explanation = payload.explanation?.trim() ?? "";
-  const honeypot = payload.company?.trim();
+  const actionId = typeof payload.actionId === "string" ? payload.actionId.trim() : "";
+  const userId = typeof payload.userId === "string" ? payload.userId.trim() : "";
+  const userEmail = typeof payload.userEmail === "string" ? payload.userEmail.trim().toLowerCase() : "";
+  const userName = typeof payload.userName === "string" ? payload.userName.trim() : "";
+  const explanation = typeof payload.explanation === "string" ? payload.explanation.trim() : "";
+  const honeypot = typeof payload.company === "string" ? payload.company.trim() : undefined;
 
   // Honeypot check
   if (honeypot) {

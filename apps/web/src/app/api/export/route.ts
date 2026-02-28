@@ -5,11 +5,18 @@ import { getPrompt } from "@jeffreysprompts/core/prompts/registry";
 import { generatePromptMarkdown } from "@jeffreysprompts/core/export/markdown";
 import { generateSkillMd } from "@jeffreysprompts/core/export/skills";
 import type { Prompt } from "@jeffreysprompts/core/prompts/types";
+import { createRateLimiter, getTrustedClientIp } from "@/lib/rate-limit";
 
 // Ensure this runs in a Node.js runtime (JSZip + core export helpers rely on Node APIs).
 export const runtime = "nodejs";
 
 const MAX_IDS = 200;
+
+const exportRateLimiter = createRateLimiter({
+  name: "export",
+  windowMs: 60 * 1000, // 1 minute
+  maxRequests: 30, // Limit exports per IP to 30/min
+});
 
 function parseIds(raw: string | null): string[] {
   if (!raw) return [];
@@ -36,6 +43,18 @@ function safeDownloadName(name: string): string {
 }
 
 export async function GET(request: NextRequest) {
+  const clientIp = getTrustedClientIp(request);
+  const rateLimit = await exportRateLimiter.check(clientIp);
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Too many requests", message: "Please try again later." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
+      }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
 
   const format = searchParams.get("format");
