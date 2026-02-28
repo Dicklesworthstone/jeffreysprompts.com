@@ -14,7 +14,7 @@
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "lib": ["ES2022"],
-    "types": ["bun-types"],
+    "types": ["@types/bun"],
     "paths": {
       "@jeffreysprompts/core": ["./packages/core/src"],
       "@jeffreysprompts/core/*": ["./packages/core/src/*"],

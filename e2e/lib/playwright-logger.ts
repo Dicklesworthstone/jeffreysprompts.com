@@ -18,7 +18,7 @@
  */
 
 import { test as base, Page, TestInfo } from "@playwright/test";
-import { TestLogger } from "./test-logger";
+import { TestLogger, type LogEntry } from "./test-logger";
 import { existsSync, mkdirSync } from "fs";
 import { join } from "path";
 
@@ -189,7 +189,7 @@ export class PlaywrightLogger {
   /**
    * Get all log entries
    */
-  getEntries() {
+  getEntries(): LogEntry[] {
     return this.logger.getEntries();
   }
 

@@ -8,6 +8,7 @@ import {
   isSupportStatus,
   isSupportCategory,
   isSupportPriority,
+  type SupportStatus,
 } from "@/lib/support/tickets";
 import {
   addSupportTicketNote,
@@ -113,7 +114,7 @@ export async function PUT(request: NextRequest) {
     if (!isSupportStatus(payload.status as string)) {
       return NextResponse.json({ error: "Invalid status." }, { status: 400 });
     }
-    const statusUpdate = updateSupportTicketStatus(ticketNumber, payload.status as any);
+    const statusUpdate = updateSupportTicketStatus(ticketNumber, payload.status as SupportStatus);
     if (statusUpdate) {
       updatedTicket = statusUpdate;
     }

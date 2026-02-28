@@ -29,6 +29,7 @@ const mockReferralData = {
 describe("ReferralCard", () => {
   beforeEach(() => {
     vi.mocked(copyToClipboard).mockResolvedValue({ success: true });
+    // @ts-ignore
     globalThis.fetch = vi.fn().mockResolvedValue({
       json: () => Promise.resolve(mockReferralData),
     });
@@ -36,6 +37,7 @@ describe("ReferralCard", () => {
 
   it("shows loading skeleton initially", () => {
     // Fetch never resolves
+    // @ts-ignore
     globalThis.fetch = vi.fn(() => new Promise(() => {})) as unknown as typeof fetch;
     const { container } = render(<ReferralCard />);
     expect(container.querySelector(".animate-pulse")).toBeInTheDocument();
@@ -79,6 +81,7 @@ describe("ReferralCard", () => {
   });
 
   it("shows error state on fetch failure", async () => {
+    // @ts-ignore
     globalThis.fetch = vi.fn().mockResolvedValue({
       json: () => Promise.resolve({ success: false }),
     });

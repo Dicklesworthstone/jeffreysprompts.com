@@ -64,6 +64,7 @@ function makeReview(overrides: Partial<Review> = {}): Review {
 describe("ReviewCard", () => {
   beforeEach(() => {
     mockVote.mockClear();
+    // @ts-ignore
     globalThis.fetch = vi.fn();
   });
 
@@ -235,7 +236,7 @@ describe("ReviewCard", () => {
   });
 
   it("shows report confirmation after successful report", async () => {
-    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: true });
+    ((globalThis.fetch as unknown) as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: true });
     render(<ReviewCard review={makeReview()} />);
     fireEvent.click(screen.getByLabelText("Report review"));
     await waitFor(() => {
@@ -244,7 +245,7 @@ describe("ReviewCard", () => {
   });
 
   it("shows error after failed report", async () => {
-    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: false });
+    ((globalThis.fetch as unknown) as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: false });
     render(<ReviewCard review={makeReview()} />);
     fireEvent.click(screen.getByLabelText("Report review"));
     await waitFor(() => {
@@ -253,7 +254,7 @@ describe("ReviewCard", () => {
   });
 
   it("shows error after network error during report", async () => {
-    (globalThis.fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("Network error"));
+    ((globalThis.fetch as unknown) as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("Network error"));
     render(<ReviewCard review={makeReview()} />);
     fireEvent.click(screen.getByLabelText("Report review"));
     await waitFor(() => {

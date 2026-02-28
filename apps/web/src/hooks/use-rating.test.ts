@@ -48,6 +48,7 @@ describe("useRating", () => {
   });
 
   afterEach(() => {
+    // @ts-ignore
     globalThis.fetch = originalFetch;
     vi.useRealTimers();
   });
@@ -55,6 +56,7 @@ describe("useRating", () => {
   it("starts with loading state", () => {
     // Keep request pending so this test asserts only initial state and
     // does not trigger post-test state updates.
+    // @ts-ignore
     globalThis.fetch = vi.fn().mockImplementation(
       () => new Promise(() => undefined)
     ) as typeof fetch;
@@ -69,6 +71,7 @@ describe("useRating", () => {
 
   it("fetches rating on mount", async () => {
     const fetchMock = mockFetchSuccess({ summary: mockSummary, userRating: "up" });
+    // @ts-ignore
     globalThis.fetch = fetchMock;
 
     const { result } = renderHook(() =>
@@ -87,6 +90,7 @@ describe("useRating", () => {
   });
 
   it("sets error on fetch failure", async () => {
+    // @ts-ignore
     globalThis.fetch = mockFetchError(500, { error: "Server error" });
 
     const { result } = renderHook(() =>
@@ -98,6 +102,7 @@ describe("useRating", () => {
   });
 
   it("handles network error", async () => {
+    // @ts-ignore
     globalThis.fetch = vi.fn().mockRejectedValue(new Error("Network failure"));
 
     const { result } = renderHook(() =>
@@ -124,6 +129,7 @@ describe("useRating", () => {
             rating: { value: "up" },
           }),
       });
+    // @ts-ignore
     globalThis.fetch = fetchMock;
 
     const { result } = renderHook(() =>
@@ -156,6 +162,7 @@ describe("useRating", () => {
         ok: false,
         json: () => Promise.resolve({ error: "Already rated" }),
       });
+    // @ts-ignore
     globalThis.fetch = fetchMock;
 
     const { result } = renderHook(() =>
@@ -181,6 +188,7 @@ describe("useRating", () => {
         ok: false,
         json: () => Promise.resolve({ error: "Oops" }),
       });
+    // @ts-ignore
     globalThis.fetch = fetchMock;
 
     const { result } = renderHook(() =>
@@ -201,6 +209,7 @@ describe("useRating", () => {
 
   it("refresh triggers new fetch", async () => {
     const fetchMock = mockFetchSuccess({ summary: mockSummary, userRating: null });
+    // @ts-ignore
     globalThis.fetch = fetchMock;
 
     const { result } = renderHook(() =>

@@ -112,7 +112,7 @@ export function hashEmbedding(text: string, dimensions: number = 128): number[] 
 
     // Also hash whole tokens
     const tokenHash = simpleHash(token);
-    const idx = Math.abs(tokenHash % dimensions);
+    const idx = tokenHash % dimensions;
     embedding[idx] += 2; // Whole token gets extra weight
   }
 

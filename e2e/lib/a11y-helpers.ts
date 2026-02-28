@@ -1,5 +1,6 @@
 import { Page, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import type { Result } from "axe-core";
 
 /**
  * Accessibility test helpers
@@ -17,7 +18,12 @@ export async function runAxeAudit(
     tags?: string[];
     minImpact?: "minor" | "moderate" | "serious" | "critical";
   }
-) {
+): Promise<{
+  violations: Result[];
+  allViolations: Result[];
+  passes: Result[];
+  incomplete: Result[];
+}> {
   const { include, exclude, tags, minImpact = "serious" } = options || {};
 
   let builder = new AxeBuilder({ page }).withTags(

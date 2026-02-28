@@ -1,7 +1,7 @@
 /**
  * Tests for /api/dmca (POST, GET, PUT)
  */
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { POST, GET, PUT } from "./route";
 
