@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid reason value." }, { status: 400 });
   }
 
-  const normalizedTitle = contentTitle?.trim();
+  const normalizedTitle = typeof contentTitle === "string" ? contentTitle.trim() : undefined;
   if (normalizedTitle && normalizedTitle.length > MAX_TITLE_LENGTH) {
     return NextResponse.json(
       { error: `Title must be ${MAX_TITLE_LENGTH} characters or fewer.` },
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const normalizedDetails = details?.trim();
+  const normalizedDetails = typeof details === "string" ? details.trim() : undefined;
   if (normalizedDetails && normalizedDetails.length > MAX_DETAILS_LENGTH) {
     return NextResponse.json(
       { error: "Details must be 500 characters or fewer." },

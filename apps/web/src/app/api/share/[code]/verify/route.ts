@@ -51,7 +51,7 @@ export async function POST(
   { params }: { params: Promise<{ code: string }> }
 ) {
   const { code: rawCode } = await params;
-  const code = rawCode?.trim();
+  const code = typeof rawCode === "string" ? rawCode.trim() : "";
   if (!code) {
     return NextResponse.json({ error: "Missing share code." }, { status: 400 });
   }

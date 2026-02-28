@@ -103,7 +103,7 @@ export async function GET(
   if (rateLimitResponse) return rateLimitResponse;
 
   const { code: rawCode } = await params;
-  const code = rawCode?.trim();
+  const code = typeof rawCode === "string" ? rawCode.trim() : "";
   if (!code) {
     return NextResponse.json({ error: "Missing share code." }, { status: 400 });
   }
@@ -161,7 +161,7 @@ export async function PUT(
   if (rateLimitResponse) return rateLimitResponse;
 
   const { code: rawCode } = await params;
-  const code = rawCode?.trim();
+  const code = typeof rawCode === "string" ? rawCode.trim() : "";
   if (!code) {
     return NextResponse.json({ error: "Missing share code." }, { status: 400 });
   }
@@ -246,7 +246,7 @@ export async function DELETE(
   if (rateLimitResponse) return rateLimitResponse;
 
   const { code: rawCode } = await params;
-  const code = rawCode?.trim();
+  const code = typeof rawCode === "string" ? rawCode.trim() : "";
   if (!code) {
     return NextResponse.json({ error: "Missing share code." }, { status: 400 });
   }

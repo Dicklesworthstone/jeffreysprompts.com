@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const code = payload.code?.trim();
+  const code = typeof payload.code === "string" ? payload.code.trim() : undefined;
   const { userId: refereeId, cookie } = getOrCreateUserId(request);
 
   if (!code) {

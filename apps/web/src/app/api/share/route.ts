@@ -99,8 +99,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  const rawType = payload.contentType?.trim() ?? "";
-  const contentId = payload.contentId?.trim() ?? "";
+  const rawType = typeof payload.contentType === "string" ? payload.contentType.trim() : "";
+  const contentId = typeof payload.contentId === "string" ? payload.contentId.trim() : "";
   let password: string | null = null;
   if (payload.password === undefined || payload.password === null) {
     password = null;

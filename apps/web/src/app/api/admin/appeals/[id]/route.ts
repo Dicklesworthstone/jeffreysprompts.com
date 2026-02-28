@@ -121,7 +121,7 @@ export async function PATCH(
   }
 
   const newStatus = payload.status as AppealStatus;
-  const adminResponse = payload.adminResponse?.trim() ?? "";
+  const adminResponse = typeof payload.adminResponse === "string" ? payload.adminResponse.trim() : "";
   const reverseAction = payload.reverseAction === true;
 
   // Validate status

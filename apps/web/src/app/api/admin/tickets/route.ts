@@ -97,7 +97,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  const ticketNumber = payload.ticketNumber?.trim().toUpperCase() ?? "";
+  const ticketNumber = typeof payload.ticketNumber === "string" ? payload.ticketNumber.trim().toUpperCase() : "";
   if (!ticketNumber) {
     return NextResponse.json({ error: "ticketNumber is required." }, { status: 400 });
   }
@@ -110,16 +110,16 @@ export async function PUT(request: NextRequest) {
   let updatedTicket = ticket;
 
   if (payload.status) {
-    if (!isSupportStatus(payload.status)) {
+    if (!isSupportStatus(payload.status as string)) {
       return NextResponse.json({ error: "Invalid status." }, { status: 400 });
     }
-    const statusUpdate = updateSupportTicketStatus(ticketNumber, payload.status);
+    const statusUpdate = updateSupportTicketStatus(ticketNumber, payload.status as any);
     if (statusUpdate) {
       updatedTicket = statusUpdate;
     }
   }
 
-  if (payload.reply?.trim()) {
+  if (typeof payload.reply === "string" && payload.reply.trim()) {
     const replyUpdate = addSupportTicketReply({
       ticketNumber,
       author: "support",
@@ -130,7 +130,7 @@ export async function PUT(request: NextRequest) {
     }
   }
 
-  if (payload.note?.trim()) {
+  if (typeof payload.note === "string" && payload.note.trim()) {
     const noteUpdate = addSupportTicketNote({
       ticketNumber,
       author: "support",

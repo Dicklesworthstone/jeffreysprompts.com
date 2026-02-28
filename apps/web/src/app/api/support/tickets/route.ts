@@ -97,13 +97,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  const name = payload.name?.trim() ?? "";
-  const email = payload.email?.trim().toLowerCase() ?? "";
-  const subject = normalizeText(payload.subject ?? "");
-  const message = normalizeText(payload.message ?? "");
+  const name = typeof payload.name === "string" ? payload.name.trim() : "";
+  const email = typeof payload.email === "string" ? payload.email.trim().toLowerCase() : "";
+  const subject = typeof payload.subject === "string" ? normalizeText(payload.subject) : "";
+  const message = typeof payload.message === "string" ? normalizeText(payload.message) : "";
   const category = payload.category ?? "";
   const priority = payload.priority ?? "";
-  const honeypot = payload.company?.trim();
+  const honeypot = typeof payload.company === "string" ? payload.company.trim() : undefined;
 
   if (honeypot) {
     return NextResponse.json({ error: "Spam detected." }, { status: 400 });
@@ -262,9 +262,9 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  const ticketNumber = payload.ticketNumber?.trim().toUpperCase() ?? "";
-  const ticketToken = payload.ticketToken?.trim() ?? "";
-  const message = normalizeText(payload.message ?? "");
+  const ticketNumber = typeof payload.ticketNumber === "string" ? payload.ticketNumber.trim().toUpperCase() : "";
+  const ticketToken = typeof payload.ticketToken === "string" ? payload.ticketToken.trim() : "";
+  const message = typeof payload.message === "string" ? normalizeText(payload.message) : "";
 
   if (!ticketNumber || !ticketToken || !message) {
     return NextResponse.json(
