@@ -226,9 +226,19 @@ export function useLocalStorage<T>(
         // Use ref to get the actual latest value, not a stale closure
         if (hasLatestValueRef.current) {
           try {
-            const serialized = JSON.stringify(latestValueRef.current);
-            latestSerializedRef.current = serialized;
-            window.localStorage.setItem(key, serialized);
+            if (typeof latestValueRef.current === "undefined") {
+              latestSerializedRef.current = null;
+              window.localStorage.removeItem(key);
+            } else {
+              const serialized = JSON.stringify(latestValueRef.current);
+              if (typeof serialized === "string") {
+                latestSerializedRef.current = serialized;
+                window.localStorage.setItem(key, serialized);
+              } else {
+                latestSerializedRef.current = null;
+                window.localStorage.removeItem(key);
+              }
+            }
           } catch {
             // Ignore errors on cleanup
           }
