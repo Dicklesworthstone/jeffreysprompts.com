@@ -27,6 +27,6 @@ export const config = {
     // - _next/image (image optimization files)
     // - favicon.ico, sitemap.xml, robots.txt
     // - monitoring (Sentry tunnel)
-    "/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|monitoring|icons|manifest.json|install\\.sh|install-cli\\.sh).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|monitoring|icons|manifest.json|install\\.sh|install-cli\\.sh|opengraph-image|twitter-image).*)",
   ],
 };
