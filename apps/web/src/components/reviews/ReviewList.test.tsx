@@ -125,7 +125,7 @@ describe("ReviewList", () => {
     hookState.reviews = [review1];
     hookState.summary = {
       totalReviews: 5,
-      averageHelpfulness: fixtures.reviewSummary.averageHelpfulness - 28, // 72
+      averageHelpfulness: 72,
       recentReviews: 4,
     };
 

@@ -1,14 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { RatingDisplay } from "./RatingDisplay";
-import { fixtures } from "@/test-utils/fetch-fixtures";
-
 const baseSummary = {
   contentType: "prompt" as const,
   contentId: "idea-wizard",
   lastUpdated: "2026-01-15T00:00:00Z",
-  upvotes: fixtures.ratingSummary.upvotes * 16,   // 80
-  downvotes: fixtures.ratingSummary.downvotes * 20, // 20
+  upvotes: 80,
+  downvotes: 20,
   total: 100,
   approvalRate: 80,
 };
