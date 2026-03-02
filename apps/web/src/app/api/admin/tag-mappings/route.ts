@@ -65,6 +65,17 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  if (body.alias.length > 200 || body.canonical.length > 200) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "field_too_long",
+        message: "alias and canonical must be 200 characters or fewer",
+      },
+      { status: 400 }
+    );
+  }
+
   try {
     const mapping = upsertTagMapping({
       alias: body.alias,
@@ -76,12 +87,11 @@ export async function POST(request: NextRequest) {
       success: true,
       data: mapping,
     }, { headers: ADMIN_HEADERS });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "invalid_payload";
+  } catch {
     return NextResponse.json(
       {
         success: false,
-        error: message,
+        error: "invalid_payload",
         message: "Unable to save tag mapping",
       },
       { status: 400 }

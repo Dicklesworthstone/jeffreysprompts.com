@@ -223,6 +223,7 @@ export function useLocalStorage<T>(
     return () => {
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
+        debounceRef.current = null;
         // Use ref to get the actual latest value, not a stale closure
         if (hasLatestValueRef.current) {
           try {

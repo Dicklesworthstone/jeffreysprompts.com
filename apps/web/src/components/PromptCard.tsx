@@ -73,6 +73,7 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
   const [isHovered, setIsHovered] = useState(false);
   const prefersReducedMotion = useReducedMotion();
   const cardRef = useRef<HTMLDivElement>(null);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Skip expensive hover effects on touch devices
   const isTouch = useMemo(() => typeof window !== "undefined" && !window.matchMedia("(hover: hover)").matches, []);
@@ -114,6 +115,13 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
     return () => { unsubX(); unsubY(); };
   }, [isHovered, rotateX, rotateY, motionPercentageX, motionPercentageY, enableTilt]);
 
+  // Clean up copy timer on unmount
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    };
+  }, []);
+
   const handleMouseEnter = useCallback(() => {
     setIsHovered(true);
   }, []);
@@ -139,7 +147,8 @@ export function PromptCard({ prompt, index = 0, onCopy, onClick }: PromptCardPro
         trackEvent("prompt_copy", { id: prompt.id, source: "card" });
         onCopy?.(prompt);
 
-        setTimeout(() => setCopied(false), 2000);
+        if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+        copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
       } else {
         error("Failed to copy", "Please try again");
       }

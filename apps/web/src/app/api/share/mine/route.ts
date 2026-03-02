@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
         isExpired: isExpired(link.expiresAt),
         isActive: link.isActive,
         createdAt: link.createdAt,
-        url: `https://jeffreysprompts.com/share/${link.linkCode}`,
+        url: `${request.nextUrl.origin}/share/${link.linkCode}`,
       })),
     },
     {

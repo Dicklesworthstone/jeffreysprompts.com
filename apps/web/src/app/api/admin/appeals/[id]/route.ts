@@ -149,15 +149,9 @@ export async function PATCH(
     );
   }
 
-  // Use the admin token prefix as a reviewer identifier since the auth
-  // system is token-based without individual user identities.
-  const authHeader = request.headers.get("authorization");
-  const providedToken = (authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : null)
-    ?? request.headers.get("x-jfp-admin-token")
-    ?? "";
-  const reviewerId = providedToken
-    ? `${auth.role}:${providedToken.slice(0, 8)}`
-    : auth.role;
+  // Derive a stable reviewer identifier from the admin role.
+  // Avoid embedding raw token bytes in stored data.
+  const reviewerId = auth.role;
 
   // Update the appeal
   const updated = updateAppealStatus({
