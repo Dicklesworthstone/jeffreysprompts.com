@@ -39,7 +39,7 @@ describe("synonyms performance", () => {
     const expanded = expandQuery(tokens);
     const end = performance.now();
     
-    console.log(`Expansion of 1000 tokens took ${end - start}ms`);
+    console.log(`Expansion of 1000 terms took ${end - start}ms`);
     
     expect(expanded.length).toBeGreaterThan(0);
   });

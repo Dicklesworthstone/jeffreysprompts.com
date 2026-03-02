@@ -175,11 +175,10 @@ export function acquireSyncLock(isRetry = false): boolean {
           if (!isRetry) {
              try {
                unlinkSync(lockPath);
-               return acquireSyncLock(true);
              } catch {
-               // Ignore unlink errors (another process may have unlinked it)
-               return acquireSyncLock(true);
+               // Another process may have already unlinked it — that's fine
              }
+             return acquireSyncLock(true);
           }
         }
       } catch {

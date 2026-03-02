@@ -129,9 +129,12 @@ describe("Bundle Size Budget", () => {
         // Check if this is a puppeteer/Chrome environment issue (skip gracefully)
         const errorMessage = error instanceof Error ? error.message : String(error);
         const stderr = (error && typeof error === "object" && "stderr" in error)
-          ? (error as { stderr?: string }).stderr || ""
+          ? String((error as { stderr?: unknown }).stderr || "")
           : "";
-        const fullErrorText = `${errorMessage} ${stderr}`;
+        const stdout = (error && typeof error === "object" && "stdout" in error)
+          ? String((error as { stdout?: unknown }).stdout || "")
+          : "";
+        const fullErrorText = `${errorMessage} ${stderr} ${stdout}`;
         const isBrowserError = fullErrorText.includes("puppeteer") ||
           fullErrorText.includes("Puppeteer") ||
           fullErrorText.includes("Chrome") ||
