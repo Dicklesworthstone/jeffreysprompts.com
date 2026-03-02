@@ -17,6 +17,11 @@ export default defineConfig({
     alias: {
       "framer-motion": path.resolve(__dirname, "./src/__mocks__/framer-motion.tsx"),
     },
+    server: {
+      deps: {
+        inline: ["zod"],
+      },
+    },
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html", "lcov"],
