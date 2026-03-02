@@ -12,6 +12,7 @@ import { spawn } from "child_process";
 import { existsSync } from "fs";
 import { join } from "path";
 import { platform } from "os";
+import { version } from "../../package.json";
 import { getHomeDir } from "../lib/config";
 import { isLoggedIn, loadCredentials } from "../lib/credentials";
 import { shouldOutputJson } from "../lib/utils";
@@ -578,7 +579,6 @@ export async function doctorCommand(options: JsonOptions): Promise<void> {
 /**
  * Show about information with ASCII banner
  */
-import { version } from "../../package.json";
 
 export async function aboutCommand(options: JsonOptions): Promise<void> {
   const registry = await loadRegistry();

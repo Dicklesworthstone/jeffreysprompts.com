@@ -57,7 +57,7 @@ export async function copyCommand(id: string, options: CopyOptions) {
       processedVars[name] = processVariableValue(value, varDef);
     } catch (err) {
       if (shouldOutputJson(options)) {
-        console.log(JSON.stringify({ error: "variable_error", message: (err as Error).message }));
+        writeJsonError("variable_error", (err as Error).message);
       } else {
         console.error(chalk.red((err as Error).message));
       }
@@ -78,7 +78,7 @@ export async function copyCommand(id: string, options: CopyOptions) {
           variables[varDef.name] = value;
         } catch {
           if (shouldOutputJson(options)) {
-            console.log(JSON.stringify({ error: "cancelled", message: "User cancelled input" }));
+            writeJsonError("cancelled", "User cancelled input");
           } else {
             console.error(chalk.yellow("\nCancelled."));
           }
@@ -92,14 +92,12 @@ export async function copyCommand(id: string, options: CopyOptions) {
   const missing = getMissingVariables(prompt, variables);
   if (missing.length > 0) {
     if (shouldOutputJson(options)) {
-      console.log(JSON.stringify({
-        error: "missing_variables",
-        message: `Missing required variables: ${missing.join(", ")}`,
+      writeJsonError("missing_variables", `Missing required variables: ${missing.join(", ")}`, {
         missing,
         hint: options.fill
           ? "Required variables cannot be empty"
           : "Use --fill to prompt interactively or provide --VAR=value flags",
-      }));
+      });
     } else {
       console.error(chalk.red(`Missing required variables: ${missing.join(", ")}`));
       if (!options.fill) {

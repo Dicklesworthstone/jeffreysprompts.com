@@ -20,9 +20,6 @@ import {
   hasOfflineLibrary,
   normalizePromptCategory,
   readOfflineLibrary,
-  readSyncMeta,
-  formatSyncAge,
-  type SyncedPrompt,
 } from "../lib/offline";
 import { loadRegistry } from "../lib/registry-loader";
 

@@ -208,6 +208,7 @@ export function loadStoredConfig(): JfpConfig {
     const jsonParsed = JSON.parse(raw);
 
     // Validate sections independently so one error doesn't nuke the whole config
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const parsed: any = {};
     
     if (jsonParsed.registry) {
