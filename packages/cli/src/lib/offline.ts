@@ -114,29 +114,29 @@ export function normalizePromptCategory(category?: string): PromptCategory {
 /**
  * Get the path to the synced library directory
  */
-export function getLibraryDir(): string {
-  return join(getConfigDir(), "library");
+export function getLibraryDir(env = process.env): string {
+  return join(getConfigDir(env), "library");
 }
 
 /**
  * Get the path to the synced prompts file
  */
-export function getLibraryPath(): string {
-  return join(getLibraryDir(), "prompts.json");
+export function getLibraryPath(env = process.env): string {
+  return join(getLibraryDir(env), "prompts.json");
 }
 
 /**
  * Get the path to the sync metadata file
  */
-export function getMetaPath(): string {
-  return join(getLibraryDir(), "sync.meta.json");
+export function getMetaPath(env = process.env): string {
+  return join(getLibraryDir(env), "sync.meta.json");
 }
 
 /**
  * Get the path to the sync lock file
  */
-export function getLockPath(): string {
-  return join(getLibraryDir(), ".sync.lock");
+export function getLockPath(env = process.env): string {
+  return join(getLibraryDir(env), ".sync.lock");
 }
 
 /**
@@ -151,8 +151,8 @@ const LOCK_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
  * Uses a simple file-based lock with timestamp to handle stale locks
  * from crashed processes.
  */
-export function acquireSyncLock(isRetry = false): boolean {
-  const lockPath = getLockPath();
+export function acquireSyncLock(isRetry = false, env = process.env): boolean {
+  const lockPath = getLockPath(env);
   const lockDir = dirname(lockPath);
 
   // Ensure directory exists
@@ -178,7 +178,7 @@ export function acquireSyncLock(isRetry = false): boolean {
              } catch {
                // Another process may have already unlinked it — that's fine
              }
-             return acquireSyncLock(true);
+             return acquireSyncLock(true, env);
           }
         }
       } catch {
@@ -195,8 +195,8 @@ export function acquireSyncLock(isRetry = false): boolean {
 /**
  * Release the sync lock.
  */
-export function releaseSyncLock(): void {
-  const lockPath = getLockPath();
+export function releaseSyncLock(env = process.env): void {
+  const lockPath = getLockPath(env);
   try {
     if (existsSync(lockPath)) {
       unlinkSync(lockPath);
@@ -209,15 +209,15 @@ export function releaseSyncLock(): void {
 /**
  * Check if the synced library exists
  */
-export function hasOfflineLibrary(): boolean {
-  return existsSync(getLibraryPath());
+export function hasOfflineLibrary(env = process.env): boolean {
+  return existsSync(getLibraryPath(env));
 }
 
 /**
  * Read the sync metadata
  */
-export function readSyncMeta(): SyncMeta | null {
-  const metaPath = getMetaPath();
+export function readSyncMeta(env = process.env): SyncMeta | null {
+  const metaPath = getMetaPath(env);
   if (!existsSync(metaPath)) return null;
   try {
     return JSON.parse(readFileSync(metaPath, "utf-8")) as SyncMeta;
@@ -229,8 +229,8 @@ export function readSyncMeta(): SyncMeta | null {
 /**
  * Read prompts from the synced library cache
  */
-export function readOfflineLibrary(): SyncedPrompt[] {
-  const libraryPath = getLibraryPath();
+export function readOfflineLibrary(env = process.env): SyncedPrompt[] {
+  const libraryPath = getLibraryPath(env);
   if (!existsSync(libraryPath)) return [];
   try {
     const parsed = JSON.parse(readFileSync(libraryPath, "utf-8")) as unknown;
@@ -243,16 +243,16 @@ export function readOfflineLibrary(): SyncedPrompt[] {
 /**
  * Find a prompt by ID in the offline library cache
  */
-export function getOfflinePromptById(id: string): SyncedPrompt | null {
-  const prompts = readOfflineLibrary();
+export function getOfflinePromptById(id: string, env = process.env): SyncedPrompt | null {
+  const prompts = readOfflineLibrary(env);
   return prompts.find((prompt) => prompt.id === id) ?? null;
 }
 
 /**
  * Get an offline prompt converted to the standard Prompt type
  */
-export function getOfflinePromptAsPrompt(id: string): Prompt | null {
-  const offline = getOfflinePromptById(id);
+export function getOfflinePromptAsPrompt(id: string, env = process.env): Prompt | null {
+  const offline = getOfflinePromptById(id, env);
   if (!offline) return null;
 
   return {
@@ -444,34 +444,34 @@ export interface PacksCacheManifest {
   entries: CachedPackManifestEntry[];
 }
 
-export function getPacksDir(): string {
-  return join(getLibraryDir(), "packs");
+export function getPacksDir(env = process.env): string {
+  return join(getLibraryDir(env), "packs");
 }
 
-export function getPacksManifestPath(): string {
-  return join(getPacksDir(), "manifest.json");
+export function getPacksManifestPath(env = process.env): string {
+  return join(getPacksDir(env), "manifest.json");
 }
 
-export function getPackCachePath(packId: string): string {
+export function getPackCachePath(packId: string, env = process.env): string {
   if (!isSafePackId(packId)) {
     throw new Error(`Unsafe pack id: ${packId}`);
   }
-  return resolveSafeChildPath(getPacksDir(), `${packId}.json`);
+  return resolveSafeChildPath(getPacksDir(env), `${packId}.json`);
 }
 
-export function doesPackCachePayloadExist(packId: string): boolean {
+export function doesPackCachePayloadExist(packId: string, env = process.env): boolean {
   try {
-    const path = getPackCachePath(packId);
+    const path = getPackCachePath(packId, env);
     return existsSync(path);
   } catch {
     return false;
   }
 }
 
-export function isPackCacheHealthy(packId: string, expectedHash: string): boolean {
+export function isPackCacheHealthy(packId: string, expectedHash: string, env = process.env): boolean {
   if (!expectedHash) return false;
   try {
-    const path = getPackCachePath(packId);
+    const path = getPackCachePath(packId, env);
     if (!existsSync(path)) return false;
     const raw = readFileSync(path, "utf-8");
     return sha256Hex(raw) === expectedHash;
@@ -480,8 +480,8 @@ export function isPackCacheHealthy(packId: string, expectedHash: string): boolea
   }
 }
 
-export function readPacksManifest(): PacksCacheManifest | null {
-  const path = getPacksManifestPath();
+export function readPacksManifest(env = process.env): PacksCacheManifest | null {
+  const path = getPacksManifestPath(env);
   const parsed = readJsonFile<unknown>(path);
   if (!parsed || typeof parsed !== "object") return null;
   const obj = parsed as Record<string, unknown>;
@@ -549,7 +549,7 @@ export function readPacksManifest(): PacksCacheManifest | null {
   };
 }
 
-const writePacksManifest = (manifest: PacksCacheManifest): void => {
+const writePacksManifest = (manifest: PacksCacheManifest, env = process.env): void => {
   const now = new Date().toISOString();
   const payload: PacksCacheManifest = {
     ...manifest,
@@ -557,7 +557,7 @@ const writePacksManifest = (manifest: PacksCacheManifest): void => {
     generatedAt: now,
     entries: manifest.entries,
   };
-  atomicWriteFileSync(getPacksManifestPath(), JSON.stringify(payload, null, 2));
+  atomicWriteFileSync(getPacksManifestPath(env), JSON.stringify(payload, null, 2));
 };
 
 const createEmptyPacksManifest = (): PacksCacheManifest => ({
@@ -691,8 +691,8 @@ export function uncachePremiumPack(packId: string): CacheWriteResult {
   return { ok: true };
 }
 
-export function getCachedPackEntry(packId: string): CachedPackManifestEntry | null {
-  const manifest = readPacksManifest();
+export function getCachedPackEntry(packId: string, env = process.env): CachedPackManifestEntry | null {
+  const manifest = readPacksManifest(env);
   if (!manifest) return null;
   return manifest.entries.find((e) => e.id === packId) ?? null;
 }
@@ -700,8 +700,8 @@ export function getCachedPackEntry(packId: string): CachedPackManifestEntry | nu
 /**
  * Load all cached prompts from installed packs (best-effort, integrity-checked).
  */
-export function readCachedPackPrompts(): Prompt[] {
-  const manifest = readPacksManifest();
+export function readCachedPackPrompts(env = process.env): Prompt[] {
+  const manifest = readPacksManifest(env);
   const entries = manifest?.entries ?? [];
   if (entries.length === 0) return [];
 
@@ -710,7 +710,7 @@ export function readCachedPackPrompts(): Prompt[] {
     if (!entry.installed) continue;
     let raw: string;
     try {
-      const path = getPackCachePath(entry.id);
+      const path = getPackCachePath(entry.id, env);
       if (!existsSync(path)) continue;
       raw = readFileSync(path, "utf-8");
     } catch {

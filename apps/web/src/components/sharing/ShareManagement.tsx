@@ -230,13 +230,13 @@ export function ShareManagement({
   );
 
   // Filter out any currently revoking links
-  const activeLinks = shareLinks.filter(
-    (link) => link.linkCode !== isRevoking
+  const visibleLinks = shareLinks.filter(
+    (link) => link.isActive !== false && link.linkCode !== isRevoking
   );
-  const expiredLinks = activeLinks.filter(
+  const expiredLinks = visibleLinks.filter(
     (link) => link.expiresAt && new Date(link.expiresAt) < new Date()
   );
-  const validLinks = activeLinks.filter(
+  const validLinks = visibleLinks.filter(
     (link) => !link.expiresAt || new Date(link.expiresAt) >= new Date()
   );
 
@@ -283,7 +283,7 @@ export function ShareManagement({
         </p>
       </CardHeader>
       <CardContent>
-        {activeLinks.length === 0 ? (
+        {visibleLinks.length === 0 ? (
           <div className="py-8 text-center">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800">
               <Link2 className="h-6 w-6 text-neutral-400" />

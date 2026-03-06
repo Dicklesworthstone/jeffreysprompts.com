@@ -136,8 +136,8 @@ function loadLocalPrompts(dir: string): Prompt[] {
   return prompts;
 }
 
-function loadOfflinePrompts(): Prompt[] {
-  const offline = readOfflineLibrary();
+function loadOfflinePrompts(env = process.env): Prompt[] {
+  const offline = readOfflineLibrary(env);
   return offline.map(p => ({
     id: p.id,
     title: p.title,
@@ -197,8 +197,8 @@ async function fetchRegistry(
  * 2. Fetch fresh data in background
  * 3. Fall back to bundled data if no cache and fetch fails
  */
-export async function loadRegistry(): Promise<LoadedRegistry> {
-  const config = loadConfig();
+export async function loadRegistry(env = process.env): Promise<LoadedRegistry> {
+  const config = loadConfig(env);
   const cachedPayload = readJsonFile<RegistryPayloadLike>(config.registry.cachePath);
   const cachedMeta = readJsonFile<RegistryMeta>(config.registry.metaPath);
   const cachedPromptValidation = validatePromptArray(cachedPayload?.prompts);
@@ -210,12 +210,12 @@ export async function loadRegistry(): Promise<LoadedRegistry> {
     ? loadLocalPrompts(config.localPrompts.dir)
     : [];
   
-  const offlinePrompts = loadOfflinePrompts();
-  const packPrompts = readCachedPackPrompts();
+  const offlinePrompts = loadOfflinePrompts(env);
+  const packPrompts = readCachedPackPrompts(env);
 
   if (cachedPrompts?.length) {
     if (!isCacheFresh(cachedMeta, config.registry.cacheTtl) && config.registry.autoRefresh) {
-      void refreshRegistry().catch(() => undefined);
+      void refreshRegistry(env).catch(() => undefined);
     }
     return {
       prompts: composePromptSources(cachedPrompts, packPrompts, offlinePrompts, localPrompts),
@@ -265,8 +265,8 @@ export async function loadRegistry(): Promise<LoadedRegistry> {
 /**
  * Force refresh registry from remote
  */
-export async function refreshRegistry(): Promise<LoadedRegistry> {
-  const config = loadConfig();
+export async function refreshRegistry(env = process.env): Promise<LoadedRegistry> {
+  const config = loadConfig(env);
   const cachedPayload = readJsonFile<RegistryPayloadLike>(config.registry.cachePath);
   const cachedMeta = readJsonFile<RegistryMeta>(config.registry.metaPath);
   const cachedPromptValidation = validatePromptArray(cachedPayload?.prompts);
@@ -278,8 +278,8 @@ export async function refreshRegistry(): Promise<LoadedRegistry> {
     ? loadLocalPrompts(config.localPrompts.dir)
     : [];
   
-  const offlinePrompts = loadOfflinePrompts();
-  const packPrompts = readCachedPackPrompts();
+  const offlinePrompts = loadOfflinePrompts(env);
+  const packPrompts = readCachedPackPrompts(env);
 
   const remote = await fetchRegistry(
     config.registry.remote,

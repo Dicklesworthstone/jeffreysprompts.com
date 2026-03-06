@@ -63,7 +63,7 @@ export default function SharedLinksPage() {
   const fetchShareLinks = useCallback(async () => {
     try {
       const response = await fetch(
-        "/api/share/mine?includeInactive=true"
+        "/api/share/mine"
       );
 
       if (!response.ok) {
@@ -76,20 +76,21 @@ export default function SharedLinksPage() {
 
       const data = await response.json();
 
-      const links: ManagedShareLink[] = (data.links as ApiShareLink[]).map(
-        (link) => ({
+      const links: ManagedShareLink[] = (data.links as ApiShareLink[])
+        .filter((link) => link.isActive)
+        .map((link) => ({
           linkCode: link.code,
           url: link.url,
           password: null,
           isPasswordProtected: link.isPasswordProtected,
+          isActive: link.isActive,
           expiresAt: link.expiresAt,
           viewCount: link.viewCount,
           createdAt: link.createdAt,
           contentType: link.contentType,
           contentTitle: resolveContentTitle(link.contentType, link.contentId),
           contentId: link.contentId,
-        })
-      );
+        }));
 
       setShareLinks(links);
     } catch {

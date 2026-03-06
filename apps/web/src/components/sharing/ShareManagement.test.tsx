@@ -61,6 +61,14 @@ const expiredLink: ManagedShareLink = {
   contentTitle: "Expired Prompt",
 };
 
+const inactiveLink: ManagedShareLink = {
+  ...baseLink,
+  linkCode: "inactive123",
+  url: "https://jeffreysprompts.com/s/inactive123",
+  contentTitle: "Inactive Prompt",
+  isActive: false,
+};
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -190,5 +198,13 @@ describe("ShareManagement", () => {
     expect(screen.getByText("Test Prompt")).toBeInTheDocument();
     expect(screen.getByText("Protected Prompt")).toBeInTheDocument();
     expect(screen.getByText("2 active")).toBeInTheDocument();
+  });
+
+  it("hides inactive links from the management list", () => {
+    render(<ShareManagement shareLinks={[baseLink, inactiveLink]} />);
+
+    expect(screen.getByText("Test Prompt")).toBeInTheDocument();
+    expect(screen.queryByText("Inactive Prompt")).not.toBeInTheDocument();
+    expect(screen.getByText("1 active")).toBeInTheDocument();
   });
 });

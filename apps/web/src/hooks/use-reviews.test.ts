@@ -239,6 +239,75 @@ describe("useReviews", () => {
     expect(result.current.reviews).toHaveLength(0);
     expect(result.current.summary?.totalReviews).toBe(0);
   });
+
+  it("restores pagination offset after deleting a newly submitted review", async () => {
+    const initialResponse = {
+      reviews: [],
+      summary: {
+        ...mockSummary,
+        totalReviews: 15,
+      },
+      userReview: null,
+      pagination: { total: 15, limit: 10, offset: 0, hasMore: true },
+    };
+    const submitResponse = {
+      ...reviewSubmitResponse,
+      summary: {
+        ...mockSummary,
+        totalReviews: 16,
+      },
+      isNew: true,
+    };
+    const deleteResponse = {
+      success: true,
+      summary: {
+        ...mockSummary,
+        totalReviews: 15,
+      },
+    };
+
+    let callCount = 0;
+    setFetchMock(vi.fn().mockImplementation(() => {
+      callCount++;
+      if (callCount === 1) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(initialResponse),
+        });
+      }
+      if (callCount === 2) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(submitResponse),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(deleteResponse),
+      });
+    }));
+
+    const { result } = renderHook(() =>
+      useReviews({ contentType: "prompt", contentId: "idea-wizard" })
+    );
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.submitReview({
+        rating: "up",
+        content: "Great prompt for brainstorming product ideas.",
+      });
+    });
+
+    expect(result.current.pagination.offset).toBe(1);
+
+    await act(async () => {
+      await result.current.deleteReview();
+    });
+
+    expect(result.current.pagination.offset).toBe(0);
+  });
 });
 
 describe("useReviewVote", () => {

@@ -215,4 +215,40 @@ describe("loadRegistry", () => {
     expect(prompt?.tags).toEqual(["registry-tag"]);
     expect(prompt?.featured).toBe(true);
   });
+
+  it("honors an explicit env override when loading offline prompts", async () => {
+    const explicitHome = join(testDir, "explicit-home");
+    const explicitEnv = {
+      ...process.env,
+      HOME: explicitHome,
+      JFP_HOME: explicitHome,
+    } as NodeJS.ProcessEnv;
+    const explicitConfigDir = getConfigDir(explicitEnv);
+
+    mkdirSync(join(explicitConfigDir, "library"), { recursive: true });
+    writeFileSync(
+      join(explicitConfigDir, "library", "prompts.json"),
+      JSON.stringify([
+        {
+          id: "env-only-offline-prompt",
+          title: "Env Only Offline Prompt",
+          description: "Only available through the explicit env home",
+          content: "Offline body",
+          category: "workflow",
+          tags: ["env"],
+          saved_at: new Date().toISOString(),
+        },
+      ])
+    );
+
+    globalThis.fetch = (async () => {
+      throw new Error("Network error");
+    }) as typeof fetch;
+
+    const result = await loadRegistry(explicitEnv);
+
+    expect(
+      result.prompts.some((prompt) => prompt.id === "env-only-offline-prompt")
+    ).toBe(true);
+  });
 });

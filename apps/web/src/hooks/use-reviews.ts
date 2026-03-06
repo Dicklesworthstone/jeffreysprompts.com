@@ -176,7 +176,7 @@ export function useReviews({
       const data = await res.json();
       setState((prev) => {
         const nextTotal = Math.max(0, prev.pagination.total - 1);
-        const nextOffset = Math.min(prev.pagination.offset, Math.max(0, nextTotal - 1));
+        const nextOffset = Math.max(0, prev.pagination.offset - 1);
 
         return {
           ...prev,

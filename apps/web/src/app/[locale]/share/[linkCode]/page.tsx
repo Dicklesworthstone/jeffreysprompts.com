@@ -198,13 +198,15 @@ export default function SharePage() {
 
         if (response.status === 410) {
           // Expired
+          const data = await response.json().catch(() => ({}));
           setShareData({
             linkCode,
             contentType: "prompt",
             contentId: null,
             requiresPassword: false,
             isExpired: true,
-            expiresAt: null,
+            expiresAt:
+              typeof data.expiresAt === "string" ? data.expiresAt : null,
             content: null,
             viewCount: 0,
           });
@@ -392,10 +394,15 @@ export default function SharePage() {
           <h1 className="text-2xl font-bold text-neutral-900 dark:text-white">
             Share Link Expired
           </h1>
-          <p className="mt-2 text-neutral-600 dark:text-neutral-400">
-            This share link expired on{" "}
-            {shareData.expiresAt && formatDate(shareData.expiresAt)}.
-          </p>
+          {shareData.expiresAt ? (
+            <p className="mt-2 text-neutral-600 dark:text-neutral-400">
+              This share link expired on {formatDate(shareData.expiresAt)}.
+            </p>
+          ) : (
+            <p className="mt-2 text-neutral-600 dark:text-neutral-400">
+              This share link has expired.
+            </p>
+          )}
           <Button className="mt-6" onClick={() => router.push("/")}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Go to Homepage

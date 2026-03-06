@@ -4,6 +4,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 import { GET, PUT, DELETE } from "./route";
+import { createShareLink } from "@/lib/share-links/share-link-store";
 
 function clearStores() {
   const g = globalThis as unknown as Record<string, unknown>;
@@ -35,6 +36,24 @@ describe("/api/share/[code]", () => {
         makeContext("nonexistent")
       );
       expect(res.status).toBe(404);
+    });
+
+    it("returns expiresAt for expired links", async () => {
+      const expiredAt = new Date(Date.now() - 60_000).toISOString();
+      const link = createShareLink({
+        contentType: "prompt",
+        contentId: "idea-wizard",
+        expiresAt: expiredAt,
+      });
+
+      const res = await GET(
+        new NextRequest(`http://localhost/api/share/${link.linkCode}`),
+        makeContext(link.linkCode)
+      );
+
+      expect(res.status).toBe(410);
+      const payload = await res.json();
+      expect(payload.expiresAt).toBe(expiredAt);
     });
   });
 

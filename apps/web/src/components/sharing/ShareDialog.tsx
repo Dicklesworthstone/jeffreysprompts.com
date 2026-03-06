@@ -65,6 +65,7 @@ export interface ShareLink {
   url: string;
   password: string | null;
   isPasswordProtected?: boolean;
+  isActive?: boolean;
   expiresAt: string | null;
   viewCount: number;
   createdAt: string;

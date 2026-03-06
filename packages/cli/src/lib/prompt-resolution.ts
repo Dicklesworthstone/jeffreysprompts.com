@@ -162,14 +162,14 @@ export async function resolvePromptById(
   options: ResolvePromptOptions = {}
 ): Promise<ResolvedPrompt> {
   const env = options.env ?? process.env;
-  const registry = options.registry ?? await loadRegistry();
+  const registry = options.registry ?? await loadRegistry(env);
   const localPrompt = registry.prompts.find((prompt) => prompt.id === promptId);
 
   if (localPrompt) {
     return { prompt: localPrompt, source: "local" };
   }
 
-  const offlinePrompt = getOfflinePromptAsPrompt(promptId);
+  const offlinePrompt = getOfflinePromptAsPrompt(promptId, env);
   if (offlinePrompt) {
     return { prompt: offlinePrompt, source: "offline" };
   }

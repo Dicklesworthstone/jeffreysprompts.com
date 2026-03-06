@@ -114,7 +114,13 @@ export async function GET(
   }
 
   if (isExpired(link.expiresAt)) {
-    return NextResponse.json({ error: "Share link expired." }, { status: 410 });
+    return NextResponse.json(
+      {
+        error: "Share link expired.",
+        expiresAt: link.expiresAt,
+      },
+      { status: 410 }
+    );
   }
 
   if (link.passwordHash) {

@@ -178,10 +178,10 @@ function parseEnvNumber(value: string | undefined): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function applyEnvOverrides(config: JfpConfig): JfpConfig {
-  const registryUrl = process.env.JFP_REGISTRY_URL;
-  const cacheTtl = parseEnvNumber(process.env.JFP_CACHE_TTL);
-  const noColor = process.env.JFP_NO_COLOR;
+function applyEnvOverrides(config: JfpConfig, env = process.env): JfpConfig {
+  const registryUrl = env.JFP_REGISTRY_URL;
+  const cacheTtl = parseEnvNumber(env.JFP_CACHE_TTL);
+  const noColor = env.JFP_NO_COLOR;
 
   return {
     ...config,
@@ -198,9 +198,9 @@ function applyEnvOverrides(config: JfpConfig): JfpConfig {
   };
 }
 
-export function loadStoredConfig(): JfpConfig {
-  const configFile = getConfigFile();
-  const defaultConfig = createDefaultConfig();
+export function loadStoredConfig(env = process.env): JfpConfig {
+  const configFile = getConfigFile(env);
+  const defaultConfig = createDefaultConfig(env);
 
   if (!existsSync(configFile)) {
     return defaultConfig;
@@ -216,37 +216,37 @@ export function loadStoredConfig(): JfpConfig {
     if (jsonParsed.registry) {
       const res = RegistryConfigSchema.safeParse(jsonParsed.registry);
       if (res.success) parsed.registry = res.data;
-      else if (process.env.JFP_DEBUG) console.warn("[Config] registry errors:", res.error.flatten());
+      else if (env.JFP_DEBUG) console.warn("[Config] registry errors:", res.error.flatten());
     }
     if (jsonParsed.updates) {
       const res = UpdatesConfigSchema.safeParse(jsonParsed.updates);
       if (res.success) parsed.updates = res.data;
-      else if (process.env.JFP_DEBUG) console.warn("[Config] updates errors:", res.error.flatten());
+      else if (env.JFP_DEBUG) console.warn("[Config] updates errors:", res.error.flatten());
     }
     if (jsonParsed.skills) {
       const res = SkillsConfigSchema.safeParse(jsonParsed.skills);
       if (res.success) parsed.skills = res.data;
-      else if (process.env.JFP_DEBUG) console.warn("[Config] skills errors:", res.error.flatten());
+      else if (env.JFP_DEBUG) console.warn("[Config] skills errors:", res.error.flatten());
     }
     if (jsonParsed.output) {
       const res = OutputConfigSchema.safeParse(jsonParsed.output);
       if (res.success) parsed.output = res.data;
-      else if (process.env.JFP_DEBUG) console.warn("[Config] output errors:", res.error.flatten());
+      else if (env.JFP_DEBUG) console.warn("[Config] output errors:", res.error.flatten());
     }
     if (jsonParsed.localPrompts) {
       const res = LocalPromptsConfigSchema.safeParse(jsonParsed.localPrompts);
       if (res.success) parsed.localPrompts = res.data;
-      else if (process.env.JFP_DEBUG) console.warn("[Config] localPrompts errors:", res.error.flatten());
+      else if (env.JFP_DEBUG) console.warn("[Config] localPrompts errors:", res.error.flatten());
     }
     if (jsonParsed.analytics) {
       const res = AnalyticsConfigSchema.safeParse(jsonParsed.analytics);
       if (res.success) parsed.analytics = res.data;
-      else if (process.env.JFP_DEBUG) console.warn("[Config] analytics errors:", res.error.flatten());
+      else if (env.JFP_DEBUG) console.warn("[Config] analytics errors:", res.error.flatten());
     }
     if (jsonParsed.budgets) {
       const res = BudgetsConfigSchema.safeParse(jsonParsed.budgets);
       if (res.success) parsed.budgets = res.data;
-      else if (process.env.JFP_DEBUG) console.warn("[Config] budgets errors:", res.error.flatten());
+      else if (env.JFP_DEBUG) console.warn("[Config] budgets errors:", res.error.flatten());
     }
 
     const merged: JfpConfig = {
@@ -266,13 +266,13 @@ export function loadStoredConfig(): JfpConfig {
   }
 }
 
-export function loadConfig(): JfpConfig {
-  return applyEnvOverrides(loadStoredConfig());
+export function loadConfig(env = process.env): JfpConfig {
+  return applyEnvOverrides(loadStoredConfig(env), env);
 }
 
-export function saveConfig(config: Partial<JfpConfig>): void {
-  const configFile = getConfigFile();
-  const base = loadStoredConfig();
+export function saveConfig(config: Partial<JfpConfig>, env = process.env): void {
+  const configFile = getConfigFile(env);
+  const base = loadStoredConfig(env);
   const merged: JfpConfig = {
     ...base,
     ...config,
