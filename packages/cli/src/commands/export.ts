@@ -19,7 +19,11 @@ interface ExportOptions {
   json?: boolean;
 }
 
-export async function exportCommand(ids: string[], options: ExportOptions) {
+export async function exportCommand(
+  ids: string[],
+  options: ExportOptions,
+  env = process.env
+) {
   const format = (options.format || "md").toLowerCase();
   const outputDir = options.outputDir || process.cwd();
   const jsonOutput = options.json === true || (!process.stdout.isTTY && !options.stdout);
@@ -44,7 +48,7 @@ export async function exportCommand(ids: string[], options: ExportOptions) {
   }
   
   // Load registry dynamically (SWR pattern)
-  const registry = await loadRegistry();
+  const registry = await loadRegistry(env);
   
   let promptsToExport = [...registry.prompts];
   
@@ -61,7 +65,7 @@ export async function exportCommand(ids: string[], options: ExportOptions) {
     // Filter prompts by ID list
     const foundPrompts = [];
     for (const id of ids) {
-      const resolved = await resolvePromptById(id, { registry });
+      const resolved = await resolvePromptById(id, { env, registry });
       if (!resolved.prompt) {
         if (jsonOutput) {
           writeJsonError(

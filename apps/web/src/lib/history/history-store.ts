@@ -191,6 +191,7 @@ export function recordView(input: {
 
   store.entries.set(entry.id, entry);
   touchEntry(store, input.userId, entry.id);
+  evictOldestUsersIfNeeded(store);
 
   return entry;
 }

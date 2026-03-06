@@ -194,6 +194,25 @@ describe("history-store", () => {
         vi.useRealTimers();
       }
     });
+
+    it("keeps the in-memory user cap after adding a new user at capacity", () => {
+      seedStoreWithUsers(10_000);
+
+      recordView({
+        userId: "new-user",
+        resourceType: "prompt",
+        resourceId: "new-prompt",
+      });
+
+      const entriesByUser = getEntriesByUserMap();
+      expect(entriesByUser).not.toBeNull();
+      if (!entriesByUser) {
+        throw new Error("Expected entriesByUser map to be initialized");
+      }
+      expect(entriesByUser.size).toBeLessThanOrEqual(10_000);
+      expect(entriesByUser.has("new-user")).toBe(true);
+      expect(entriesByUser.has("seed-user-0")).toBe(false);
+    });
   });
 
   // -----------------------------------------------------------------------

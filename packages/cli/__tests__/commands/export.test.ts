@@ -5,7 +5,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from "bun:test";
 import { join } from "path";
-import { mkdtempSync, rmSync, existsSync, readFileSync } from "fs";
+import { mkdtempSync, rmSync, existsSync, readFileSync, mkdirSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { exportCommand } from "../../src/commands/export";
 
@@ -33,6 +33,34 @@ function parseJsonOutput<T = any>(): T {
       }`
     );
   }
+}
+
+function createOfflineLibraryPrompt(
+  configDir: string,
+  prompt: {
+    id: string;
+    title: string;
+    content: string;
+    description?: string;
+    category?: string;
+    tags?: string[];
+  }
+) {
+  const libraryDir = join(configDir, "jfp", "library");
+  mkdirSync(libraryDir, { recursive: true });
+  writeFileSync(
+    join(libraryDir, "prompts.json"),
+    JSON.stringify(
+      [
+        {
+          ...prompt,
+          saved_at: "2026-01-01T00:00:00.000Z",
+        },
+      ],
+      null,
+      2
+    )
+  );
 }
 
 beforeAll(() => {
@@ -170,6 +198,56 @@ describe("exportCommand", () => {
     const exportedContent = readFileSync(join(testDir, "personal-only.md"), "utf-8");
     expect(exportedContent).toContain("# Personal Prompt");
     expect(exportedContent).toContain("Personal prompt body");
+  });
+
+  it("uses the provided env when exporting offline-library prompts", async () => {
+    const fakeHome = mkdtempSync(join(testDir, "jfp-export-home-"));
+    const fakeConfig = join(fakeHome, ".config");
+    const env: NodeJS.ProcessEnv = {
+      ...process.env,
+      HOME: fakeHome,
+      XDG_CONFIG_HOME: undefined,
+      JFP_TOKEN: undefined,
+    };
+
+    createOfflineLibraryPrompt(fakeConfig, {
+      id: "offline-only",
+      title: "Offline Only Prompt",
+      description: "Available only from the env-scoped offline library",
+      content: "Offline prompt body",
+      category: "workflow",
+      tags: ["offline"],
+    });
+
+    globalThis.fetch = async (input: RequestInfo | URL) => {
+      const url = input.toString();
+      if (url.includes("/api/prompts")) {
+        return new Response(
+          JSON.stringify({
+            prompts: [],
+            bundles: [],
+            workflows: [],
+            version: "1.0.0",
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
+      return new Response("Not found", { status: 404 });
+    };
+
+    await exportCommand(["offline-only"], { json: true, format: "md" }, env);
+
+    const payload = parseJsonOutput();
+    expect(payload.success).toBe(true);
+    expect(payload.exported).toHaveLength(1);
+    expect(payload.exported[0].id).toBe("offline-only");
+
+    const exportedContent = readFileSync(join(testDir, "offline-only.md"), "utf-8");
+    expect(exportedContent).toContain("# Offline Only Prompt");
+    expect(exportedContent).toContain("Offline prompt body");
   });
 
   it("rejects unsafe prompt ids returned by the API", async () => {
