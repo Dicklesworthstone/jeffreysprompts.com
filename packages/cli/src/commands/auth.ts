@@ -10,7 +10,7 @@ import boxen from "boxen";
 import {
   loadCredentials,
   clearCredentials,
-  isExpired,
+  getAccessToken,
 } from "../lib/credentials";
 import { apiClient } from "../lib/api-client";
 import { shouldOutputJson } from "../lib/utils";
@@ -52,10 +52,11 @@ export async function whoamiCommand(options: AuthCommandOptions = {}): Promise<v
     return;
   }
 
-  // Load credentials from file
-  const creds = await loadCredentials();
+  // Load credentials before refresh so we can distinguish between
+  // "never logged in" and "session expired and refresh failed".
+  const storedCreds = await loadCredentials();
 
-  if (!creds) {
+  if (!storedCreds) {
     if (shouldOutputJson(options)) {
       writeJsonError("not_authenticated", "Not logged in", { authenticated: false });
     } else {
@@ -65,13 +66,12 @@ export async function whoamiCommand(options: AuthCommandOptions = {}): Promise<v
     process.exit(1);
   }
 
-  // Check if token is expired
-  const expired = isExpired(creds);
-  const expiresAt = new Date(creds.expires_at);
-  const expiresIn = expired ? "expired" : formatTimeUntil(expiresAt);
+  const token = await getAccessToken();
+  const creds = (await loadCredentials()) ?? storedCreds;
 
-  if (shouldOutputJson(options)) {
-    if (expired) {
+  if (!token) {
+    const expiresAt = new Date(creds.expires_at);
+    if (shouldOutputJson(options)) {
       writeJsonError("session_expired", "Session expired. Please run 'jfp login' again.", {
         authenticated: false,
         email: creds.email,
@@ -81,32 +81,34 @@ export async function whoamiCommand(options: AuthCommandOptions = {}): Promise<v
         expired: true,
       });
     } else {
-      writeJson({
-        authenticated: true,
-        email: creds.email,
-        tier: creds.tier,
-        user_id: creds.user_id,
-        expires_at: creds.expires_at,
-        expires_in: Math.floor((expiresAt.getTime() - Date.now()) / 1000),
-        expired: false,
-        source: "credentials_file",
-      });
+      console.log(chalk.yellow("Session expired"));
+      console.log(chalk.dim(`  Email: ${creds.email}`));
+      console.log(chalk.dim(`  Tier:  ${creds.tier}`));
+      console.log(chalk.red(`  Token expired at ${expiresAt.toLocaleString()}`));
+      console.log(chalk.dim("\nRun 'jfp login' to sign in again"));
     }
-
-    if (expired) {
-      process.exit(1);
-    }
-    return;
+    process.exit(1);
   }
 
-  // Human-readable output
-  if (expired) {
-    console.log(chalk.yellow("Session expired"));
-    console.log(chalk.dim(`  Email: ${creds.email}`));
-    console.log(chalk.dim(`  Tier:  ${creds.tier}`));
-    console.log(chalk.red(`  Token expired at ${expiresAt.toLocaleString()}`));
-    console.log(chalk.dim("\nRun 'jfp login' to sign in again"));
-    process.exit(1);
+  const expiresAt = new Date(creds.expires_at);
+  const expiresAtMs = expiresAt.getTime();
+  const expiresIn = Number.isFinite(expiresAtMs) ? formatTimeUntil(expiresAt) : "unknown";
+  const expiresInSeconds = Number.isFinite(expiresAtMs)
+    ? Math.max(0, Math.floor((expiresAtMs - Date.now()) / 1000))
+    : null;
+
+  if (shouldOutputJson(options)) {
+    writeJson({
+      authenticated: true,
+      email: creds.email,
+      tier: creds.tier,
+      user_id: creds.user_id,
+      expires_at: creds.expires_at,
+      expires_in: expiresInSeconds,
+      expired: false,
+      source: "credentials_file",
+    });
+    return;
   }
 
   console.log(

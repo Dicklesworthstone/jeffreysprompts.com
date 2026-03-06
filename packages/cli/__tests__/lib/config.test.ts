@@ -28,6 +28,7 @@ let FAKE_HOME: string;
 
 // Store original env vars
 const originalJfpHome = process.env.JFP_HOME;
+const originalXdgConfigHome = process.env.XDG_CONFIG_HOME;
 const originalRegistryUrl = process.env.JFP_REGISTRY_URL;
 const originalCacheTtl = process.env.JFP_CACHE_TTL;
 const originalNoColor = process.env.JFP_NO_COLOR;
@@ -43,6 +44,7 @@ beforeEach(() => {
 
   // Set JFP_HOME for testing
   process.env.JFP_HOME = FAKE_HOME;
+  delete process.env.XDG_CONFIG_HOME;
 
   // Clear env overrides
   delete process.env.JFP_REGISTRY_URL;
@@ -56,6 +58,11 @@ afterEach(() => {
     process.env.JFP_HOME = originalJfpHome;
   } else {
     delete process.env.JFP_HOME;
+  }
+  if (originalXdgConfigHome) {
+    process.env.XDG_CONFIG_HOME = originalXdgConfigHome;
+  } else {
+    delete process.env.XDG_CONFIG_HOME;
   }
   if (originalRegistryUrl) {
     process.env.JFP_REGISTRY_URL = originalRegistryUrl;
@@ -96,6 +103,12 @@ describe("getConfigDir", () => {
     const configDir = getConfigDir();
     expect(configDir).toBe(join(FAKE_HOME, ".config", "jfp"));
   });
+
+  it("prefers XDG_CONFIG_HOME when set", () => {
+    process.env.XDG_CONFIG_HOME = join(TEST_DIR, "xdg-config");
+    const configDir = getConfigDir();
+    expect(configDir).toBe(join(TEST_DIR, "xdg-config", "jfp"));
+  });
 });
 
 describe("createDefaultConfig", () => {
@@ -120,6 +133,15 @@ describe("createDefaultConfig", () => {
     const config = createDefaultConfig();
     expect(config.registry.cachePath).toContain(FAKE_HOME);
     expect(config.skills.personalDir).toContain(FAKE_HOME);
+  });
+
+  it("uses XDG_CONFIG_HOME for config and skills paths when set", () => {
+    process.env.XDG_CONFIG_HOME = join(TEST_DIR, "xdg-config");
+    const config = createDefaultConfig();
+
+    expect(config.registry.cachePath).toBe(join(TEST_DIR, "xdg-config", "jfp", "registry.json"));
+    expect(config.registry.metaPath).toBe(join(TEST_DIR, "xdg-config", "jfp", "registry.meta.json"));
+    expect(config.skills.personalDir).toBe(join(TEST_DIR, "xdg-config", "claude", "skills"));
   });
 
   it("has sensible default values", () => {

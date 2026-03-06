@@ -57,6 +57,10 @@ function getMetaPath(): string {
   return join(getConfigDir(), "registry.meta.json");
 }
 
+function getOfflineLibraryPath(): string {
+  return join(getConfigDir(), "library", "prompts.json");
+}
+
 beforeEach(() => {
   originalFetch = globalThis.fetch;
 
@@ -126,5 +130,89 @@ describe("loadRegistry", () => {
     const result = await loadRegistry();
     expect(result.source).toBe("bundled");
     expect(result.prompts.length).toBeGreaterThan(0);
+  });
+
+  it("ignores cached ETag when cache payload is missing", async () => {
+    const configDir = getConfigDir();
+    mkdirSync(configDir, { recursive: true });
+
+    writeFileSync(
+      getMetaPath(),
+      JSON.stringify({
+        version: "1.0.0",
+        etag: "etag-only",
+        fetchedAt: new Date().toISOString(),
+        promptCount: 0,
+      })
+    );
+
+    globalThis.fetch = (async (_url, init) => {
+      expect(new Headers(init?.headers).get("If-None-Match")).toBeNull();
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ prompts: [prompts[2]], version: "1.0.0" }),
+        headers: {
+          get: (key: string) => (key.toLowerCase() === "etag" ? "etag-2" : null),
+        },
+      } as Response;
+    }) as typeof fetch;
+
+    const result = await loadRegistry();
+    expect(result.source).toBe("remote");
+    expect(result.prompts.some((prompt) => prompt.id === prompts[2].id)).toBe(true);
+  });
+
+  it("does not let offline library entries overwrite richer registry metadata", async () => {
+    const configDir = getConfigDir();
+    mkdirSync(join(configDir, "library"), { recursive: true });
+
+    const cachedPrompt = {
+      ...prompts[0],
+      description: "Registry description",
+      tags: ["registry-tag"],
+      author: "Registry Author",
+      featured: true,
+    };
+
+    writeFileSync(
+      getCachePath(),
+      JSON.stringify({
+        prompts: [cachedPrompt],
+        version: "1.0.0",
+      })
+    );
+    writeFileSync(
+      getMetaPath(),
+      JSON.stringify({
+        version: "1.0.0",
+        etag: null,
+        fetchedAt: new Date().toISOString(),
+        promptCount: 1,
+      })
+    );
+    writeFileSync(
+      getOfflineLibraryPath(),
+      JSON.stringify([
+        {
+          id: cachedPrompt.id,
+          title: "Offline Override",
+          description: "Offline description",
+          content: "Offline content",
+          category: "workflow",
+          tags: ["offline-tag"],
+          saved_at: new Date().toISOString(),
+        },
+      ])
+    );
+
+    const result = await loadRegistry();
+    const prompt = result.prompts.find((entry) => entry.id === cachedPrompt.id);
+
+    expect(prompt?.title).toBe(cachedPrompt.title);
+    expect(prompt?.description).toBe("Registry description");
+    expect(prompt?.author).toBe("Registry Author");
+    expect(prompt?.tags).toEqual(["registry-tag"]);
+    expect(prompt?.featured).toBe(true);
   });
 });

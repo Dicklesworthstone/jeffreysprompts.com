@@ -7,6 +7,7 @@ import { mkdirSync, rmSync } from "fs";
 // Mock console.log to capture output
 let output: string[] = [];
 const originalLog = console.log;
+const originalFetch = globalThis.fetch;
 let originalEnv: NodeJS.ProcessEnv;
 let testHome: string;
 
@@ -27,6 +28,7 @@ beforeEach(() => {
 
 afterEach(() => {
   console.log = originalLog;
+  globalThis.fetch = originalFetch;
   process.env = originalEnv;
   try {
     rmSync(testHome, { recursive: true, force: true });
@@ -196,6 +198,64 @@ describe("searchCommand", () => {
       const json = JSON.parse(output.join(""));
       expect(json.results.length).toBeGreaterThan(0);
       expect(json.authenticated).toBe(false);
+    });
+
+    it("allows explicit personal search when authenticated via JFP_TOKEN", async () => {
+      process.env.JFP_TOKEN = "env-token-xyz";
+      globalThis.fetch = async (input: RequestInfo | URL) => {
+        const url = input.toString();
+
+        if (url.includes("/api/prompts")) {
+          return new Response(
+            JSON.stringify({
+              prompts: [],
+              bundles: [],
+              workflows: [],
+              version: "1.0.0",
+            }),
+            {
+              status: 200,
+              headers: {
+                "Content-Type": "application/json",
+              },
+            }
+          );
+        }
+
+        if (url.includes("/cli/search/mine")) {
+          return new Response(
+            JSON.stringify({
+              results: [
+                {
+                  id: "personal-only",
+                  title: "Personal Prompt",
+                  description: "Saved in premium library",
+                  category: "workflow",
+                  tags: ["premium"],
+                  source: "mine",
+                  score: 9.5,
+                },
+              ],
+            }),
+            {
+              status: 200,
+              headers: {
+                "Content-Type": "application/json",
+              },
+            }
+          );
+        }
+
+        return new Response("Not found", { status: 404 });
+      };
+
+      await searchCommand("personal", { json: true, mine: true });
+      const json = JSON.parse(output.join(""));
+
+      expect(json.authenticated).toBe(true);
+      expect(json.results).toHaveLength(1);
+      expect(json.results[0].id).toBe("personal-only");
+      expect(json.results[0].source).toBe("mine");
     });
   });
 

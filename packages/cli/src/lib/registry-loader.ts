@@ -69,7 +69,7 @@ function validatePromptArray(value: unknown): { prompts: Prompt[]; invalidCount:
   return { prompts, invalidCount, isArray: true };
 }
 
-function mergePrompts(base: Prompt[], extras: Prompt[]): Prompt[] {
+function mergePrompts(base: Prompt[], extras: Prompt[], overwrite = true): Prompt[] {
   if (!extras.length) return base;
   const merged = base.slice();
   const indexById = new Map(merged.map((prompt, index) => [prompt.id, index]));
@@ -78,11 +78,26 @@ function mergePrompts(base: Prompt[], extras: Prompt[]): Prompt[] {
     if (index === undefined) {
       indexById.set(prompt.id, merged.length);
       merged.push(prompt);
-    } else {
+    } else if (overwrite) {
       merged[index] = prompt;
     }
   }
   return merged;
+}
+
+function composePromptSources(
+  basePrompts: Prompt[],
+  packPrompts: Prompt[],
+  offlinePrompts: Prompt[],
+  localPrompts: Prompt[]
+): Prompt[] {
+  const withPacks = mergePrompts(basePrompts, packPrompts);
+  const withOffline = mergePrompts(withPacks, offlinePrompts, false);
+  return mergePrompts(withOffline, localPrompts);
+}
+
+function getConditionalEtag(cachedPrompts: Prompt[], cachedMeta: RegistryMeta | null): string | null {
+  return cachedPrompts.length > 0 ? (cachedMeta?.etag ?? null) : null;
 }
 
 function isCacheFresh(meta: RegistryMeta | null, cacheTtlSeconds: number): boolean {
@@ -202,11 +217,8 @@ export async function loadRegistry(): Promise<LoadedRegistry> {
     if (!isCacheFresh(cachedMeta, config.registry.cacheTtl) && config.registry.autoRefresh) {
       void refreshRegistry().catch(() => undefined);
     }
-    // cache -> packs -> offline -> local
-    const withPacks = mergePrompts(cachedPrompts, packPrompts);
-    const withOffline = mergePrompts(withPacks, offlinePrompts);
     return {
-      prompts: mergePrompts(withOffline, localPrompts),
+      prompts: composePromptSources(cachedPrompts, packPrompts, offlinePrompts, localPrompts),
       bundles: cachedBundles,
       workflows: cachedWorkflows,
       meta: cachedMeta,
@@ -217,7 +229,7 @@ export async function loadRegistry(): Promise<LoadedRegistry> {
   const remote = await fetchRegistry(
     config.registry.remote,
     config.registry.timeoutMs,
-    cachedMeta?.etag ?? null
+    getConditionalEtag(cachedPrompts, cachedMeta)
   );
 
   const remotePromptValidation = validatePromptArray(remote.payload?.prompts);
@@ -232,11 +244,8 @@ export async function loadRegistry(): Promise<LoadedRegistry> {
     writeJsonFile(config.registry.cachePath, sanitizedPayload);
     writeJsonFile(config.registry.metaPath, remote.meta);
     
-    // remote -> packs -> offline -> local
-    const withPacks = mergePrompts(remotePrompts, packPrompts);
-    const withOffline = mergePrompts(withPacks, offlinePrompts);
     return {
-      prompts: mergePrompts(withOffline, localPrompts),
+      prompts: composePromptSources(remotePrompts, packPrompts, offlinePrompts, localPrompts),
       bundles: sanitizedPayload.bundles || [],
       workflows: sanitizedPayload.workflows || [],
       meta: remote.meta,
@@ -244,11 +253,8 @@ export async function loadRegistry(): Promise<LoadedRegistry> {
     };
   }
 
-  // bundled -> packs -> offline -> local
-  const withPacks = mergePrompts(bundledPrompts, packPrompts);
-  const withOffline = mergePrompts(withPacks, offlinePrompts);
   return {
-    prompts: mergePrompts(withOffline, localPrompts),
+    prompts: composePromptSources(bundledPrompts, packPrompts, offlinePrompts, localPrompts),
     bundles: bundledBundles,
     workflows: bundledWorkflows,
     meta: null,
@@ -278,7 +284,7 @@ export async function refreshRegistry(): Promise<LoadedRegistry> {
   const remote = await fetchRegistry(
     config.registry.remote,
     config.registry.timeoutMs,
-    cachedMeta?.etag ?? null
+    getConditionalEtag(cachedPrompts, cachedMeta)
   );
 
   if (remote.notModified && cachedPrompts?.length) {
@@ -289,11 +295,8 @@ export async function refreshRegistry(): Promise<LoadedRegistry> {
       writeJsonFile(config.registry.metaPath, refreshedMeta);
     }
     
-    // cache -> packs -> offline -> local
-    const withPacks = mergePrompts(cachedPrompts, packPrompts);
-    const withOffline = mergePrompts(withPacks, offlinePrompts);
     return {
-      prompts: mergePrompts(withOffline, localPrompts),
+      prompts: composePromptSources(cachedPrompts, packPrompts, offlinePrompts, localPrompts),
       bundles: cachedBundles,
       workflows: cachedWorkflows,
       meta: refreshedMeta,
@@ -313,11 +316,8 @@ export async function refreshRegistry(): Promise<LoadedRegistry> {
     writeJsonFile(config.registry.cachePath, sanitizedPayload);
     writeJsonFile(config.registry.metaPath, remote.meta);
     
-    // remote -> packs -> offline -> local
-    const withPacks = mergePrompts(remotePrompts, packPrompts);
-    const withOffline = mergePrompts(withPacks, offlinePrompts);
     return {
-      prompts: mergePrompts(withOffline, localPrompts),
+      prompts: composePromptSources(remotePrompts, packPrompts, offlinePrompts, localPrompts),
       bundles: sanitizedPayload.bundles || [],
       workflows: sanitizedPayload.workflows || [],
       meta: remote.meta,
@@ -326,11 +326,8 @@ export async function refreshRegistry(): Promise<LoadedRegistry> {
   }
 
   if (cachedPrompts?.length) {
-    // cache -> packs -> offline -> local
-    const withPacks = mergePrompts(cachedPrompts, packPrompts);
-    const withOffline = mergePrompts(withPacks, offlinePrompts);
     return {
-      prompts: mergePrompts(withOffline, localPrompts),
+      prompts: composePromptSources(cachedPrompts, packPrompts, offlinePrompts, localPrompts),
       bundles: cachedBundles,
       workflows: cachedWorkflows,
       meta: cachedMeta,
@@ -338,11 +335,8 @@ export async function refreshRegistry(): Promise<LoadedRegistry> {
     };
   }
 
-  // bundled -> packs -> offline -> local
-  const withPacks = mergePrompts(bundledPrompts, packPrompts);
-  const withOffline = mergePrompts(withPacks, offlinePrompts);
   return {
-    prompts: mergePrompts(withOffline, localPrompts),
+    prompts: composePromptSources(bundledPrompts, packPrompts, offlinePrompts, localPrompts),
     bundles: bundledBundles,
     workflows: bundledWorkflows,
     meta: null,

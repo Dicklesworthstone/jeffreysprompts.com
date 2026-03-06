@@ -1,7 +1,7 @@
 import boxen from "boxen";
 import chalk from "chalk";
 import { shouldOutputJson } from "../lib/utils";
-import { loadRegistry } from "../lib/registry-loader";
+import { resolvePromptById } from "../lib/prompt-resolution";
 
 interface ShowOptions {
   json?: boolean;
@@ -9,20 +9,27 @@ interface ShowOptions {
 }
 
 export async function showCommand(id: string, options: ShowOptions) {
-  // Load registry dynamically (SWR pattern)
-  const registry = await loadRegistry();
-  const prompt = registry.prompts.find((p) => p.id === id);
+  const resolved = await resolvePromptById(id);
 
-  if (!prompt) {
-    if (shouldOutputJson(options)) {
+  if (!resolved.prompt) {
+    if (shouldOutputJson(options) && resolved.error === "not_found") {
       // NOTE: Error schema is { error: "not_found" } only - no message field
       // This is a stable API contract (see json-schema-golden.test.ts)
       console.log(JSON.stringify({ error: "not_found" }));
+    } else if (shouldOutputJson(options)) {
+      console.log(JSON.stringify({
+        error: true,
+        code: resolved.error ?? "api_error",
+        message: resolved.message ?? `Prompt unavailable: ${id}`,
+      }));
     } else {
-      console.error(chalk.red(`Prompt not found: ${id}`));
+      console.error(chalk.red(resolved.message ?? `Prompt unavailable: ${id}`));
     }
     process.exit(1);
+    return;
   }
+
+  const prompt = resolved.prompt;
 
   if (shouldOutputJson(options)) {
     console.log(JSON.stringify(prompt, null, 2));

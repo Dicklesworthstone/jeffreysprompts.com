@@ -104,26 +104,28 @@ export interface JfpConfig {
 }
 
 // Allow overriding home directory for testing via JFP_HOME env var
-export function getHomeDir(): string {
-  return process.env.JFP_HOME || homedir();
+export function getHomeDir(env = process.env): string {
+  return env.JFP_HOME || env.HOME || homedir();
 }
 
-// Dynamic config directory (respects JFP_HOME env var)
-export function getConfigDir(): string {
-  return join(getHomeDir(), ".config", "jfp");
+// Dynamic config directory (respects JFP_HOME/XDG_CONFIG_HOME env vars)
+export function getConfigDir(env = process.env): string {
+  const configHome = env.XDG_CONFIG_HOME || join(getHomeDir(env), ".config");
+  return join(configHome, "jfp");
 }
 
-function getConfigFile(): string {
-  return join(getConfigDir(), "config.json");
+function getConfigFile(env = process.env): string {
+  return join(getConfigDir(env), "config.json");
 }
 
 const DEFAULT_REGISTRY_URL = "https://jeffreysprompts.com/api/prompts";
 const DEFAULT_CACHE_TTL = 3600;
 
-// Create default config with dynamic paths (respects JFP_HOME env var)
-export function createDefaultConfig(): JfpConfig {
-  const configDir = getConfigDir();
-  const home = getHomeDir();
+// Create default config with dynamic paths (respects JFP_HOME/XDG_CONFIG_HOME env vars)
+export function createDefaultConfig(env = process.env): JfpConfig {
+  const configDir = getConfigDir(env);
+  const home = getHomeDir(env);
+  const userConfigDir = env.XDG_CONFIG_HOME || join(home, ".config");
 
   return {
     registry: {
@@ -144,7 +146,7 @@ export function createDefaultConfig(): JfpConfig {
       latestKnownVersion: null,
     },
     skills: {
-      personalDir: join(home, ".config", "claude", "skills"),
+      personalDir: join(userConfigDir, "claude", "skills"),
       projectDir: ".claude/skills",
       preferProject: false,
     },
@@ -269,7 +271,6 @@ export function loadConfig(): JfpConfig {
 }
 
 export function saveConfig(config: Partial<JfpConfig>): void {
-  const configDir = getConfigDir();
   const configFile = getConfigFile();
   const base = loadStoredConfig();
   const merged: JfpConfig = {

@@ -4,6 +4,7 @@ import { generatePromptMarkdown } from "@jeffreysprompts/core/export/markdown";
 import chalk from "chalk";
 import { exitWithDeprecatedSkillCommand, shouldOutputJson, atomicWriteFileSync } from "../lib/utils";
 import { loadRegistry } from "../lib/registry-loader";
+import { resolvePromptById } from "../lib/prompt-resolution";
 
 interface ExportOptions {
   format?: string;
@@ -55,16 +56,20 @@ export async function exportCommand(ids: string[], options: ExportOptions) {
     // Filter prompts by ID list
     const foundPrompts = [];
     for (const id of ids) {
-      const p = registry.prompts.find(prompt => prompt.id === id);
-      if (!p) {
+      const resolved = await resolvePromptById(id, { registry });
+      if (!resolved.prompt) {
         if (jsonOutput) {
-          writeJsonError("not_found", `Prompt not found: ${id}`, { id });
+          writeJsonError(
+            resolved.error ?? "not_found",
+            resolved.message ?? `Prompt not found: ${id}`,
+            { id }
+          );
         } else {
-          console.error(chalk.red(`Prompt not found: ${id}`));
+          console.error(chalk.red(resolved.message ?? `Prompt not found: ${id}`));
         }
         process.exit(1);
       }
-      foundPrompts.push(p);
+      foundPrompts.push(resolved.prompt);
     }
     promptsToExport = foundPrompts;
   }

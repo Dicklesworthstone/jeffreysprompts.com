@@ -5,8 +5,8 @@
  * - whoami: Show current user info
  * - logout: Clear credentials
  */
-import { describe, it, expect, beforeEach, afterEach, mock, spyOn } from "bun:test";
-import { mkdirSync, rmSync, writeFileSync, existsSync, readFileSync } from "fs";
+import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
+import { mkdirSync, rmSync, writeFileSync, existsSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 
@@ -23,6 +23,7 @@ const originalJfpToken = process.env.JFP_TOKEN;
 // Store original console methods
 const originalLog = console.log;
 const originalError = console.error;
+const originalFetch = globalThis.fetch;
 
 // Capture console output
 let consoleOutput: string[] = [];
@@ -69,6 +70,7 @@ afterEach(() => {
   // Restore console
   console.log = originalLog;
   console.error = originalError;
+  globalThis.fetch = originalFetch;
 
   // Cleanup test directory
   rmSync(TEST_DIR, { recursive: true, force: true });
@@ -179,6 +181,44 @@ describe("whoamiCommand", () => {
     expect(parsed.authenticated).toBe(false);
     expect(parsed.expired).toBe(true);
     expect(exitCode).toBe(1);
+  });
+
+  it("refreshes expired credentials before reporting session state", async () => {
+    const creds = createCredentialsFile({ expired: true, email: "refresh@example.com" });
+    globalThis.fetch = mock((input: RequestInfo | URL) => {
+      const url = input.toString();
+      if (!url.includes("/api/cli/token/refresh")) {
+        return Promise.resolve(new Response("Not found", { status: 404 }));
+      }
+
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            access_token: "new-access-token",
+            refresh_token: "new-refresh-token",
+            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+            email: creds.email,
+            tier: creds.tier,
+            user_id: creds.user_id,
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }
+        )
+      );
+    });
+
+    const whoamiCommand = await getWhoamiCommand();
+    await whoamiCommand({ json: true });
+
+    const output = consoleOutput.join("\n");
+    const parsed = JSON.parse(output);
+
+    expect(parsed.authenticated).toBe(true);
+    expect(parsed.email).toBe("refresh@example.com");
+    expect(parsed.expired).toBe(false);
+    expect(parsed.expires_in).toBeGreaterThan(0);
   });
 
   it("shows env token message when JFP_TOKEN is set", async () => {

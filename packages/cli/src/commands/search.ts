@@ -257,7 +257,9 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
 
   const loggedIn = await isLoggedIn();
   const creds = loggedIn ? await loadCredentials() : null;
+  const hasEnvToken = Boolean(process.env.JFP_TOKEN);
   const isPremium = creds?.tier === "premium";
+  const canAttemptPersonalSearch = isPremium || hasEnvToken;
 
   // Determine search mode
   const searchMine = options.mine === true;
@@ -280,7 +282,7 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
   }
 
   // If user requests personal search without premium tier
-  if ((searchMine || searchSaved || searchAllExplicit) && loggedIn && !isPremium) {
+  if ((searchMine || searchSaved || searchAllExplicit) && loggedIn && !canAttemptPersonalSearch) {
     if (shouldOutputJson(options)) {
       writeJsonError("premium_required", "Personal prompt search requires a premium subscription", {
         hint: "Visit https://pro.jeffreysprompts.com/pricing to upgrade",
@@ -295,7 +297,8 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
   // Determine what to search
   const shouldSearchLocal =
     wantsLocalOnly || searchAll || (!searchMine && !searchSaved && !searchAll);
-  const shouldSearchPersonal = isPremium && (searchMine || searchSaved || searchAll) && !wantsLocalOnly;
+  const shouldSearchPersonal =
+    canAttemptPersonalSearch && (searchMine || searchSaved || searchAll) && !wantsLocalOnly;
 
   let localResults: MergedSearchResult[] = [];
   let personalResults: MergedSearchResult[] = [];
