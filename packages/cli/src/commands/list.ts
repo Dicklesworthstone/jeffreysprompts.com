@@ -7,7 +7,7 @@ import { shouldOutputJson } from "../lib/utils";
 import { loadRegistry } from "../lib/registry-loader";
 import {
   hasOfflineLibrary,
-  normalizePromptCategory,
+  toOfflineLibraryPrompt,
   readOfflineLibrary,
   readSyncMeta,
   formatSyncAge,
@@ -89,17 +89,7 @@ interface FetchResult {
  */
 function offlineLibraryToPrompts(): Prompt[] {
   const offlinePrompts = readOfflineLibrary();
-  return offlinePrompts.map((p) => ({
-    id: p.id,
-    title: p.title,
-    description: p.description || "",
-    content: p.content,
-    category: normalizePromptCategory(p.category),
-    tags: p.tags || [],
-    author: "",
-    version: "1.0.0",
-    created: p.saved_at,
-  }));
+  return offlinePrompts.map(toOfflineLibraryPrompt);
 }
 
 /**

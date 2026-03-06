@@ -30,6 +30,7 @@ import {
   readSyncMeta,
   readOfflineLibrary,
   getOfflinePromptById,
+  getOfflinePromptAsPrompt,
   searchOfflineLibrary,
   formatSyncAge,
   normalizePromptCategory,
@@ -232,6 +233,17 @@ describe("getOfflinePromptById", () => {
     expect(prompt).not.toBeNull();
     expect(prompt?.title).toBe("Code Review Expert");
     expect(prompt?.category).toBe("refactoring");
+  });
+});
+
+describe("getOfflinePromptAsPrompt", () => {
+  it("normalizes offline prompts into schema-compatible Prompt objects", () => {
+    setupLibrary();
+    const prompt = getOfflinePromptAsPrompt("idea-wizard");
+
+    expect(prompt).not.toBeNull();
+    expect(prompt?.author).toBe("JeffreysPrompts Library");
+    expect(prompt?.created).toBe("2024-01-15");
   });
 });
 
@@ -484,6 +496,33 @@ describe("premium packs cache (bd-kfuj)", () => {
     expect(cached?.category).toBe("automation");
     expect(cached?.tags).toContain("premium");
     expect(cached?.content).toContain("Generate 50 ideas");
+  });
+
+  it("normalizes cached pack prompts with missing authors and ISO timestamps", () => {
+    const pack = {
+      id: "starter-pack",
+      title: "Starter Pack",
+      version: "1.0.0",
+      promptCount: 1,
+      installedAt: "2026-02-06T00:00:00Z",
+      prompts: [
+        {
+          id: "pack-prompt",
+          title: "Pack Prompt",
+          description: "Prompt from an installed pack",
+          content: "A long enough prompt body to satisfy schema validation.",
+          category: "workflow",
+          tags: ["pack"],
+        },
+      ],
+    };
+
+    expect(cachePremiumPack(pack).ok).toBe(true);
+
+    const cached = readCachedPackPrompts().find((prompt) => prompt.id === "pack-prompt");
+    expect(cached).toBeTruthy();
+    expect(cached?.author).toBe("JeffreysPrompts Library");
+    expect(cached?.created).toBe("2026-02-06");
   });
 
   it("skips corrupted pack cache when hash mismatches", () => {

@@ -9,6 +9,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { useLocale } from "next-intl";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import {
@@ -35,6 +36,7 @@ import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
 import { trackHistoryView } from "@/lib/history/client";
 import { copyToClipboard } from "@/lib/clipboard";
+import { localizeHref } from "@/i18n/config";
 import { CommunityPromptCard } from "@/components/swap-meet/CommunityPromptCard";
 import type { CommunityPrompt } from "@/lib/swap-meet/types";
 
@@ -178,6 +180,7 @@ function formatDate(dateString: string): string {
 export default function CommunityPromptDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const locale = useLocale();
   const { success, error: toastError } = useToast();
   const [copied, setCopied] = useState(false);
   const [userRating, setUserRating] = useState<"up" | "down" | null>(null);
@@ -223,7 +226,7 @@ export default function CommunityPromptDetailPage() {
           <p className="mt-2 text-neutral-600 dark:text-neutral-400">
             The prompt you&apos;re looking for doesn&apos;t exist or has been removed.
           </p>
-          <Button className="mt-6" onClick={() => router.push("/swap-meet")}>
+          <Button className="mt-6" onClick={() => router.push(localizeHref(locale, "/swap-meet"))}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Swap Meet
           </Button>
@@ -238,7 +241,7 @@ export default function CommunityPromptDetailPage() {
       <div className="border-b border-neutral-200 bg-white/80 backdrop-blur-lg dark:border-neutral-800 dark:bg-neutral-900/80">
         <div className="mx-auto max-w-4xl px-4 py-4 sm:px-6 lg:px-8">
           <Link
-            href="/swap-meet"
+            href={localizeHref(locale, "/swap-meet")}
             className="inline-flex items-center gap-2 text-sm text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"
           >
             <ArrowLeft className="h-4 w-4" />

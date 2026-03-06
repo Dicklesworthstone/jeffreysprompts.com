@@ -2,12 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useLocale } from "next-intl";
 import { ArrowLeft, Clock, Search, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
+import { localizeHref } from "@/i18n/config";
 import { getPrompt } from "@jeffreysprompts/core/prompts/registry";
 import { clearHistoryForUser, getOrCreateLocalUserId, listHistory } from "@/lib/history/client";
 import type { ViewHistoryEntry } from "@/lib/history/types";
@@ -24,6 +26,7 @@ function formatTimestamp(value: string) {
 }
 
 export default function HistoryPage() {
+  const locale = useLocale();
   const { success, error } = useToast();
   const [items, setItems] = useState<ViewHistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,7 +72,7 @@ export default function HistoryPage() {
           ...entry,
           title: prompt?.title ?? entry.resourceId,
           category: prompt?.category ?? null,
-          href: prompt ? `/prompts/${prompt.id}` : null,
+          href: prompt ? localizeHref(locale, `/prompts/${prompt.id}`) : null,
           kindLabel: "Prompt",
         };
       }
@@ -80,7 +83,9 @@ export default function HistoryPage() {
           ...entry,
           title: searchQuery ? `Search: ${searchQuery}` : "Search",
           category: null,
-          href: searchQuery ? `/?q=${encodeURIComponent(searchQuery)}` : "/",
+          href: searchQuery
+            ? localizeHref(locale, `/?q=${encodeURIComponent(searchQuery)}`)
+            : localizeHref(locale, "/"),
           kindLabel: "Search",
         };
       }
@@ -93,7 +98,7 @@ export default function HistoryPage() {
         kindLabel: entry.resourceType,
       };
     });
-  }, [items]);
+  }, [items, locale]);
 
   const filteredItems = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -112,7 +117,7 @@ export default function HistoryPage() {
       <div className="border-b border-border/60 bg-white dark:bg-neutral-900">
         <div className="container-wide py-10">
           <Link
-            href="/"
+            href={localizeHref(locale, "/")}
             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />

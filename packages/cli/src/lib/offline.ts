@@ -102,6 +102,7 @@ const promptCategoryValues: PromptCategory[] = [
 ];
 
 const promptCategorySet = new Set(promptCategoryValues);
+const OFFLINE_PROMPT_AUTHOR = "JeffreysPrompts Library";
 
 export function normalizePromptCategory(category?: string): PromptCategory {
   if (!category) return "workflow";
@@ -109,6 +110,28 @@ export function normalizePromptCategory(category?: string): PromptCategory {
   return promptCategorySet.has(normalized as PromptCategory)
     ? (normalized as PromptCategory)
     : "workflow";
+}
+
+export function normalizePromptDate(value: string | null | undefined): string {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return new Date().toISOString().split("T")[0]!;
+  }
+  return value.split("T")[0]!;
+}
+
+export function toOfflineLibraryPrompt(offline: SyncedPrompt): Prompt {
+  return {
+    id: offline.id,
+    title: offline.title,
+    description: offline.description ?? "",
+    content: offline.content,
+    category: normalizePromptCategory(offline.category),
+    tags: offline.tags ?? [],
+    author: OFFLINE_PROMPT_AUTHOR,
+    version: "1.0.0",
+    created: normalizePromptDate(offline.saved_at),
+    featured: false,
+  };
 }
 
 /**
@@ -254,19 +277,7 @@ export function getOfflinePromptById(id: string, env = process.env): SyncedPromp
 export function getOfflinePromptAsPrompt(id: string, env = process.env): Prompt | null {
   const offline = getOfflinePromptById(id, env);
   if (!offline) return null;
-
-  return {
-    id: offline.id,
-    title: offline.title,
-    description: offline.description ?? "",
-    content: offline.content,
-    category: normalizePromptCategory(offline.category),
-    tags: offline.tags ?? [],
-    author: "", // Offline prompts don't store author yet, could be added later
-    version: "1.0.0",
-    created: offline.saved_at, // Mapping saved_at to created
-    featured: false,
-  };
+  return toOfflineLibraryPrompt(offline);
 }
 
 /**
@@ -752,9 +763,14 @@ export function readCachedPackPrompts(env = process.env): Prompt[] {
       const tags = Array.isArray(p.tags)
         ? p.tags.map((t) => (typeof t === "string" ? t : "")).filter(Boolean)
         : [];
-      const author = typeof p.author === "string" ? p.author : "";
+      const author =
+        typeof p.author === "string" && p.author.trim().length > 0
+          ? p.author
+          : OFFLINE_PROMPT_AUTHOR;
       const version = typeof p.version === "string" ? p.version : packVersion ?? "1.0.0";
-      const created = typeof p.created === "string" ? p.created : packCreated;
+      const created = normalizePromptDate(
+        typeof p.created === "string" ? p.created : packCreated
+      );
 
       prompts.push({
         id,

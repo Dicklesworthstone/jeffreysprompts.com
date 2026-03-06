@@ -8,7 +8,7 @@ import {
 } from "@jeffreysprompts/core/search";
 import { shouldOutputJson } from "../lib/utils";
 import { loadRegistry } from "../lib/registry-loader";
-import { hasOfflineLibrary, normalizePromptCategory, readOfflineLibrary } from "../lib/offline";
+import { hasOfflineLibrary, readOfflineLibrary, toOfflineLibraryPrompt } from "../lib/offline";
 import { isLoggedIn, loadCredentials } from "../lib/credentials";
 
 interface RecommendOptions {
@@ -77,18 +77,7 @@ function buildPreferences(options: RecommendOptions): RecommendationPreferences 
 
 function toPromptFromOffline(): Prompt[] {
   const offline = readOfflineLibrary();
-  return offline.map((entry) => ({
-    id: entry.id,
-    title: entry.title,
-    description: entry.description ?? "",
-    content: entry.content,
-    category: normalizePromptCategory(entry.category),
-    tags: entry.tags ?? [],
-    author: "",
-    version: "1.0.0",
-    created: entry.saved_at,
-    featured: false,
-  }));
+  return offline.map(toOfflineLibraryPrompt);
 }
 
 function fallbackFeatured(prompts: Prompt[], limit: number): RecommendationResult[] {

@@ -2,11 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useLocale } from "next-intl";
 import { ArrowRight, Clock, Search, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
+import { localizeHref } from "@/i18n/config";
 import { getPrompt } from "@jeffreysprompts/core/prompts/registry";
 import { clearHistoryForUser, getOrCreateLocalUserId, listHistory } from "@/lib/history/client";
 import type { ViewHistoryEntry } from "@/lib/history/types";
@@ -14,6 +16,7 @@ import type { ViewHistoryEntry } from "@/lib/history/types";
 const LIMIT = 8;
 
 export function RecentlyViewedSidebar() {
+  const locale = useLocale();
   const { success, error } = useToast();
   const [items, setItems] = useState<ViewHistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,7 +65,7 @@ export function RecentlyViewedSidebar() {
           ...entry,
           title: prompt?.title ?? entry.resourceId,
           category: prompt?.category ?? null,
-          href: prompt ? `/prompts/${prompt.id}` : null,
+          href: prompt ? localizeHref(locale, `/prompts/${prompt.id}`) : null,
           kindLabel: "Prompt",
         };
       }
@@ -73,7 +76,9 @@ export function RecentlyViewedSidebar() {
           ...entry,
           title: query ? `Search: ${query}` : "Search",
           category: null,
-          href: query ? `/?q=${encodeURIComponent(query)}` : "/",
+          href: query
+            ? localizeHref(locale, `/?q=${encodeURIComponent(query)}`)
+            : localizeHref(locale, "/"),
           kindLabel: "Search",
         };
       }
@@ -86,7 +91,7 @@ export function RecentlyViewedSidebar() {
         kindLabel: entry.resourceType,
       };
     });
-  }, [items]);
+  }, [items, locale]);
 
   return (
     <Card className="h-fit">
@@ -167,7 +172,7 @@ export function RecentlyViewedSidebar() {
         )}
 
         <Link
-          href="/history"
+          href={localizeHref(locale, "/history")}
           className="inline-flex items-center gap-1 text-xs text-violet-600 dark:text-violet-400 hover:text-violet-500"
         >
           View full history

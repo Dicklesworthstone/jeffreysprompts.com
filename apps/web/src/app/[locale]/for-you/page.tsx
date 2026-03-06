@@ -11,6 +11,7 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLocale } from "next-intl";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import { PromptCardPure } from "@/components/PromptCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,6 +25,7 @@ import {
 import { useBasket } from "@/hooks/use-basket";
 import { useAllRatings } from "@/hooks/useAllRatings";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { localizeHref } from "@/i18n/config";
 import { formatCategoryLabel } from "@/lib/discovery/recommendation-helpers";
 import { getOrCreateLocalUserId, listHistory } from "@/lib/history/client";
 import type { ViewHistoryEntry } from "@/lib/history/types";
@@ -76,6 +78,7 @@ function filterHistoryByTimeframe(entries: ViewHistoryEntry[], timeframe: Timefr
 }
 
 export default function ForYouPage() {
+  const locale = useLocale();
   const { items: basketItems, addItem } = useBasket();
   const { summaries: ratingSummaries } = useAllRatings();
   const [preferences] = useLocalStorage<RecommendationPreferences>(
@@ -224,7 +227,7 @@ export default function ForYouPage() {
       <div className="border-b border-border/60 bg-white dark:bg-neutral-900">
         <div className="container-wide py-10">
           <Link
-            href="/"
+            href={localizeHref(locale, "/")}
             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -247,13 +250,13 @@ export default function ForYouPage() {
 
             <div className="flex items-center gap-3">
               <Link
-                href="/settings/recommendations"
+                href={localizeHref(locale, "/settings/recommendations")}
                 className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
               >
                 Tune feed
               </Link>
               <Link
-                href="/history"
+                href={localizeHref(locale, "/history")}
                 className="hidden sm:inline text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
               >
                 View history

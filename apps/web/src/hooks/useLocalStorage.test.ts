@@ -174,6 +174,23 @@ describe("useLocalStorage", () => {
       });
       expect(result.current[0]).toBe("initial");
     });
+
+    it("does not repersist a removed key on unmount after a pending debounced write", () => {
+      const { result, unmount } = renderHook(() =>
+        useLocalStorage("remove-pending-test", "initial", { debounceMs: 100 })
+      );
+
+      act(() => {
+        result.current[1]("changed");
+        result.current[2]();
+      });
+
+      expect(localStorage.getItem("remove-pending-test")).toBeNull();
+
+      unmount();
+
+      expect(localStorage.getItem("remove-pending-test")).toBeNull();
+    });
   });
 
   describe("cross-tab synchronization", () => {
@@ -264,6 +281,26 @@ describe("useLocalStorage", () => {
       });
 
       expect(result.current[0]).toBe("default");
+    });
+
+    it("does not flush a removed value into the previous key when the key changes", () => {
+      const { result, rerender } = renderHook(
+        ({ key }) => useLocalStorage(key, "default", { debounceMs: 100 }),
+        { initialProps: { key: "key-a" } }
+      );
+
+      act(() => {
+        result.current[1]("changed");
+        result.current[2]();
+      });
+
+      rerender({ key: "key-b" });
+
+      act(() => {
+        vi.runAllTimers();
+      });
+
+      expect(localStorage.getItem("key-a")).toBeNull();
     });
   });
 });

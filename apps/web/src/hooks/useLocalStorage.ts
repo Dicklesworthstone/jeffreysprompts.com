@@ -155,44 +155,47 @@ export function useLocalStorage<T>(
   // Setter with debounced persistence
   const setValue = useCallback(
     (value: T | ((prev: T) => T)) => {
-    // Use typeof check instead of instanceof - safer across iframe boundaries
-    const valueToStore = typeof value === "function" ? (value as (prev: T) => T)(readValue()) : value;
-    let serializedValue: string | null = null;
-    let shouldRemove = false;
-    try {
-      if (typeof valueToStore === "undefined") {
-        shouldRemove = true;
-      } else {
-        const nextSerialized = JSON.stringify(valueToStore) as string | undefined;
-        if (typeof nextSerialized === "string") {
-          serializedValue = nextSerialized;
-        } else {
+      // Use typeof check instead of instanceof - safer across iframe boundaries
+      const valueToStore =
+        typeof value === "function" ? (value as (prev: T) => T)(readValue()) : value;
+      let serializedValue: string | null = null;
+      let shouldRemove = false;
+      try {
+        if (typeof valueToStore === "undefined") {
           shouldRemove = true;
+        } else {
+          const nextSerialized = JSON.stringify(valueToStore) as string | undefined;
+          if (typeof nextSerialized === "string") {
+            serializedValue = nextSerialized;
+          } else {
+            shouldRemove = true;
+          }
         }
+      } catch (error) {
+        console.warn(`Error setting localStorage key "${key}":`, error);
       }
-    } catch (error) {
-      console.warn(`Error setting localStorage key "${key}":`, error);
-    }
-    latestValueRef.current = valueToStore;
-    latestKeyRef.current = key;
-    hasLatestValueRef.current = true;
-    latestSerializedRef.current = shouldRemove ? null : serializedValue;
+      latestValueRef.current = valueToStore;
+      latestKeyRef.current = key;
+      hasLatestValueRef.current = true;
+      latestSerializedRef.current = shouldRemove ? null : serializedValue;
 
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
       }
 
-    debounceRef.current = setTimeout(() => {
-      try {
-        if (shouldRemove) {
-          window.localStorage.removeItem(key);
-        } else if (serializedValue !== null) {
-          window.localStorage.setItem(key, serializedValue);
+      debounceRef.current = setTimeout(() => {
+        try {
+          if (shouldRemove) {
+            window.localStorage.removeItem(key);
+          } else if (serializedValue !== null) {
+            window.localStorage.setItem(key, serializedValue);
+          }
+        } catch (error) {
+          console.warn(`Error setting localStorage key "${key}":`, error);
+        } finally {
+          debounceRef.current = null;
         }
-      } catch (error) {
-        console.warn(`Error setting localStorage key "${key}":`, error);
-      }
-    }, debounceMs);
+      }, debounceMs);
 
       notifyListeners();
     },
@@ -203,6 +206,7 @@ export function useLocalStorage<T>(
   const removeValue = useCallback(() => {
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
+      debounceRef.current = null;
     }
     try {
       window.localStorage.removeItem(key);

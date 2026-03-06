@@ -18,7 +18,7 @@ import { apiClient, isAuthError, isPermissionError } from "../lib/api-client";
 import { isLoggedIn, loadCredentials } from "../lib/credentials";
 import {
   hasOfflineLibrary,
-  normalizePromptCategory,
+  toOfflineLibraryPrompt,
   readOfflineLibrary,
 } from "../lib/offline";
 import { loadRegistry } from "../lib/registry-loader";
@@ -88,18 +88,7 @@ function searchLocal(
  */
 function searchOffline(query: string, limit: number): MergedSearchResult[] {
   const offlineLib = readOfflineLibrary();
-  const prompts: Prompt[] = offlineLib.map((p) => ({
-    id: p.id,
-    title: p.title,
-    description: p.description || "",
-    content: p.content,
-    category: normalizePromptCategory(p.category),
-    tags: p.tags || [],
-    author: "",
-    version: "1.0.0",
-    created: (p.saved_at || new Date().toISOString()).split("T")[0],
-    featured: false,
-  }));
+  const prompts: Prompt[] = offlineLib.map(toOfflineLibraryPrompt);
 
   const promptsMap = new Map(prompts.map((p) => [p.id, p]));
   const scorerIndex = buildScorerIndex(prompts);

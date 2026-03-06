@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { localizeHref } from "@/i18n/config";
 import { getResolvedIncidents, getIncidentStats } from "@/lib/status";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -48,7 +49,12 @@ function calculateDuration(start: string, end: string | null): string {
   return remainingHours > 0 ? `${days}d ${remainingHours}h` : `${days} days`;
 }
 
-export default async function StatusHistoryPage() {
+interface StatusHistoryPageProps {
+  params: Promise<{ locale: string }>;
+}
+
+export default async function StatusHistoryPage({ params }: StatusHistoryPageProps) {
+  const { locale } = await params;
   const [incidents, stats] = await Promise.all([
     Promise.resolve(getResolvedIncidents(50)),
     Promise.resolve(getIncidentStats()),
@@ -60,7 +66,7 @@ export default async function StatusHistoryPage() {
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-4">
             <Link
-              href="/status"
+              href={localizeHref(locale, "/status")}
               className="text-sm text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
             >
               Status
@@ -194,11 +200,11 @@ export default async function StatusHistoryPage() {
 
         <footer className="mt-12 pt-6 border-t border-neutral-200 dark:border-neutral-800 text-center">
           <p className="text-sm text-neutral-500">
-            <Link href="/status" className="hover:underline">
+            <Link href={localizeHref(locale, "/status")} className="hover:underline">
               Back to current status
             </Link>
             {" | "}
-            <Link href="/" className="hover:underline">
+            <Link href={localizeHref(locale, "/")} className="hover:underline">
               Return to JeffreysPrompts
             </Link>
           </p>

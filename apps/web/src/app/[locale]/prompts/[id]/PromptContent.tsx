@@ -11,6 +11,7 @@
 
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useLocale } from "next-intl";
 import {
   Copy,
   Check,
@@ -48,6 +49,7 @@ import {
   getVariablePlaceholder,
 } from "@jeffreysprompts/core/template";
 import { copyToClipboard } from "@/lib/clipboard";
+import { localizeHref } from "@/i18n/config";
 import type { Prompt, PromptVariable } from "@jeffreysprompts/core/prompts/types";
 
 interface PromptContentProps {
@@ -57,6 +59,7 @@ interface PromptContentProps {
 type VariableValues = Record<string, string>;
 
 export function PromptContent({ prompt }: PromptContentProps) {
+  const locale = useLocale();
   const { success, error } = useToast();
   const [copied, setCopied] = useState(false);
   const [context, setContext] = useState("");
@@ -245,7 +248,7 @@ export function PromptContent({ prompt }: PromptContentProps) {
     <div className="container max-w-4xl mx-auto py-8 px-4">
       {/* Back navigation */}
       <Link
-        href="/"
+        href={localizeHref(locale, "/")}
         className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6"
       >
         <ArrowLeft className="h-4 w-4" />

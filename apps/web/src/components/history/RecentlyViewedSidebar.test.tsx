@@ -42,6 +42,10 @@ vi.mock("@/components/ui/toast", () => ({
   useToast: () => ({ success: mockSuccess, error: mockError }),
 }));
 
+vi.mock("next-intl", () => ({
+  useLocale: () => "es",
+}));
+
 vi.mock("next/link", () => ({
   default: ({
     children,
@@ -129,7 +133,7 @@ describe("RecentlyViewedSidebar", () => {
     render(<RecentlyViewedSidebar />);
     await waitFor(() => {
       const link = screen.getByText("Test Prompt Title").closest("a");
-      expect(link).toHaveAttribute("href", "/prompts/test-prompt");
+      expect(link).toHaveAttribute("href", "/es/prompts/test-prompt");
     });
   });
 
@@ -172,7 +176,7 @@ describe("RecentlyViewedSidebar", () => {
     render(<RecentlyViewedSidebar />);
     await waitFor(() => {
       const link = screen.getByText("View full history").closest("a");
-      expect(link).toHaveAttribute("href", "/history");
+      expect(link).toHaveAttribute("href", "/es/history");
     });
   });
 

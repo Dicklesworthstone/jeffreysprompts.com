@@ -13,11 +13,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useLocale } from "next-intl";
 import { ArrowLeft, Link2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
 import ShareManagement, { type ManagedShareLink } from "@/components/sharing/ShareManagement";
+import { localizeHref } from "@/i18n/config";
 import { getPrompt } from "@jeffreysprompts/core/prompts/registry";
 import { getBundle } from "@jeffreysprompts/core/prompts/bundles";
 import { getWorkflow } from "@jeffreysprompts/core/prompts/workflows";
@@ -55,6 +57,7 @@ interface ApiShareLink {
 }
 
 export default function SharedLinksPage() {
+  const locale = useLocale();
   const { success, error } = useToast();
   const [shareLinks, setShareLinks] = useState<ManagedShareLink[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -136,7 +139,7 @@ export default function SharedLinksPage() {
         <div className="container-wide py-10">
           <div className="flex items-center gap-4 mb-4">
             <Link
-              href="/settings"
+              href={localizeHref(locale, "/settings")}
               className="text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft className="h-5 w-5" />
@@ -193,12 +196,12 @@ export default function SharedLinksPage() {
               <h3 className="text-lg font-semibold text-neutral-900 dark:text-white">
                 No shared links yet
               </h3>
-            <p className="mt-2 text-sm text-muted-foreground max-w-md mx-auto">
-              Share a prompt to create your first link. Anyone with the link
-              can view the content, and you can revoke access anytime.
-            </p>
+              <p className="mt-2 text-sm text-muted-foreground max-w-md mx-auto">
+                Share a prompt to create your first link. Anyone with the link
+                can view the content, and you can revoke access anytime.
+              </p>
               <Button className="mt-6" asChild>
-                <Link href="/">Browse Prompts</Link>
+                <Link href={localizeHref(locale, "/")}>Browse Prompts</Link>
               </Button>
             </CardContent>
           </Card>

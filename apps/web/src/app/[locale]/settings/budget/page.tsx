@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useLocale } from "next-intl";
 import { ArrowLeft, DollarSign, Info, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/toast";
+import { localizeHref } from "@/i18n/config";
 
 const STORAGE_KEY = "jfp_budget_settings_v1";
 const ALERTS_STORAGE_KEY = "jfp_budget_alerts_log_v1";
@@ -195,6 +197,7 @@ function formatAlertTimestamp(value: string): string {
 }
 
 export default function BudgetSettingsPage() {
+  const locale = useLocale();
   const { success, error } = useToast();
   const [monthlyCapInput, setMonthlyCapInput] = useState("");
   const [perRunCapInput, setPerRunCapInput] = useState("");
@@ -269,8 +272,9 @@ export default function BudgetSettingsPage() {
       `jfp config set budgets.monthlyCapUsd ${monthlyValue ?? "null"}`,
       `jfp config set budgets.perRunCapUsd ${perRunValue ?? "null"}`,
       `jfp config set budgets.alertsEnabled ${alertsEnabled}`,
+      `jfp config set budgets.hardStopEnabled ${hardStopEnabled}`,
     ];
-  }, [monthlyCapValue, perRunCapValue, alertsEnabled]);
+  }, [monthlyCapValue, perRunCapValue, alertsEnabled, hardStopEnabled]);
 
   const handleSave = () => {
     if (!canSave) {
@@ -328,7 +332,7 @@ export default function BudgetSettingsPage() {
       <div className="border-b border-border/60 bg-white dark:bg-neutral-900">
         <div className="container-wide py-10">
           <Link
-            href="/settings"
+            href={localizeHref(locale, "/settings")}
             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />

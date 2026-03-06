@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { localizeHref } from "@/i18n/config";
 import { getStatusSummary, getResolvedIncidents } from "@/lib/status";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -63,7 +64,12 @@ function OverallStatus({ status, message }: { status: string; message: string })
   );
 }
 
-export default async function StatusPage() {
+interface StatusPageProps {
+  params: Promise<{ locale: string }>;
+}
+
+export default async function StatusPage({ params }: StatusPageProps) {
+  const { locale } = await params;
   const [summary, recentIncidents] = await Promise.all([
     getStatusSummary(),
     Promise.resolve(getResolvedIncidents(5)),
@@ -194,7 +200,7 @@ export default async function StatusPage() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">Recent Incidents</h2>
             <Link
-              href="/status/history"
+              href={localizeHref(locale, "/status/history")}
               className="text-sm text-neutral-600 dark:text-neutral-400 hover:underline"
             >
               View full history
@@ -239,7 +245,7 @@ export default async function StatusPage() {
             Last updated: {new Date(summary.updatedAt).toLocaleString()}
           </p>
           <p className="text-sm text-neutral-500 mt-1">
-            <Link href="/" className="hover:underline">
+            <Link href={localizeHref(locale, "/")} className="hover:underline">
               Return to JeffreysPrompts
             </Link>
           </p>

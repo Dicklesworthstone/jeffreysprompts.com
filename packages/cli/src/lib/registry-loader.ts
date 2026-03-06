@@ -9,7 +9,7 @@ import { prompts as bundledPrompts, bundles as bundledBundles, workflows as bund
 import { PromptSchema } from "@jeffreysprompts/core/prompts/schema";
 import type { RegistryPayload } from "@jeffreysprompts/core/export";
 import { loadConfig } from "./config";
-import { readCachedPackPrompts, readOfflineLibrary, normalizePromptCategory } from "./offline";
+import { readCachedPackPrompts, readOfflineLibrary, toOfflineLibraryPrompt } from "./offline";
 import chalk from "chalk";
 import { atomicWriteFileSync } from "./utils";
 
@@ -138,18 +138,7 @@ function loadLocalPrompts(dir: string): Prompt[] {
 
 function loadOfflinePrompts(env = process.env): Prompt[] {
   const offline = readOfflineLibrary(env);
-  return offline.map(p => ({
-    id: p.id,
-    title: p.title,
-    description: p.description ?? "",
-    content: p.content,
-    category: normalizePromptCategory(p.category),
-    tags: p.tags ?? [],
-    author: "", 
-    version: "1.0.0",
-    created: p.saved_at,
-    featured: false,
-  }));
+  return offline.map(toOfflineLibraryPrompt);
 }
 
 async function fetchRegistry(

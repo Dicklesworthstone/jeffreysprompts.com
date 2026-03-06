@@ -9,12 +9,14 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useLocale } from "next-intl";
 import { ArrowLeft, EyeOff, Sparkles, Target, RotateCcw, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { localizeHref } from "@/i18n/config";
 import { categories as allCategories } from "@jeffreysprompts/core/prompts/registry";
 import type { RecommendationPreferences } from "@jeffreysprompts/core/search";
 import { formatCategoryLabel, sortUnique, parseTagCsv, formatCsv } from "@/lib/discovery/recommendation-helpers";
@@ -29,6 +31,7 @@ const DEFAULT_PREFERENCES: RecommendationPreferences = {
 };
 
 export default function RecommendationsSettingsPage() {
+  const locale = useLocale();
   const [preferences, setPreferences, removePreferences] = useLocalStorage<RecommendationPreferences>(
     STORAGE_KEY,
     DEFAULT_PREFERENCES
@@ -152,7 +155,7 @@ export default function RecommendationsSettingsPage() {
         <div className="container-wide py-10">
           <div className="flex items-center gap-4 mb-4">
             <Link
-              href="/settings"
+              href={localizeHref(locale, "/settings")}
               className="text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft className="h-5 w-5" />
