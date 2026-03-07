@@ -517,21 +517,14 @@ export function unvoteFeature(
   const clientVoteKey = options?.clientFingerprint
     ? `${featureId}:${options.clientFingerprint}`
     : null;
-  const guardedUserId = clientVoteKey
-    ? store.clientVoteOwners.get(clientVoteKey) ?? null
-    : null;
-  const effectiveUserId =
-    guardedUserId && !store.votes.has(`${featureId}:${userId}`)
-      ? guardedUserId
-      : userId;
-  const voteKey = `${featureId}:${effectiveUserId}`;
+  const voteKey = `${featureId}:${userId}`;
 
   if (!store.votes.has(voteKey)) {
     return { success: false, error: "No vote to remove" };
   }
 
   store.votes.delete(voteKey);
-  if (clientVoteKey && (!guardedUserId || guardedUserId === effectiveUserId)) {
+  if (clientVoteKey) {
     store.clientVoteOwners.delete(clientVoteKey);
   }
   feature.voteCount = Math.max(0, feature.voteCount - 1);

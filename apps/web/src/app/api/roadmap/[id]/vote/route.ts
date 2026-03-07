@@ -19,7 +19,9 @@ function getRoadmapVoteFingerprint(request: NextRequest): string {
   const userAgent = request.headers.get("user-agent")?.slice(0, 256) ?? "unknown";
 
   // Clearing the anonymous cookie should not mint a fresh vote identity for
-  // the same client, so we keep a coarse per-client fingerprint for this flow.
+  // the same client, so we keep a coarse per-client fingerprint for duplicate
+  // vote suppression only. It is not strong enough to authorize unvoting on
+  // behalf of a different anonymous user behind the same NAT/browser profile.
   return createHash("sha256")
     .update(`${clientIp}\n${userAgent}`)
     .digest("hex");

@@ -47,7 +47,7 @@ describe("referral-store", () => {
       expect(code.id).toBeTruthy();
       expect(code.userId).toBe("user-1");
       expect(code.code).toBeTruthy();
-      expect(code.code).toBe("u_user-1");
+      expect(code.code.startsWith("u_")).toBe(true);
       expect(code.createdAt).toBeTruthy();
     });
 
@@ -94,6 +94,10 @@ describe("referral-store", () => {
       expect(getReferralCodeByCode("XXXXXXXX")).toBeNull();
     });
 
+    it("rejects unsigned raw-user referral codes after store state is gone", () => {
+      expect(getReferralCodeByCode("u_nobody")).toBeNull();
+    });
+
     it("accepts legacy signed codes after store state is gone", () => {
       const legacyCode = createSignedToken("legacy-user", "referral-code");
       const found = getReferralCodeByCode(legacyCode);
@@ -122,7 +126,8 @@ describe("referral-store", () => {
     it("returns a deterministic code for users without an in-memory entry", () => {
       const found = getReferralCodeByUserId("nobody");
       expect(found?.userId).toBe("nobody");
-      expect(found?.code).toBe("u_nobody");
+      expect(found?.code.startsWith("u_")).toBe(true);
+      expect(getReferralCodeByCode(found?.code ?? "")?.userId).toBe("nobody");
     });
   });
 
@@ -167,6 +172,14 @@ describe("referral-store", () => {
 
     it("returns error for invalid code", () => {
       const result = applyReferralCode({ code: "INVALID1", refereeId: "referee" });
+      expect("error" in result).toBe(true);
+      if ("error" in result) {
+        expect(result.error).toContain("Invalid");
+      }
+    });
+
+    it("rejects unsigned raw-user referral codes that were never issued", () => {
+      const result = applyReferralCode({ code: "u_nobody", refereeId: "referee" });
       expect("error" in result).toBe(true);
       if ("error" in result) {
         expect(result.error).toContain("Invalid");

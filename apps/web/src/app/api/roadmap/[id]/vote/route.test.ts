@@ -4,6 +4,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 import { POST, DELETE } from "./route";
+import { getFeature } from "@/lib/roadmap/roadmap-store";
 
 function clearStores() {
   const g = globalThis as unknown as Record<string, unknown>;
@@ -88,17 +89,19 @@ describe("/api/roadmap/[id]/vote", () => {
       expect(res.status).toBe(404);
     });
 
-    it("allows unvoting after the cookie is reset when the same client fingerprint is used", async () => {
+    it("does not let a different anonymous user unvote just because the fingerprint matches", async () => {
       const headers = {
         "x-forwarded-for": "203.0.113.12",
         "user-agent": "RoadmapVoteTest/1.0",
       };
+      const initialVoteCount = getFeature("feat-002")?.voteCount ?? 0;
 
       const voteResponse = await POST(
         makeRequest("http://localhost/api/roadmap/feat-002/vote", "POST", headers),
         makeContext("feat-002")
       );
       expect(voteResponse.status).toBe(200);
+      expect(getFeature("feat-002")?.voteCount).toBe(initialVoteCount + 1);
 
       const unvoteResponse = await DELETE(
         makeRequest("http://localhost/api/roadmap/feat-002/vote", "DELETE", headers),
@@ -106,8 +109,9 @@ describe("/api/roadmap/[id]/vote", () => {
       );
       const payload = await unvoteResponse.json();
 
-      expect(unvoteResponse.status).toBe(200);
-      expect(payload.success).toBe(true);
+      expect(unvoteResponse.status).toBe(400);
+      expect(payload.message).toBe("No vote to remove");
+      expect(getFeature("feat-002")?.voteCount).toBe(initialVoteCount + 1);
     });
   });
 });

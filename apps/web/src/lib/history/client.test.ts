@@ -3,7 +3,7 @@
  * @module lib/history/client.test
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getOrCreateLocalUserId,
   trackHistoryView,
@@ -19,6 +19,16 @@ function clearLocalStorage() {
   window.localStorage.clear();
 }
 
+function jsonResponse(body: unknown, status = 200): Response {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    json: async () => body,
+  } as Response;
+}
+
+const originalFetch = globalThis.fetch;
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -26,6 +36,21 @@ function clearLocalStorage() {
 describe("history client", () => {
   beforeEach(() => {
     clearLocalStorage();
+    globalThis.fetch = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      if (init?.method === "DELETE") {
+        return jsonResponse({ success: true });
+      }
+
+      if (init?.method === "POST") {
+        return jsonResponse({ success: true });
+      }
+
+      return jsonResponse({ items: [] });
+    }) as typeof fetch;
+  });
+
+  afterAll(() => {
+    globalThis.fetch = originalFetch;
   });
 
   // -----------------------------------------------------------------------
@@ -180,6 +205,30 @@ describe("history client", () => {
       const items = await listHistory("user");
       expect(items[0].source).toBe("homepage");
     });
+
+    it("mirrors tracked views to the history API", async () => {
+      await trackHistoryView({
+        resourceType: "prompt",
+        resourceId: "prompt-1",
+        source: "modal",
+      });
+
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        "/api/history",
+        expect.objectContaining({
+          method: "POST",
+          cache: "no-store",
+          credentials: "same-origin",
+        })
+      );
+
+      const [, init] = vi.mocked(globalThis.fetch).mock.calls[0];
+      expect(JSON.parse(init?.body as string)).toEqual({
+        resourceType: "prompt",
+        resourceId: "prompt-1",
+        source: "modal",
+      });
+    });
   });
 
   // -----------------------------------------------------------------------
@@ -219,6 +268,68 @@ describe("history client", () => {
       const items = await listHistory("user");
       expect(items).toHaveLength(20);
     });
+
+    it("merges API and local history without duplicating the same entry", async () => {
+      window.localStorage.setItem(
+        "jfpHistoryV1",
+        JSON.stringify([
+          {
+            id: "local-1",
+            userId: "local-user",
+            resourceType: "prompt",
+            resourceId: "prompt-1",
+            searchQuery: null,
+            source: "local",
+            viewedAt: "2026-03-07T12:00:00.000Z",
+            duration: null,
+          },
+        ])
+      );
+
+      globalThis.fetch = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+        if (init?.method === "POST") {
+          return jsonResponse({ success: true });
+        }
+        if (init?.method === "DELETE") {
+          return jsonResponse({ success: true });
+        }
+
+        return jsonResponse({
+          items: [
+            {
+              id: "remote-duplicate",
+              userId: "remote-user",
+              resourceType: "prompt",
+              resourceId: "prompt-1",
+              searchQuery: null,
+              source: "remote",
+              viewedAt: "2026-03-07T11:00:00.000Z",
+              duration: null,
+            },
+            {
+              id: "remote-2",
+              userId: "remote-user",
+              resourceType: "prompt",
+              resourceId: "prompt-2",
+              searchQuery: null,
+              source: "remote",
+              viewedAt: "2026-03-07T13:00:00.000Z",
+              duration: null,
+            },
+          ],
+        });
+      }) as typeof fetch;
+
+      const items = await listHistory("user", { limit: 10 });
+      expect(items).toHaveLength(2);
+      expect(items.map((entry) => entry.resourceId)).toEqual(["prompt-2", "prompt-1"]);
+      expect(items[1].source).toBe("local");
+    });
+
+    it("ignores malformed stored payloads instead of throwing", async () => {
+      window.localStorage.setItem("jfpHistoryV1", JSON.stringify({ invalid: true }));
+      await expect(listHistory("user")).resolves.toEqual([]);
+    });
   });
 
   // -----------------------------------------------------------------------
@@ -244,6 +355,22 @@ describe("history client", () => {
       expect(handler).toHaveBeenCalled();
 
       window.removeEventListener("jfp:history-update", handler);
+    });
+
+    it("clears the mirrored API history too", async () => {
+      await trackHistoryView({ resourceType: "prompt", resourceId: "p1" });
+      vi.mocked(globalThis.fetch).mockClear();
+
+      await clearHistoryForUser();
+
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        "/api/history",
+        expect.objectContaining({
+          method: "DELETE",
+          cache: "no-store",
+          credentials: "same-origin",
+        })
+      );
     });
   });
 });

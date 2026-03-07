@@ -263,15 +263,16 @@ describe("roadmap-store", () => {
       expect(result.error).toContain("No vote");
     });
 
-    it("allows removing a vote after a cookie reset when the client fingerprint matches", () => {
+    it("does not let a different anonymous user remove a vote just because the fingerprint matches", () => {
       const feature = submitFeature({ title: "Fingerprint Unvote", description: "Test" });
       voteForFeature(feature.id, "voter-1", { clientFingerprint: "client-1" });
       const result = unvoteFeature(feature.id, "new-user-id", {
         clientFingerprint: "client-1",
       });
-      expect(result.success).toBe(true);
-      expect(result.voteCount).toBe(0);
-      expect(hasUserVoted(feature.id, "voter-1")).toBe(false);
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("No vote");
+      expect(hasUserVoted(feature.id, "voter-1")).toBe(true);
+      expect(getFeature(feature.id)?.voteCount).toBe(1);
     });
 
     it("does not go below 0", () => {

@@ -1,4 +1,4 @@
-import { parseSignedToken } from "@/lib/user-id";
+import { createSignedToken, parseSignedToken } from "@/lib/user-id";
 
 /**
  * Referral Program Store
@@ -87,13 +87,16 @@ function isValidReferralUserId(userId: string): boolean {
 }
 
 function createReferralCodeToken(userId: string): string {
-  return `${REFERRAL_CODE_PREFIX}${userId}`;
+  return `${REFERRAL_CODE_PREFIX}${createSignedToken(userId, "referral-code")}`;
 }
 
 function decodeReferralCodeToken(code: string): string | null {
   if (code.startsWith(REFERRAL_CODE_PREFIX)) {
-    const userId = code.slice(REFERRAL_CODE_PREFIX.length);
-    return isValidReferralUserId(userId) ? userId : null;
+    return parseSignedToken(
+      code.slice(REFERRAL_CODE_PREFIX.length),
+      "referral-code",
+      isValidReferralUserId
+    );
   }
 
   return parseSignedToken(code, "referral-code", isValidReferralUserId);
