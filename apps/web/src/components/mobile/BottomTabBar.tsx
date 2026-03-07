@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useLocale } from "next-intl";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Home,
@@ -28,6 +29,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePrecisionHaptic } from "@/hooks/usePrecisionHaptic";
+import { localizeHref, stripLocalePrefix } from "@/i18n/config";
 
 interface TabItem {
   id: string;
@@ -68,6 +70,8 @@ interface BottomTabBarProps {
 
 export function BottomTabBar({ onOpenSearch, className }: BottomTabBarProps) {
   const pathname = usePathname();
+  const locale = useLocale();
+  const normalizedPathname = stripLocalePrefix(pathname);
   const haptic = usePrecisionHaptic();
 
   const [isVisible, setIsVisible] = useState(true);
@@ -98,10 +102,10 @@ export function BottomTabBar({ onOpenSearch, className }: BottomTabBarProps) {
   const isActive = useCallback(
     (tab: TabItem) => {
       if (!tab.href) return false;
-      if (tab.href === "/") return pathname === "/";
-      return pathname.startsWith(tab.href);
+      if (tab.href === "/") return normalizedPathname === "/";
+      return normalizedPathname.startsWith(tab.href);
     },
-    [pathname]
+    [normalizedPathname]
   );
 
   const handleTabClick = useCallback(
@@ -170,7 +174,7 @@ export function BottomTabBar({ onOpenSearch, className }: BottomTabBarProps) {
                       return (
                         <Link
                           key={item.href}
-                          href={item.href}
+                          href={localizeHref(locale, item.href)}
                           onClick={() => {
                             haptic.medium();
                             setMenuOpen(false);
@@ -255,7 +259,7 @@ export function BottomTabBar({ onOpenSearch, className }: BottomTabBarProps) {
               return (
                 <Link
                   key={tab.id}
-                  href={tab.href}
+                  href={localizeHref(locale, tab.href)}
                   onClick={() => haptic.light()}
                   className="flex-1 min-w-0"
                 >

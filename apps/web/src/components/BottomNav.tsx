@@ -13,14 +13,15 @@
 
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { Home, Package, Search, Settings } from "lucide-react";
+import { Home, Package, Settings, Workflow } from "lucide-react";
 import { ViewTransitionLink } from "./ViewTransitionLink";
 import { cn } from "@/lib/utils";
+import { stripLocalePrefix } from "@/i18n/config";
 
 const navItems = [
   { href: "/", label: "Browse", icon: Home },
   { href: "/bundles", label: "Bundles", icon: Package },
-  { href: "/search", label: "Search", icon: Search },
+  { href: "/workflows", label: "Workflows", icon: Workflow },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
@@ -31,6 +32,7 @@ function isActiveRoute(pathname: string, href: string): boolean {
 
 export function BottomNav() {
   const pathname = usePathname();
+  const normalizedPathname = stripLocalePrefix(pathname);
 
   return (
     <nav
@@ -43,7 +45,7 @@ export function BottomNav() {
         <div className="pb-[env(safe-area-inset-bottom)]">
           <div className="flex h-16 items-center justify-around px-2">
             {navItems.map((item) => {
-              const isActive = isActiveRoute(pathname, item.href);
+              const isActive = isActiveRoute(normalizedPathname, item.href);
               const Icon = item.icon;
 
               return (

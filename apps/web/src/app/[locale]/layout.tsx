@@ -3,7 +3,6 @@ import { getMessages, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { Providers } from "@/components/Providers";
 import { Nav } from "@/components/Nav";
-import { BottomNav } from "@/components/BottomNav";
 import { Footer } from "@/components/Footer";
 import { SkipLink } from "@/components/ui/skip-link";
 import { locales, type Locale } from "@/i18n/config";
@@ -44,7 +43,6 @@ export default async function LocaleLayout({
           {children}
         </main>
         <Footer className="hidden md:block" />
-        <BottomNav />
       </Providers>
     </NextIntlClientProvider>
   );

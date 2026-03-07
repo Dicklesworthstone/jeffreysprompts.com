@@ -2,7 +2,9 @@
 
 import { forwardRef, type MouseEvent, type AnchorHTMLAttributes } from "react";
 import Link, { type LinkProps } from "next/link";
+import { useLocale } from "next-intl";
 import { useViewTransition } from "@/hooks/useViewTransition";
+import { localizeHref } from "@/i18n/config";
 
 type ViewTransitionLinkProps = Omit<AnchorHTMLAttributes<HTMLAnchorElement>, keyof LinkProps> &
   LinkProps & {
@@ -28,7 +30,9 @@ type ViewTransitionLinkProps = Omit<AnchorHTMLAttributes<HTMLAnchorElement>, key
  */
 export const ViewTransitionLink = forwardRef<HTMLAnchorElement, ViewTransitionLinkProps>(
   function ViewTransitionLink({ href, onClick, noTransition, children, ...props }, ref) {
+    const locale = useLocale();
     const { navigateWithTransition, isSupported } = useViewTransition();
+    const localizedHref = localizeLinkHref(href, locale);
 
     const handleClick = (e: MouseEvent<HTMLAnchorElement>) => {
       // Call original onClick if provided
@@ -54,8 +58,15 @@ export const ViewTransitionLink = forwardRef<HTMLAnchorElement, ViewTransitionLi
       }
 
       // Check if it's an external link
-      const hrefString = typeof href === "string" ? href : href.href || href.pathname || "";
-      if (hrefString.startsWith("http") || hrefString.startsWith("//")) {
+      const hrefString =
+        typeof localizedHref === "string"
+          ? localizedHref
+          : localizedHref.href || localizedHref.pathname || "";
+      if (
+        hrefString.startsWith("http") ||
+        hrefString.startsWith("//") ||
+        /^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(hrefString)
+      ) {
         return;
       }
 
@@ -67,11 +78,53 @@ export const ViewTransitionLink = forwardRef<HTMLAnchorElement, ViewTransitionLi
     };
 
     return (
-      <Link ref={ref} href={href} onClick={handleClick} {...props}>
+      <Link ref={ref} href={localizedHref} onClick={handleClick} {...props}>
         {children}
       </Link>
     );
   }
 );
+
+function localizeLinkHref(href: LinkProps["href"], locale: string): LinkProps["href"] {
+  if (typeof href === "string") {
+    if (
+      href.startsWith("http://") ||
+      href.startsWith("https://") ||
+      href.startsWith("//") ||
+      href.startsWith("#") ||
+      href.startsWith("?") ||
+      /^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(href)
+    ) {
+      return href;
+    }
+
+    const hashIndex = href.indexOf("#");
+    const searchIndex = href.indexOf("?");
+    const suffixIndex =
+      hashIndex === -1
+        ? searchIndex
+        : searchIndex === -1
+          ? hashIndex
+          : Math.min(hashIndex, searchIndex);
+    const pathname = suffixIndex === -1 ? href : href.slice(0, suffixIndex);
+    const suffix = suffixIndex === -1 ? "" : href.slice(suffixIndex);
+
+    return `${localizeHref(locale, pathname || "/")}${suffix}`;
+  }
+
+  if (
+    typeof href === "object" &&
+    href !== null &&
+    typeof href.pathname === "string" &&
+    href.pathname.startsWith("/")
+  ) {
+    return {
+      ...href,
+      pathname: localizeHref(locale, href.pathname),
+    };
+  }
+
+  return href;
+}
 
 export default ViewTransitionLink;

@@ -13,8 +13,12 @@ import { BottomTabBar } from "./BottomTabBar";
 // ---------------------------------------------------------------------------
 
 let mockPathname = "/";
+let mockLocale = "en";
 vi.mock("next/navigation", () => ({
   usePathname: () => mockPathname,
+}));
+vi.mock("next-intl", () => ({
+  useLocale: () => mockLocale,
 }));
 
 vi.mock("next/link", () => ({
@@ -36,33 +40,18 @@ vi.mock("next/link", () => ({
 vi.mock("framer-motion", () => ({
   motion: {
     div: ({ children, ...props }: Record<string, unknown>) => {
-      const {
-        initial,
-        animate,
-        exit,
-        transition,
-        whileInView,
-        viewport,
-        whileHover,
-        whileTap,
-        layoutId,
-        layout,
-        ...rest
-      } = props;
-      return <div {...rest}>{children as React.ReactNode}</div>;
+      return <div {...omitMotionProps(props)}>{children as React.ReactNode}</div>;
     },
     nav: ({ children, ...props }: Record<string, unknown>) => {
-      const { initial, animate, exit, transition, ...rest } = props;
-      return <nav {...rest}>{children as React.ReactNode}</nav>;
+      return <nav {...omitMotionProps(props)}>{children as React.ReactNode}</nav>;
     },
     button: ({
       children,
       onClick,
       ...props
     }: Record<string, unknown> & { onClick?: () => void }) => {
-      const { initial, animate, exit, transition, whileTap, ...rest } = props;
       return (
-        <button type="button" onClick={onClick} {...rest}>
+        <button type="button" onClick={onClick} {...omitMotionProps(props)}>
           {children as React.ReactNode}
         </button>
       );
@@ -87,6 +76,21 @@ vi.mock("@/lib/utils", () => ({
     classes.filter(Boolean).join(" "),
 }));
 
+function omitMotionProps(props: Record<string, unknown>) {
+  const nextProps = { ...props };
+  delete nextProps.initial;
+  delete nextProps.animate;
+  delete nextProps.exit;
+  delete nextProps.transition;
+  delete nextProps.whileInView;
+  delete nextProps.viewport;
+  delete nextProps.whileHover;
+  delete nextProps.whileTap;
+  delete nextProps.layoutId;
+  delete nextProps.layout;
+  return nextProps;
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -95,6 +99,7 @@ describe("BottomTabBar", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockPathname = "/";
+    mockLocale = "en";
   });
 
   it("renders all 5 tab labels", () => {
@@ -163,5 +168,23 @@ describe("BottomTabBar", () => {
     fireEvent.click(screen.getByText("More").closest("button")!);
     const pricingLink = screen.getByText("Pricing").closest("a");
     expect(pricingLink).toHaveAttribute("href", "/pricing");
+  });
+
+  it("localizes tab and menu links for non-default locales", () => {
+    mockLocale = "es";
+
+    render(<BottomTabBar />);
+    fireEvent.click(screen.getByText("More").closest("button")!);
+
+    expect(screen.getByText("Bundles").closest("a")).toHaveAttribute("href", "/es/bundles");
+    expect(screen.getByText("Pricing").closest("a")).toHaveAttribute("href", "/es/pricing");
+  });
+
+  it("keeps the active state on locale-prefixed paths", () => {
+    mockPathname = "/es/workflows";
+
+    render(<BottomTabBar />);
+
+    expect(screen.getByText("Workflows").parentElement).toHaveClass("text-indigo-600");
   });
 });

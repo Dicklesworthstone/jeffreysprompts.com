@@ -5,7 +5,7 @@
  * mobile menu button ARIA, Login link, Go Pro button.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { Nav } from "./Nav";
 
 // ---------------------------------------------------------------------------
@@ -58,11 +58,16 @@ vi.mock("./MagneticButton", () => ({
     children: React.ReactNode;
     onClick?: () => void;
     [key: string]: unknown;
-  }) => (
-    <button type="button" onClick={onClick} {...rest}>
-      {children}
-    </button>
-  ),
+  }) => {
+    const htmlProps = { ...(rest as Record<string, unknown>) };
+    delete htmlProps.glowColor;
+    delete htmlProps.strength;
+    return (
+      <button type="button" onClick={onClick} {...htmlProps}>
+        {children}
+      </button>
+    );
+  },
 }));
 
 vi.mock("./ui/button", () => ({
@@ -75,7 +80,10 @@ vi.mock("./ui/button", () => ({
     onClick?: () => void;
     [key: string]: unknown;
   }) => {
-    const { asChild, variant, size, ...htmlProps } = rest as Record<string, unknown>;
+    const htmlProps = { ...(rest as Record<string, unknown>) };
+    delete htmlProps.asChild;
+    delete htmlProps.variant;
+    delete htmlProps.size;
     return (
       <button type="button" onClick={onClick} {...htmlProps}>
         {children}
@@ -95,34 +103,29 @@ vi.mock("./ui/sheet", () => ({
   SheetTitle: ({ children }: { children: React.ReactNode }) => (
     <div>{children}</div>
   ),
-  SheetTrigger: ({
-    children,
-    asChild,
-  }: {
-    children: React.ReactNode;
-    asChild?: boolean;
-  }) => <>{children}</>,
+  SheetTrigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
+
+function omitMotionProps(props: Record<string, unknown>) {
+  const nextProps = { ...props };
+  delete nextProps.initial;
+  delete nextProps.animate;
+  delete nextProps.exit;
+  delete nextProps.transition;
+  delete nextProps.whileHover;
+  delete nextProps.whileTap;
+  delete nextProps.layoutId;
+  delete nextProps.layout;
+  return nextProps;
+}
 
 vi.mock("framer-motion", () => ({
   motion: {
     div: ({ children, ...props }: Record<string, unknown>) => {
-      const {
-        initial,
-        animate,
-        exit,
-        transition,
-        whileHover,
-        whileTap,
-        layoutId,
-        layout,
-        ...rest
-      } = props;
-      return <div {...rest}>{children as React.ReactNode}</div>;
+      return <div {...omitMotionProps(props)}>{children as React.ReactNode}</div>;
     },
     span: ({ children, ...props }: Record<string, unknown>) => {
-      const { initial, animate, exit, transition, ...rest } = props;
-      return <span {...rest}>{children as React.ReactNode}</span>;
+      return <span {...omitMotionProps(props)}>{children as React.ReactNode}</span>;
     },
   },
   AnimatePresence: ({ children }: { children: React.ReactNode }) => (
@@ -212,5 +215,18 @@ describe("Nav", () => {
   it("has History link in mobile nav", () => {
     render(<Nav />);
     expect(screen.getByText("History")).toBeInTheDocument();
+  });
+
+  it("keeps desktop active styling on locale-prefixed paths", () => {
+    mockPathname = "/es/bundles";
+
+    render(<Nav />);
+
+    const bundlesLinks = screen.getAllByText("Bundles");
+    const hasActiveDesktopLink = bundlesLinks.some((node) =>
+      node.closest("a")?.className.includes("text-indigo-600")
+    );
+
+    expect(hasActiveDesktopLink).toBe(true);
   });
 });

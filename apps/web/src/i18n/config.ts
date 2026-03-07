@@ -29,6 +29,26 @@ export function localizeHref(locale: string, href: string): string {
   return `${localePrefix}${normalizedHref}`;
 }
 
+export function stripLocalePrefix(pathname: string): string {
+  const normalizedPathname = pathname.startsWith("/") ? pathname : `/${pathname}`;
+
+  if (normalizedPathname === "/") {
+    return normalizedPathname;
+  }
+
+  for (const locale of locales) {
+    const localePrefix = `/${locale}`;
+    if (normalizedPathname === localePrefix) {
+      return "/";
+    }
+    if (normalizedPathname.startsWith(`${localePrefix}/`)) {
+      return normalizedPathname.slice(localePrefix.length) || "/";
+    }
+  }
+
+  return normalizedPathname;
+}
+
 /**
  * Locale display names for the language switcher
  */

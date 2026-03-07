@@ -12,6 +12,7 @@ import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "./ui/sheet";
 import { useBasket } from "@/hooks/use-basket";
 import { cn } from "@/lib/utils";
+import { stripLocalePrefix } from "@/i18n/config";
 import { MagneticButton } from "./MagneticButton";
 
 /**
@@ -99,6 +100,7 @@ function isActiveRoute(pathname: string, href: string): boolean {
 
 export function Nav() {
   const pathname = usePathname();
+  const normalizedPathname = stripLocalePrefix(pathname);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [basketOpen, setBasketOpen] = useState(false);
   const { items } = useBasket();
@@ -153,7 +155,7 @@ export function Nav() {
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-1">
           {navLinks.map((link) => {
-            const isActive = isActiveRoute(pathname, link.href);
+            const isActive = isActiveRoute(normalizedPathname, link.href);
             return (
               <ViewTransitionLink
                 key={link.href}
@@ -267,7 +269,7 @@ export function Nav() {
                     <LanguageSwitcher />
                   </div>
                   {navLinks.map((link) => {
-                    const isActive = isActiveRoute(pathname, link.href);
+                    const isActive = isActiveRoute(normalizedPathname, link.href);
                     return (
                       <ViewTransitionLink
                         key={link.href}

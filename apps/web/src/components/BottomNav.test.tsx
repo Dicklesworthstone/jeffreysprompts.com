@@ -24,7 +24,7 @@ describe("BottomNav", () => {
     render(<BottomNav />);
     expect(screen.getByText("Browse")).toBeDefined();
     expect(screen.getByText("Bundles")).toBeDefined();
-    expect(screen.getByText("Search")).toBeDefined();
+    expect(screen.getByText("Workflows")).toBeDefined();
     expect(screen.getByText("Settings")).toBeDefined();
   });
 
@@ -47,11 +47,18 @@ describe("BottomNav", () => {
     expect(bundlesLink?.getAttribute("aria-current")).toBe("page");
   });
 
-  it("marks search as active on /search path", () => {
-    vi.mocked(usePathname).mockReturnValue("/search");
+  it("marks bundles as active on locale-prefixed paths", () => {
+    vi.mocked(usePathname).mockReturnValue("/es/bundles");
     render(<BottomNav />);
-    const searchLink = screen.getByText("Search").closest("a");
-    expect(searchLink?.getAttribute("aria-current")).toBe("page");
+    const bundlesLink = screen.getByText("Bundles").closest("a");
+    expect(bundlesLink?.getAttribute("aria-current")).toBe("page");
+  });
+
+  it("marks workflows as active on /workflows path", () => {
+    vi.mocked(usePathname).mockReturnValue("/workflows");
+    render(<BottomNav />);
+    const workflowsLink = screen.getByText("Workflows").closest("a");
+    expect(workflowsLink?.getAttribute("aria-current")).toBe("page");
   });
 
   it("does not mark Browse as active on non-root path", () => {

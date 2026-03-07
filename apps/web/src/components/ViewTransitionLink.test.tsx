@@ -13,11 +13,15 @@ import { ViewTransitionLink } from "./ViewTransitionLink";
 // ---------------------------------------------------------------------------
 
 const mockNavigateWithTransition = vi.fn();
+let mockLocale = "en";
 vi.mock("@/hooks/useViewTransition", () => ({
   useViewTransition: () => ({
     navigateWithTransition: mockNavigateWithTransition,
     isSupported: true,
   }),
+}));
+vi.mock("next-intl", () => ({
+  useLocale: () => mockLocale,
 }));
 
 // ---------------------------------------------------------------------------
@@ -27,6 +31,7 @@ vi.mock("@/hooks/useViewTransition", () => ({
 describe("ViewTransitionLink", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockLocale = "en";
   });
 
   it("renders children", () => {
@@ -101,5 +106,28 @@ describe("ViewTransitionLink", () => {
 
     expect(mockNavigateWithTransition).not.toHaveBeenCalled();
   });
-});
 
+  it("does not rewrite scheme-based links", () => {
+    mockLocale = "es";
+
+    render(<ViewTransitionLink href="mailto:test@example.com">Email</ViewTransitionLink>);
+
+    const link = screen.getByRole("link");
+    expect(link).toHaveAttribute("href", "mailto:test@example.com");
+
+    fireEvent.click(link);
+    expect(mockNavigateWithTransition).not.toHaveBeenCalled();
+  });
+
+  it("localizes internal links for non-default locales", () => {
+    mockLocale = "es";
+
+    render(<ViewTransitionLink href="/about">About</ViewTransitionLink>);
+
+    const link = screen.getByRole("link");
+    expect(link).toHaveAttribute("href", "/es/about");
+
+    fireEvent.click(link);
+    expect(mockNavigateWithTransition).toHaveBeenCalledWith("/es/about");
+  });
+});

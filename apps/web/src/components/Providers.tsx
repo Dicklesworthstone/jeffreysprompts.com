@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import { ThemeProvider } from "./theme-provider";
 import { AlertTriangle } from "lucide-react";
 import { BasketProvider } from "@/contexts/basket-context";
@@ -20,6 +21,7 @@ import { BottomTabBar } from "@/components/mobile/BottomTabBar";
 import { AnalyticsProvider } from "@/components/AnalyticsProvider";
 import { OfflineBanner } from "@/components/offline-banner";
 import { MouseSpotlight } from "@/components/desktop/MouseSpotlight";
+import { localizeHref } from "@/i18n/config";
 
 /** Defers MouseSpotlight rendering until the first mouse interaction */
 function LazyMouseSpotlight() {
@@ -53,6 +55,7 @@ interface ProvidersProps {
 export function Providers({ children }: ProvidersProps) {
   const serviceWorker = useServiceWorker();
   const router = useRouter();
+  const locale = useLocale();
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const { isFirstVisit, completeFirstVisit } = useOnboarding();
 
@@ -106,7 +109,7 @@ export function Providers({ children }: ProvidersProps) {
         id: "new-prompt",
         description: "Create new prompt",
         keys: "cmd+n",
-        handler: () => router.push("/contribute"),
+        handler: () => router.push(localizeHref(locale, "/contribute")),
         global: true,
         category: "Actions",
       },
@@ -114,32 +117,32 @@ export function Providers({ children }: ProvidersProps) {
         id: "go-home",
         description: "Go to home",
         keys: "g h",
-        handler: () => router.push("/"),
+        handler: () => router.push(localizeHref(locale, "/")),
         category: "Navigation",
       },
       {
         id: "go-bundles",
         description: "Go to bundles",
         keys: "g b",
-        handler: () => router.push("/bundles"),
+        handler: () => router.push(localizeHref(locale, "/bundles")),
         category: "Navigation",
       },
       {
         id: "go-workflows",
         description: "Go to workflows",
         keys: "g w",
-        handler: () => router.push("/workflows"),
+        handler: () => router.push(localizeHref(locale, "/workflows")),
         category: "Navigation",
       },
       {
         id: "go-contribute",
         description: "Go to contribute",
         keys: "g c",
-        handler: () => router.push("/contribute"),
+        handler: () => router.push(localizeHref(locale, "/contribute")),
         category: "Navigation",
       },
     ],
-    [openSpotlight, router]
+    [locale, openSpotlight, router]
   );
 
   useKeyboardShortcuts(shortcuts);
