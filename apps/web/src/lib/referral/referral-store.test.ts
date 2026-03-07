@@ -101,6 +101,11 @@ describe("referral-store", () => {
       expect(found?.userId).toBe("legacy-user");
       expect(found?.code).toBe(legacyCode);
     });
+
+    it("rejects forged legacy-looking codes without a valid signature", () => {
+      const forgedCode = "legacy-user.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+      expect(getReferralCodeByCode(forgedCode)).toBeNull();
+    });
   });
 
   // -----------------------------------------------------------------------

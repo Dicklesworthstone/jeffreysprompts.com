@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Ban, Clock, AlertTriangle, Mail, HelpCircle, Home } from "lucide-react";
+import { localizeHref } from "@/i18n/config";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -10,6 +11,7 @@ export const metadata: Metadata = {
 };
 
 interface SuspendedPageProps {
+  params: Promise<{ locale: string }>;
   searchParams: Promise<{
     reason?: string;
     until?: string;
@@ -20,14 +22,14 @@ interface SuspendedPageProps {
   }>;
 }
 
-export default async function SuspendedPage({ searchParams }: SuspendedPageProps) {
-  const params = await searchParams;
-  const suspensionType = params.type ?? "suspended";
-  const reason = params.reason ?? "policy violation";
-  const until = params.until;
-  const actionId = params.actionId;
-  const userId = params.userId;
-  const userEmail = params.email;
+export default async function SuspendedPage({ params, searchParams }: SuspendedPageProps) {
+  const [{ locale }, query] = await Promise.all([params, searchParams]);
+  const suspensionType = query.type ?? "suspended";
+  const reason = query.reason ?? "policy violation";
+  const until = query.until;
+  const actionId = query.actionId;
+  const userId = query.userId;
+  const userEmail = query.email;
 
   const isBanned = suspensionType === "ban" || suspensionType === "banned";
   const isIndefinite = suspensionType === "indefinite" || !until;
@@ -35,8 +37,11 @@ export default async function SuspendedPage({ searchParams }: SuspendedPageProps
   // Build appeal URL if we have the required params
   const canBuildAppealUrl = !isBanned && actionId && userId && userEmail;
   const appealUrl = canBuildAppealUrl
-    ? `/appeals/new?actionId=${encodeURIComponent(actionId)}&userId=${encodeURIComponent(userId)}&email=${encodeURIComponent(userEmail)}`
-    : "/contact?subject=suspension-appeal";
+    ? localizeHref(
+        locale,
+        `/appeals/new?actionId=${encodeURIComponent(actionId)}&userId=${encodeURIComponent(userId)}&email=${encodeURIComponent(userEmail)}`
+      )
+    : localizeHref(locale, "/contact?subject=suspension-appeal");
 
   let endDateText = "indefinitely";
   if (until && !isBanned) {
@@ -137,14 +142,14 @@ export default async function SuspendedPage({ searchParams }: SuspendedPageProps
               )}
 
               <Button variant="outline" asChild>
-                <Link href="/guidelines" className="gap-2">
+                <Link href={localizeHref(locale, "/guidelines")} className="gap-2">
                   <HelpCircle className="h-4 w-4" />
                   Review Community Guidelines
                 </Link>
               </Button>
 
               <Button variant="ghost" asChild>
-                <Link href="/" className="gap-2">
+                <Link href={localizeHref(locale, "/")} className="gap-2">
                   <Home className="h-4 w-4" />
                   Return to Homepage
                 </Link>
@@ -154,7 +159,7 @@ export default async function SuspendedPage({ searchParams }: SuspendedPageProps
             {/* Help text */}
             <p className="mt-6 text-xs text-muted-foreground">
               If you have questions about this {isBanned ? "ban" : "suspension"}, please{" "}
-              <Link href="/contact" className="text-primary hover:underline">
+              <Link href={localizeHref(locale, "/contact")} className="text-primary hover:underline">
                 contact support
               </Link>
               .

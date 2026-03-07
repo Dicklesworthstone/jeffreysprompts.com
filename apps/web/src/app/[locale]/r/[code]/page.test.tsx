@@ -101,4 +101,18 @@ describe("ReferralLandingPage", () => {
       `/fr?ref=${encodeURIComponent(legacyCode)}`
     );
   });
+
+  it("shows the unavailable state for forged legacy-looking referral codes", async () => {
+    clearReferralStore();
+    const forgedCode = "legacy-referrer.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
+    const page = await ReferralLandingPage({
+      params: Promise.resolve({ locale: "fr", code: forgedCode }),
+    });
+
+    render(page);
+
+    expect(screen.getByText("Referral Link Unavailable")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Claim Your Reward" })).not.toBeInTheDocument();
+  });
 });

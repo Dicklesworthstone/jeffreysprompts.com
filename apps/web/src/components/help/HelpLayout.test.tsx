@@ -34,6 +34,10 @@ vi.mock("next/navigation", () => ({
   usePathname: () => mockPathname,
 }));
 
+vi.mock("next-intl", () => ({
+  useLocale: () => "en",
+}));
+
 // ---------------------------------------------------------------------------
 // Tests – HelpLayout
 // ---------------------------------------------------------------------------
@@ -41,7 +45,7 @@ vi.mock("next/navigation", () => ({
 describe("HelpLayout", () => {
   it("renders page title", () => {
     render(
-      <HelpLayout title="Help Center" tableOfContents={[]}>
+      <HelpLayout title="Help Center">
         <p>Content</p>
       </HelpLayout>
     );
@@ -55,7 +59,6 @@ describe("HelpLayout", () => {
       <HelpLayout
         title="Help"
         description="Find answers to common questions"
-        tableOfContents={[]}
       >
         <p>Content</p>
       </HelpLayout>
@@ -65,7 +68,7 @@ describe("HelpLayout", () => {
 
   it("renders children content", () => {
     render(
-      <HelpLayout title="Help" tableOfContents={[]}>
+      <HelpLayout title="Help">
         <p>This is help content.</p>
       </HelpLayout>
     );
@@ -74,7 +77,7 @@ describe("HelpLayout", () => {
 
   it("shows breadcrumb with Help Center link by default", () => {
     render(
-      <HelpLayout title="Help" tableOfContents={[]}>
+      <HelpLayout title="Help">
         <p>Content</p>
       </HelpLayout>
     );
@@ -84,7 +87,7 @@ describe("HelpLayout", () => {
 
   it("shows category in breadcrumb when provided", () => {
     render(
-      <HelpLayout title="Intro" category="getting-started" tableOfContents={[]}>
+      <HelpLayout title="Intro" category="getting-started">
         <p>Content</p>
       </HelpLayout>
     );
@@ -94,7 +97,7 @@ describe("HelpLayout", () => {
 
   it("hides breadcrumb when showBreadcrumb is false", () => {
     render(
-      <HelpLayout title="Help" showBreadcrumb={false} tableOfContents={[]}>
+      <HelpLayout title="Help" showBreadcrumb={false}>
         <p>Content</p>
       </HelpLayout>
     );
@@ -103,7 +106,7 @@ describe("HelpLayout", () => {
 
   it("renders sidebar category links", () => {
     render(
-      <HelpLayout title="Help" tableOfContents={[]}>
+      <HelpLayout title="Help">
         <p>Content</p>
       </HelpLayout>
     );
@@ -114,7 +117,7 @@ describe("HelpLayout", () => {
 
   it("has search input in sidebar", () => {
     render(
-      <HelpLayout title="Help" tableOfContents={[]}>
+      <HelpLayout title="Help">
         <p>Content</p>
       </HelpLayout>
     );
@@ -123,7 +126,7 @@ describe("HelpLayout", () => {
 
   it("shows Contact support link", () => {
     render(
-      <HelpLayout title="Help" tableOfContents={[]}>
+      <HelpLayout title="Help">
         <p>Content</p>
       </HelpLayout>
     );
@@ -132,7 +135,7 @@ describe("HelpLayout", () => {
 
   it("shows GitHub issue link", () => {
     render(
-      <HelpLayout title="Help" tableOfContents={[]}>
+      <HelpLayout title="Help">
         <p>Content</p>
       </HelpLayout>
     );
@@ -141,7 +144,7 @@ describe("HelpLayout", () => {
 
   it("shows Need more help? text", () => {
     render(
-      <HelpLayout title="Help" tableOfContents={[]}>
+      <HelpLayout title="Help">
         <p>Content</p>
       </HelpLayout>
     );
@@ -150,7 +153,7 @@ describe("HelpLayout", () => {
 
   it("renders mobile category navigation", () => {
     render(
-      <HelpLayout title="Help" tableOfContents={[]}>
+      <HelpLayout title="Help">
         <p>Content</p>
       </HelpLayout>
     );

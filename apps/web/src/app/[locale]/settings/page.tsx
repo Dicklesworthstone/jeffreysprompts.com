@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Ticket, User, Bell, Palette, Shield, ChevronRight, Link2, Clock, DollarSign, Sparkles } from "lucide-react";
+import { localizeHref } from "@/i18n/config";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -7,6 +8,10 @@ export const metadata = {
   title: "Settings",
   description: "Manage your JeffreysPrompts preferences.",
 };
+
+interface SettingsPageProps {
+  params: Promise<{ locale: string }>;
+}
 
 interface SettingCardProps {
   href?: string;
@@ -59,7 +64,9 @@ function SettingCard({ href, icon, iconBg, title, description, badge, disabled }
   return content;
 }
 
-export default function SettingsPage() {
+export default async function SettingsPage({ params }: SettingsPageProps) {
+  const { locale } = await params;
+
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
       {/* Header */}
@@ -80,7 +87,7 @@ export default function SettingsPage() {
           </h3>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <SettingCard
-              href="/settings/shared"
+              href={localizeHref(locale, "/settings/shared")}
               icon={<Link2 className="h-6 w-6 text-violet-600 dark:text-violet-400" />}
               iconBg="bg-violet-100 dark:bg-violet-900/30"
               title="My Shared Links"
@@ -96,7 +103,7 @@ export default function SettingsPage() {
           </h3>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <SettingCard
-              href="/settings/tickets"
+              href={localizeHref(locale, "/settings/tickets")}
               icon={<Ticket className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />}
               iconBg="bg-indigo-100 dark:bg-indigo-900/30"
               title="My Tickets"
@@ -137,21 +144,21 @@ export default function SettingsPage() {
           </h3>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <SettingCard
-              href="/history"
+              href={localizeHref(locale, "/history")}
               icon={<Clock className="h-6 w-6 text-amber-600 dark:text-amber-400" />}
               iconBg="bg-amber-100 dark:bg-amber-900/30"
               title="Recently Viewed"
               description="Review the prompts and searches you've opened."
             />
             <SettingCard
-              href="/settings/recommendations"
+              href={localizeHref(locale, "/settings/recommendations")}
               icon={<Sparkles className="h-6 w-6 text-violet-600 dark:text-violet-400" />}
               iconBg="bg-violet-100 dark:bg-violet-900/30"
               title="Recommendations"
               description="Tune your For You feed using category and tag preferences."
             />
             <SettingCard
-              href="/settings/budget"
+              href={localizeHref(locale, "/settings/budget")}
               icon={<DollarSign className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />}
               iconBg="bg-emerald-100 dark:bg-emerald-900/30"
               title="Budget & Alerts"

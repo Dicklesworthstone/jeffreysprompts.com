@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Check, CreditCard, Shield, Sparkles, Zap } from "lucide-react";
+import { localizeHref } from "@/i18n/config";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +12,10 @@ export const metadata: Metadata = {
   description:
     "Simple, transparent pricing for the prompt library built for AI power users.",
 };
+
+interface PricingPageProps {
+  params: Promise<{ locale: string }>;
+}
 
 const PRO_URL = process.env.NEXT_PUBLIC_PRO_URL ?? "https://pro.jeffreysprompts.com";
 
@@ -101,7 +106,9 @@ const trustSignals = [
   },
 ];
 
-export default function PricingPage() {
+export default async function PricingPage({ params }: PricingPageProps) {
+  const { locale } = await params;
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-violet-50/60 via-white to-white dark:from-neutral-950 dark:via-neutral-950 dark:to-neutral-900">
       <div className="border-b border-neutral-200/70 dark:border-neutral-800/70">
@@ -124,7 +131,7 @@ export default function PricingPage() {
                 </a>
               </Button>
               <Button asChild variant="outline" size="lg">
-                <Link href="/">Browse prompts</Link>
+                <Link href={localizeHref(locale, "/")}>Browse prompts</Link>
               </Button>
             </div>
           </div>
@@ -178,7 +185,7 @@ export default function PricingPage() {
                   className="w-full"
                 >
                   {plan.ctaHref.startsWith("/") ? (
-                    <Link href={plan.ctaHref}>{plan.ctaLabel}</Link>
+                    <Link href={localizeHref(locale, plan.ctaHref)}>{plan.ctaLabel}</Link>
                   ) : (
                     <a
                       href={plan.ctaHref}

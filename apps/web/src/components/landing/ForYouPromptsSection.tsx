@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useLocale } from "next-intl";
 import { motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
 import { PromptCardPure } from "@/components/PromptCard";
@@ -15,6 +16,7 @@ import {
 import { getOrCreateLocalUserId, listHistory } from "@/lib/history/client";
 import { useBasket } from "@/hooks/use-basket";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { localizeHref } from "@/i18n/config";
 import type { Prompt } from "@jeffreysprompts/core/prompts/types";
 
 interface ForYouPromptsSectionProps {
@@ -40,6 +42,7 @@ export function ForYouPromptsSection({
   onPromptCopy,
   ratingSummaries,
 }: ForYouPromptsSectionProps) {
+  const locale = useLocale();
   const [loading, setLoading] = useState(true);
   const [historyIds, setHistoryIds] = useState<string[]>([]);
   const [savedIds, setSavedIds] = useState<string[]>([]);
@@ -187,19 +190,19 @@ export function ForYouPromptsSection({
           </div>
           <div className="flex items-center gap-4">
             <Link
-              href="/for-you"
+              href={localizeHref(locale, "/for-you")}
               className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
             >
               Open feed
             </Link>
             <Link
-              href="/settings/recommendations"
+              href={localizeHref(locale, "/settings/recommendations")}
               className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
             >
               Tune feed
             </Link>
             <Link
-              href="/history"
+              href={localizeHref(locale, "/history")}
               className="hidden sm:inline text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
             >
               View history

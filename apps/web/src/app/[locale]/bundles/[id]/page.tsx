@@ -20,6 +20,7 @@ import {
   generateBundleSkillMd,
   type BundleIcon,
 } from "@jeffreysprompts/core/prompts/bundles";
+import { localizeHref } from "@/i18n/config";
 import { Badge } from "@/components/ui/badge";
 import { CopyButton } from "@/components/ui/copy-button";
 import { ReportDialog } from "@/components/reporting/ReportDialog";
@@ -68,7 +69,7 @@ export function generateStaticParams() {
 // ============================================================================
 
 interface PageProps {
-  params: Promise<{ id: string }>;
+  params: Promise<{ locale: string; id: string }>;
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -103,7 +104,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 // ============================================================================
 
 export default async function BundleDetailPage({ params }: PageProps) {
-  const { id } = await params;
+  const { locale, id } = await params;
   const bundle = getBundle(id);
 
   if (!bundle) {
@@ -124,7 +125,7 @@ export default async function BundleDetailPage({ params }: PageProps) {
         <div className="container mx-auto px-4 py-8">
           {/* Back link */}
           <Link
-            href="/bundles"
+            href={localizeHref(locale, "/bundles")}
             className="inline-flex items-center gap-1 text-sm text-neutral-600 dark:text-neutral-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors mb-6"
           >
             <ArrowLeft className="w-4 h-4" />

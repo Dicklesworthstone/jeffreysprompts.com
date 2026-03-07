@@ -169,6 +169,20 @@ describe("/api/referral/apply GET", () => {
     expect(payload.data.message).toBe("Invalid referral code.");
   });
 
+  it("rejects forged legacy-looking referral codes", async () => {
+    const forgedCode = "legacy-user.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    const request = makeRequest(
+      `http://localhost/api/referral/apply?code=${encodeURIComponent(forgedCode)}`
+    );
+    const response = await GET(request);
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.success).toBe(true);
+    expect(payload.data.valid).toBe(false);
+    expect(payload.data.message).toBe("Invalid referral code.");
+  });
+
   it("returns valid=true for usable code", async () => {
     const referralCode = getOrCreateReferralCode("referrer-user");
     const request = makeRequest(
@@ -251,6 +265,16 @@ describe("/api/referral/apply POST", () => {
 
   it("returns 400 for an invalid referral code", async () => {
     const response = await POST(makePostRequest({ code: "missing123" }));
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload.success).toBe(false);
+    expect(payload.error).toBe("Invalid referral code.");
+  });
+
+  it("returns 400 for a forged legacy-looking referral code", async () => {
+    const forgedCode = "legacy-user.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    const response = await POST(makePostRequest({ code: forgedCode }));
     const payload = await response.json();
 
     expect(response.status).toBe(400);

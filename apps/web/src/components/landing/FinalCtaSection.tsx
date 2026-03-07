@@ -1,11 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { useLocale } from "next-intl";
 import { motion } from "framer-motion";
 import { ArrowRight, Terminal, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { localizeHref } from "@/i18n/config";
 
 export function FinalCtaSection() {
+  const locale = useLocale();
+
   return (
     <section className="relative py-24 overflow-hidden">
       {/* Background */}
@@ -85,7 +89,7 @@ export function FinalCtaSection() {
                 size="lg"
                 className="bg-white text-indigo-600 hover:bg-white/90 shadow-lg shadow-black/20 px-8"
               >
-                <Link href="/" className="gap-2">
+                <Link href={localizeHref(locale, "/")} className="gap-2">
                   Explore Prompts
                   <ArrowRight className="w-4 h-4" />
                 </Link>

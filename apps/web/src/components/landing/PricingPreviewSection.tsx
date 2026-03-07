@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useLocale } from "next-intl";
 import { motion } from "framer-motion";
 import { Check, Sparkles, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { localizeHref } from "@/i18n/config";
 import { cn } from "@/lib/utils";
 
 const plans = [
@@ -47,6 +49,8 @@ const plans = [
 ];
 
 export function PricingPreviewSection() {
+  const locale = useLocale();
+
   return (
     <section className="relative py-24 overflow-hidden bg-gradient-to-b from-neutral-50 to-white dark:from-neutral-900 dark:to-neutral-950">
       <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -140,7 +144,7 @@ export function PricingPreviewSection() {
                   className="w-full"
                 >
                   {plan.ctaHref.startsWith("/") ? (
-                    <Link href={plan.ctaHref}>{plan.ctaLabel}</Link>
+                    <Link href={localizeHref(locale, plan.ctaHref)}>{plan.ctaLabel}</Link>
                   ) : (
                     <a href={plan.ctaHref} target="_blank" rel="noopener noreferrer">
                       {plan.ctaLabel}
@@ -161,7 +165,7 @@ export function PricingPreviewSection() {
           className="text-center mt-10"
         >
           <Link
-            href="/pricing"
+            href={localizeHref(locale, "/pricing")}
             className="inline-flex items-center gap-2 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium transition-colors"
           >
             View full pricing details

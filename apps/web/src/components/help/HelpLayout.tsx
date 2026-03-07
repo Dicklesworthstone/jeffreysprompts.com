@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useLocale } from "next-intl";
 import { usePathname } from "next/navigation";
 import {
   HelpCircle,
@@ -12,6 +13,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { localizeHref, stripLocalePrefix } from "@/i18n/config";
 import { cn } from "@/lib/utils";
 import { helpCategories } from "@/lib/help-categories";
 
@@ -36,7 +38,9 @@ export function HelpLayout({
   showBreadcrumb = true,
   category,
 }: HelpLayoutProps) {
+  const locale = useLocale();
   const pathname = usePathname();
+  const normalizedPathname = stripLocalePrefix(pathname);
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
@@ -45,14 +49,17 @@ export function HelpLayout({
         <div className="container-wide py-8 sm:py-12">
           {showBreadcrumb && (
             <nav className="flex items-center gap-2 text-sm text-neutral-500 dark:text-neutral-400 mb-4">
-              <Link href="/help" className="hover:text-neutral-900 dark:hover:text-white">
+              <Link
+                href={localizeHref(locale, "/help")}
+                className="hover:text-neutral-900 dark:hover:text-white"
+              >
                 Help Center
               </Link>
               {category && (
                 <>
                   <ChevronRight className="h-4 w-4" />
                   <Link
-                    href={`/help/${category}`}
+                    href={localizeHref(locale, `/help/${category}`)}
                     className="hover:text-neutral-900 dark:hover:text-white capitalize"
                   >
                     {category.replace(/-/g, " ")}
@@ -100,11 +107,11 @@ export function HelpLayout({
               <nav className="space-y-1">
                 {helpCategories.map((cat) => {
                   const Icon = iconMap[cat.iconName];
-                  const isActive = pathname.startsWith(`/help/${cat.slug}`);
+                  const isActive = normalizedPathname.startsWith(`/help/${cat.slug}`);
                   return (
                     <Link
                       key={cat.slug}
-                      href={`/help/${cat.slug}`}
+                      href={localizeHref(locale, `/help/${cat.slug}`)}
                       className={cn(
                         "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
                         isActive
@@ -126,7 +133,7 @@ export function HelpLayout({
                 </p>
                 <div className="flex flex-col gap-2">
                   <Link
-                    href="/contact"
+                    href={localizeHref(locale, "/contact")}
                     className="flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 hover:underline"
                   >
                     <HelpCircle className="h-4 w-4" />
@@ -151,11 +158,11 @@ export function HelpLayout({
             {/* Mobile category nav */}
             <div className="lg:hidden mb-6 flex flex-wrap gap-2">
               {helpCategories.map((cat) => {
-                const isActive = pathname.startsWith(`/help/${cat.slug}`);
+                const isActive = normalizedPathname.startsWith(`/help/${cat.slug}`);
                 return (
                   <Link
                     key={cat.slug}
-                    href={`/help/${cat.slug}`}
+                    href={localizeHref(locale, `/help/${cat.slug}`)}
                     className={cn(
                       "px-3 py-1.5 rounded-full text-sm transition-colors",
                       isActive
@@ -178,7 +185,7 @@ export function HelpLayout({
               </p>
               <div className="flex flex-col gap-2">
                 <Link
-                  href="/contact"
+                  href={localizeHref(locale, "/contact")}
                   className="flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 hover:underline"
                 >
                   <HelpCircle className="h-4 w-4" />
@@ -210,11 +217,13 @@ interface ArticleCardProps {
 }
 
 export function ArticleCard({ href, title, description, iconName }: ArticleCardProps) {
+  const locale = useLocale();
   const Icon = iconName ? iconMap[iconName] : null;
+  const resolvedHref = href.startsWith("/") ? localizeHref(locale, href) : href;
 
   return (
     <Link
-      href={href}
+      href={resolvedHref}
       className="group block p-5 rounded-xl border border-border/60 bg-white dark:bg-neutral-900 hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors"
     >
       <div className="flex items-start gap-4">

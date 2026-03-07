@@ -17,6 +17,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { localizeHref } from "@/i18n/config";
 import { cn } from "@/lib/utils";
 import { isValidUsername } from "@/lib/username";
 import {
@@ -34,7 +35,7 @@ const MOCK_PROMPTS = [
 ];
 
 interface PageProps {
-  params: Promise<{ username: string }>;
+  params: Promise<{ locale: string; username: string }>;
 }
 
 async function getUser(username: string): Promise<PublicUserProfile | null> {
@@ -76,7 +77,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function UserProfilePage({ params }: PageProps) {
-  const { username } = await params;
+  const { locale, username } = await params;
 
   // Validate username format
   if (!isValidUsername(username)) {
@@ -250,7 +251,7 @@ export default async function UserProfilePage({ params }: PageProps) {
                     title={prompt.title}
                     description={prompt.description}
                     category={prompt.category}
-                    href={`/prompts/${prompt.id}`}
+                    href={localizeHref(locale, `/prompts/${prompt.id}`)}
                   />
                 ))}
               </div>
@@ -269,7 +270,7 @@ export default async function UserProfilePage({ params }: PageProps) {
                   title="Getting Started Pack"
                   description="Essential prompts for new users"
                   category="pack"
-                  href="/bundles/getting-started"
+                  href={localizeHref(locale, "/bundles/getting-started")}
                 />
               </div>
             ) : (

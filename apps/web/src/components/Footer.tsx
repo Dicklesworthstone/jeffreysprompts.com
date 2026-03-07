@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useLocale } from "next-intl";
 import { Sparkles, Twitter, Github, ExternalLink, Mail, Terminal } from "lucide-react";
 import { motion } from "framer-motion";
+import { localizeHref } from "@/i18n/config";
 import { cn } from "@/lib/utils";
 
 const productLinks = [
@@ -36,6 +38,7 @@ interface FooterProps {
 
 export function Footer({ className }: FooterProps) {
   const currentYear = new Date().getFullYear();
+  const locale = useLocale();
 
   return (
     <footer className={cn("relative border-t border-neutral-200 dark:border-neutral-800 overflow-hidden", className)}>
@@ -62,7 +65,7 @@ export function Footer({ className }: FooterProps) {
           {/* Brand */}
           <div className="col-span-2 md:col-span-3 lg:col-span-2 space-y-6">
             <Link
-              href="/"
+              href={localizeHref(locale, "/")}
               className="group flex items-center gap-3 font-bold text-xl transition-all"
             >
               <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 group-hover:rotate-12 transition-transform text-primary-foreground">
@@ -104,7 +107,7 @@ export function Footer({ className }: FooterProps) {
               {productLinks.map((link) => (
                 <li key={link.href}>
                   <Link
-                    href={link.href}
+                    href={localizeHref(locale, link.href)}
                     className="text-sm font-semibold text-neutral-500 hover:text-indigo-500 dark:text-neutral-400 dark:hover:text-indigo-400 transition-colors"
                   >
                     {link.label}
@@ -132,7 +135,7 @@ export function Footer({ className }: FooterProps) {
                     </a>
                   ) : (
                     <Link
-                      href={link.href}
+                      href={localizeHref(locale, link.href)}
                       className="text-sm font-semibold text-neutral-500 hover:text-indigo-500 dark:text-neutral-400 dark:hover:text-indigo-400 transition-colors"
                     >
                       {link.label}
@@ -150,7 +153,7 @@ export function Footer({ className }: FooterProps) {
               {legalLinks.map((link) => (
                 <li key={link.href}>
                   <Link
-                    href={link.href}
+                    href={localizeHref(locale, link.href)}
                     className="text-sm font-semibold text-neutral-500 hover:text-indigo-500 dark:text-neutral-400 dark:hover:text-indigo-400 transition-colors"
                   >
                     {link.label}

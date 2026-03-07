@@ -29,6 +29,18 @@ export interface ApiError {
   status?: number;
 }
 
+function resolveApiBaseUrl(env: NodeJS.ProcessEnv): string {
+  if (env.JFP_PREMIUM_API_URL) {
+    return env.JFP_PREMIUM_API_URL;
+  }
+
+  if (env.JFP_PREMIUM_URL) {
+    return `${env.JFP_PREMIUM_URL.replace(/\/$/, "")}/api`;
+  }
+
+  return "https://pro.jeffreysprompts.com/api";
+}
+
 /**
  * API Client class that handles authenticated requests
  */
@@ -39,10 +51,7 @@ export class ApiClient {
 
   constructor(options: ApiClientOptions = {}) {
     this.env = options.env ?? process.env;
-    this.baseUrl =
-      options.baseUrl ??
-      this.env.JFP_PREMIUM_API_URL ??
-      "https://pro.jeffreysprompts.com/api";
+    this.baseUrl = options.baseUrl ?? resolveApiBaseUrl(this.env);
     this.timeout = options.timeout ?? 30000; // 30 second default
   }
 

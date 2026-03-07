@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
+import { useLocale } from "next-intl";
 import { CheckCircle2, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
+import { localizeHref } from "@/i18n/config";
 import {
   SUPPORT_CATEGORIES,
   SUPPORT_PRIORITIES,
@@ -74,6 +76,7 @@ function writeLocalTickets(tickets: LocalSupportTicket[]) {
 }
 
 export function ContactForm() {
+  const locale = useLocale();
   const { success, error } = useToast();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -204,7 +207,10 @@ export function ContactForm() {
 
         <div className="rounded-xl border border-border/60 bg-muted/30 p-4 text-sm text-muted-foreground">
           Keep your ticket number handy for updates. You can also view it in your
-          <Link href="/settings/tickets" className="font-medium text-foreground hover:underline">
+          <Link
+            href={localizeHref(locale, "/settings/tickets")}
+            className="font-medium text-foreground hover:underline"
+          >
             {" "}My Tickets
           </Link>{" "}
           page on this device.
@@ -215,7 +221,7 @@ export function ContactForm() {
             Submit another request
           </Button>
           <Button asChild>
-            <Link href="/settings/tickets">View my tickets</Link>
+            <Link href={localizeHref(locale, "/settings/tickets")}>View my tickets</Link>
           </Button>
         </div>
       </div>

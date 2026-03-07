@@ -134,6 +134,20 @@ describe("ApiClient", () => {
         cleanup();
       }
     });
+
+    it("derives the API base from JFP_PREMIUM_URL when only that override is set", async () => {
+      const { mockEnv, cleanup } = setupTestEnv({
+        JFP_PREMIUM_URL: "https://staging-premium.example.com/",
+      });
+      try {
+        const client = new ApiClient({ env: mockEnv });
+        await client.get("/test");
+        const [url] = mockFetch.mock.calls[0] as [string, RequestInit];
+        expect(url).toBe("https://staging-premium.example.com/api/test");
+      } finally {
+        cleanup();
+      }
+    });
   });
 
   describe("request", () => {

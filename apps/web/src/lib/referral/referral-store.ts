@@ -1,3 +1,5 @@
+import { parseSignedToken } from "@/lib/user-id";
+
 /**
  * Referral Program Store
  *
@@ -52,8 +54,6 @@ interface ReferralStore {
 const STORE_KEY = "__jfp_referral_store__";
 const REFERRAL_CODE_PREFIX = "u_";
 const MAX_USER_ID_LENGTH = 200;
-const BASE64_URL_PATTERN = /^[A-Za-z0-9_-]+$/;
-const LEGACY_SIGNED_REFERRAL_SIGNATURE_LENGTH = 43;
 // Reward constants
 const REFERRER_REWARD_MONTHS = 1; // 1 month free Premium per successful referral
 const MAX_REWARD_MONTHS_PER_YEAR = 12;
@@ -96,24 +96,7 @@ function decodeReferralCodeToken(code: string): string | null {
     return isValidReferralUserId(userId) ? userId : null;
   }
 
-  const splitAt = code.lastIndexOf(".");
-  if (splitAt <= 0) {
-    return null;
-  }
-
-  const payload = code.slice(0, splitAt);
-  const signature = code.slice(splitAt + 1);
-  if (!isValidReferralUserId(payload)) {
-    return null;
-  }
-  if (
-    signature.length !== LEGACY_SIGNED_REFERRAL_SIGNATURE_LENGTH ||
-    !BASE64_URL_PATTERN.test(signature)
-  ) {
-    return null;
-  }
-
-  return payload;
+  return parseSignedToken(code, "referral-code", isValidReferralUserId);
 }
 
 /**
