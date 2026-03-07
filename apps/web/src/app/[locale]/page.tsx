@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { Suspense, useMemo, useCallback, useState, useEffect, useRef, useDeferredValue } from "react";
 import Link from "next/link";
+import { useLocale } from "next-intl";
 import { AlertTriangle, Sparkles, X } from "lucide-react";
 import { prompts, categories, tags } from "@jeffreysprompts/core/prompts/registry";
 import { searchPrompts } from "@jeffreysprompts/core/search/engine";
@@ -19,6 +20,8 @@ import { useFilterState } from "@/hooks/useFilterState";
 import { useAllRatings } from "@/hooks/useAllRatings";
 import { FeaturedPromptsSection, ForYouPromptsSection } from "@/components/landing";
 import { AnimatedSection } from "@/components/AnimatedSection";
+import { ReferralQueryProcessor } from "@/components/referral/ReferralQueryProcessor";
+import { localizeHref } from "@/i18n/config";
 import { trackEvent } from "@/lib/analytics";
 import { trackHistoryView } from "@/lib/history/client";
 import { useAnnounceCount } from "@/hooks/useAnnounce";
@@ -52,6 +55,7 @@ function PromptGridFallback({ onRefresh }: { onRefresh: () => void }) {
 }
 
 function HomeContent() {
+  const locale = useLocale();
   const { filters, setQuery, setCategory, setTags, setSortBy, setMinRating, clearFilters, hasActiveFilters } =
     useFilterState();
   const { summaries: ratingSummaries, loading: ratingsLoading } = useAllRatings();
@@ -184,29 +188,29 @@ function HomeContent() {
     // Apply sorting
     if (filters.sortBy !== "default") {
       results = [...results].sort((a, b) => {
-        switch (filters.sortBy) {
-          case "rating": {
-            const ratingA = ratingSummaries[a.id]?.approvalRate ?? 0;
-            const ratingB = ratingSummaries[b.id]?.approvalRate ?? 0;
-            // Higher rating first, then by votes as tiebreaker
-            if (ratingB !== ratingA) return ratingB - ratingA;
-            const votesA = ratingSummaries[a.id]?.total ?? 0;
-            const votesB = ratingSummaries[b.id]?.total ?? 0;
-            return votesB - votesA;
-          }
-          case "votes": {
-            const votesA = ratingSummaries[a.id]?.total ?? 0;
-            const votesB = ratingSummaries[b.id]?.total ?? 0;
-            return votesB - votesA;
-          }
-          case "newest": {
-            const dateA = a.updatedAt ?? a.created ?? "";
-            const dateB = b.updatedAt ?? b.created ?? "";
-            return dateB.localeCompare(dateA);
-          }
-          default:
-            return 0;
+        if (filters.sortBy === "rating") {
+          const ratingA = ratingSummaries[a.id]?.approvalRate ?? 0;
+          const ratingB = ratingSummaries[b.id]?.approvalRate ?? 0;
+          // Higher rating first, then by votes as tiebreaker
+          if (ratingB !== ratingA) return ratingB - ratingA;
+          const votesA = ratingSummaries[a.id]?.total ?? 0;
+          const votesB = ratingSummaries[b.id]?.total ?? 0;
+          return votesB - votesA;
         }
+
+        if (filters.sortBy === "votes") {
+          const votesA = ratingSummaries[a.id]?.total ?? 0;
+          const votesB = ratingSummaries[b.id]?.total ?? 0;
+          return votesB - votesA;
+        }
+
+        if (filters.sortBy === "newest") {
+          const dateA = a.updatedAt ?? a.created ?? "";
+          const dateB = b.updatedAt ?? b.created ?? "";
+          return dateB.localeCompare(dateA);
+        }
+
+        return 0;
       });
     }
 
@@ -299,6 +303,8 @@ function HomeContent() {
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
+      <ReferralQueryProcessor />
+
       {/* Hero Section */}
       <Hero
         promptCount={prompts.length}
@@ -497,10 +503,10 @@ function HomeContent() {
               >
                 GitHub
               </a>
-              <Link href="/help" className="hover:text-neutral-900 dark:hover:text-white transition-colors">
+              <Link href={localizeHref(locale, "/help")} className="hover:text-neutral-900 dark:hover:text-white transition-colors">
                 Help
               </Link>
-              <Link href="/contribute" className="hover:text-neutral-900 dark:hover:text-white transition-colors">
+              <Link href={localizeHref(locale, "/contribute")} className="hover:text-neutral-900 dark:hover:text-white transition-colors">
                 Contribute
               </Link>
             </div>

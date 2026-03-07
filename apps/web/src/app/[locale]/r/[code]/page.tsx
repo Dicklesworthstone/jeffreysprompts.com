@@ -1,16 +1,26 @@
-import { Metadata } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Gift, ArrowRight, Sparkles, Check } from "lucide-react";
 import { getReferralCodeByCode, REFERRAL_CONSTANTS } from "@/lib/referral/referral-store";
+import { localizeHref } from "@/i18n/config";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface ReferralLandingPageProps {
-  params: Promise<{ code: string }>;
+  params: Promise<{ locale: string; code: string }>;
 }
 
 export async function generateMetadata({ params }: ReferralLandingPageProps): Promise<Metadata> {
-  await params; // Await params to consume the Promise
+  const { code } = await params;
+  const referralCode = getReferralCodeByCode(code);
+
+  if (!referralCode) {
+    return {
+      title: "Referral Link Unavailable - JeffreysPrompts",
+      description: "This referral link is invalid or has expired. You can still explore the free JeffreysPrompts library.",
+    };
+  }
+
   return {
     title: "You've Been Invited! - JeffreysPrompts",
     description: `Get a ${REFERRAL_CONSTANTS.REFEREE_EXTENDED_TRIAL_DAYS}-day trial or ${REFERRAL_CONSTANTS.REFEREE_DISCOUNT_PERCENT}% off your first month of JeffreysPrompts Premium.`,
@@ -23,12 +33,51 @@ export async function generateMetadata({ params }: ReferralLandingPageProps): Pr
 
 export default async function ReferralLandingPage({ params }: ReferralLandingPageProps) {
   const resolvedParams = await params;
+  const locale = resolvedParams.locale;
   const code = resolvedParams.code;
+  const normalizedCode = code.trim().toUpperCase();
+  const referralCode = getReferralCodeByCode(normalizedCode);
+  const homeHref = localizeHref(locale, "/");
 
-  // Validate referral code (calling function for side effects, result intentionally unused)
-  // If code doesn't exist, still show the page since it allows first-time visitors
-  // to see the referral landing even if the code was created dynamically
-  getReferralCodeByCode(code);
+  if (!referralCode) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-violet-50 to-white dark:from-neutral-950 dark:to-neutral-900">
+        <div className="container-wide py-16 sm:py-24">
+          <div className="mx-auto max-w-2xl text-center">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-amber-100 px-4 py-2 text-sm font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+              <Gift className="size-4" />
+              Referral Link Unavailable
+            </div>
+
+            <h1 className="mb-4 text-4xl font-bold text-neutral-900 dark:text-white sm:text-5xl">
+              This Referral Link Isn&apos;t Active
+            </h1>
+
+            <p className="mb-8 text-lg text-neutral-600 dark:text-neutral-400">
+              The referral code you followed is invalid or has expired. You can still browse the
+              free JeffreysPrompts library and explore the prompt collection directly.
+            </p>
+
+            <div className="flex justify-center">
+              <Button size="xl" variant="glow" asChild>
+                <Link href={homeHref}>
+                  Explore JeffreysPrompts
+                  <ArrowRight className="size-5" />
+                </Link>
+              </Button>
+            </div>
+
+            <div className="mt-8 inline-flex items-center gap-2 rounded-lg bg-muted px-4 py-2 text-sm">
+              <span className="text-muted-foreground">Referral code:</span>
+              <span className="font-mono font-bold">{normalizedCode}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const claimHref = localizeHref(locale, `/?ref=${encodeURIComponent(referralCode.code)}`);
 
   const benefits = [
     `${REFERRAL_CONSTANTS.REFEREE_EXTENDED_TRIAL_DAYS}-day free trial (instead of 14 days)`,
@@ -68,14 +117,14 @@ export default async function ReferralLandingPage({ params }: ReferralLandingPag
           {/* CTA Button */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="xl" variant="glow" asChild>
-              <Link href={`/?ref=${code}`}>
+              <Link href={claimHref}>
                 <Sparkles className="size-5" />
                 Claim Your Reward
                 <ArrowRight className="size-5" />
               </Link>
             </Button>
             <Button size="xl" variant="outline" asChild>
-              <Link href="/">
+              <Link href={homeHref}>
                 Learn More About JeffreysPrompts
               </Link>
             </Button>
@@ -84,7 +133,7 @@ export default async function ReferralLandingPage({ params }: ReferralLandingPag
           {/* Referral Code Display */}
           <div className="mt-8 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-muted text-sm">
             <span className="text-muted-foreground">Your referral code:</span>
-            <span className="font-mono font-bold">{code}</span>
+            <span className="font-mono font-bold">{referralCode.code}</span>
           </div>
         </div>
       </div>
@@ -115,7 +164,7 @@ export default async function ReferralLandingPage({ params }: ReferralLandingPag
 
             <div className="mt-6 pt-6 border-t text-center">
               <Button variant="glow" size="lg" asChild>
-                <Link href={`/?ref=${code}`}>
+                <Link href={claimHref}>
                   Get Started Now
                   <ArrowRight className="size-4" />
                 </Link>

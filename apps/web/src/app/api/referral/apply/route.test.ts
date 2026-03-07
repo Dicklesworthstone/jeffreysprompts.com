@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { NextRequest } from "next/server";
-import { GET } from "./route";
+import { GET, POST } from "./route";
 import {
   applyReferralCode,
   getOrCreateReferralCode,
@@ -14,6 +14,26 @@ function clearReferralStore() {
   globalStore.__jfp_referral_store__ = undefined;
 }
 
+function applyCookieHeaderToRequest(request: NextRequest, cookieHeader: string | null) {
+  if (!cookieHeader) {
+    return;
+  }
+
+  for (const rawPart of cookieHeader.split(";")) {
+    const part = rawPart.trim();
+    if (part.length === 0) {
+      continue;
+    }
+
+    const splitAt = part.indexOf("=");
+    if (splitAt <= 0) {
+      continue;
+    }
+
+    request.cookies.set(part.slice(0, splitAt), part.slice(splitAt + 1));
+  }
+}
+
 function makeRequest(url: string, cookieValue?: string): NextRequest {
   const headers = new Headers();
   if (cookieValue) {
@@ -21,16 +41,24 @@ function makeRequest(url: string, cookieValue?: string): NextRequest {
   }
   const init: NextRequestInit = { method: "GET", headers };
   const request = new NextRequest(url, init);
-  const cookieHeader = headers.get("cookie");
-  if (cookieHeader) {
-    const parts = cookieHeader.split(";").map((part) => part.trim());
-    for (const part of parts) {
-      if (!part) continue;
-      const splitAt = part.indexOf("=");
-      if (splitAt <= 0) continue;
-      request.cookies.set(part.slice(0, splitAt), part.slice(splitAt + 1));
-    }
+  applyCookieHeaderToRequest(request, headers.get("cookie"));
+  return request;
+}
+
+function makePostRequest(body: unknown, cookieValue?: string): NextRequest {
+  const headers = new Headers({
+    "Content-Type": "application/json",
+  });
+  if (cookieValue) {
+    headers.set("Cookie", `${USER_ID_COOKIE_NAME}=${cookieValue}`);
   }
+
+  const request = new NextRequest("http://localhost/api/referral/apply", {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+  });
+  applyCookieHeaderToRequest(request, headers.get("cookie"));
   return request;
 }
 
@@ -144,5 +172,46 @@ describe("/api/referral/apply GET", () => {
     expect(payload.success).toBe(true);
     expect(payload.data.valid).toBe(false);
     expect(payload.data.message).toBe("You have already used a referral code.");
+  });
+});
+
+describe("/api/referral/apply POST", () => {
+  beforeEach(() => {
+    clearReferralStore();
+  });
+
+  it("applies a valid referral code and sets the anonymous user cookie", async () => {
+    const referralCode = getOrCreateReferralCode("referrer-user");
+    const response = await POST(makePostRequest({ code: referralCode.code }));
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.success).toBe(true);
+    expect(payload.data.applied).toBe(true);
+    expect(response.headers.get("set-cookie")).toContain(`${USER_ID_COOKIE_NAME}=`);
+  });
+
+  it("returns 400 for an invalid referral code", async () => {
+    const response = await POST(makePostRequest({ code: "missing123" }));
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload.success).toBe(false);
+    expect(payload.error).toBe("Invalid referral code.");
+  });
+
+  it("returns 400 when the anonymous user already used a referral code", async () => {
+    const { userId, cookieValue } = await bootstrapAnonymousUser();
+    const firstCode = getOrCreateReferralCode("referrer-a");
+    const secondCode = getOrCreateReferralCode("referrer-b");
+
+    applyReferralCode({ code: firstCode.code, refereeId: userId });
+
+    const response = await POST(makePostRequest({ code: secondCode.code }, cookieValue));
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload.success).toBe(false);
+    expect(payload.error).toBe("You have already used a referral code.");
   });
 });
