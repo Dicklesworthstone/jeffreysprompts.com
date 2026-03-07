@@ -68,8 +68,10 @@ function toBase64Url(value: Buffer): string {
     .replace(/\//g, "_");
 }
 
-function signUserId(userId: string): string {
-  return toBase64Url(createHmac("sha256", getSecret()).update(userId).digest());
+function signValue(value: string, purpose: string): string {
+  return toBase64Url(
+    createHmac("sha256", getSecret()).update(`${purpose}:${value}`).digest()
+  );
 }
 
 function isValidUserId(userId: string): boolean {
@@ -87,10 +89,18 @@ function createUserId(): string {
 }
 
 export function createUserIdCookieValue(userId: string): string {
-  return `${userId}.${signUserId(userId)}`;
+  return createSignedToken(userId, "user-id");
 }
 
-export function parseUserIdCookie(value?: string | null): string | null {
+export function createSignedToken(value: string, purpose: string): string {
+  return `${value}.${signValue(value, purpose)}`;
+}
+
+export function parseSignedToken(
+  value: string | null | undefined,
+  purpose: string,
+  validateValue?: (value: string) => boolean
+): string | null {
   if (!value) return null;
   const token = value.trim();
   if (!token) return null;
@@ -98,12 +108,13 @@ export function parseUserIdCookie(value?: string | null): string | null {
   const splitAt = token.lastIndexOf(".");
   if (splitAt <= 0) return null;
 
-  const userId = token.slice(0, splitAt);
+  const payload = token.slice(0, splitAt);
   const signature = token.slice(splitAt + 1);
 
-  if (!isValidUserId(userId) || !signature) return null;
+  if (!signature) return null;
+  if (validateValue && !validateValue(payload)) return null;
 
-  const expected = signUserId(userId);
+  const expected = signValue(payload, purpose);
   const sigBuf = Buffer.from(signature);
   const expectedBuf = Buffer.from(expected);
 
@@ -115,7 +126,11 @@ export function parseUserIdCookie(value?: string | null): string | null {
     return null;
   }
 
-  return userId;
+  return payload;
+}
+
+export function parseUserIdCookie(value?: string | null): string | null {
+  return parseSignedToken(value, "user-id", isValidUserId);
 }
 
 export function getUserIdFromRequest(request: NextRequest): string | null {

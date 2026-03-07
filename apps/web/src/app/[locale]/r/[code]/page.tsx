@@ -35,7 +35,7 @@ export default async function ReferralLandingPage({ params }: ReferralLandingPag
   const resolvedParams = await params;
   const locale = resolvedParams.locale;
   const code = resolvedParams.code;
-  const normalizedCode = code.trim().toUpperCase();
+  const normalizedCode = code.trim();
   const referralCode = getReferralCodeByCode(normalizedCode);
   const homeHref = localizeHref(locale, "/");
 

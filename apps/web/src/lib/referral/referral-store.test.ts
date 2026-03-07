@@ -4,6 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
+import { createSignedToken } from "@/lib/user-id";
 import {
   getOrCreateReferralCode,
   getReferralCodeByCode,
@@ -46,7 +47,7 @@ describe("referral-store", () => {
       expect(code.id).toBeTruthy();
       expect(code.userId).toBe("user-1");
       expect(code.code).toBeTruthy();
-      expect(code.code.length).toBe(8);
+      expect(code.code).toBe("u_user-1");
       expect(code.createdAt).toBeTruthy();
     });
 
@@ -63,10 +64,11 @@ describe("referral-store", () => {
       expect(code1.code).not.toBe(code2.code);
     });
 
-    it("generates codes using the expected safe character set", () => {
-      for (let i = 0; i < 50; i += 1) {
-        const code = getOrCreateReferralCode(`charset-user-${i}`);
-        expect(code.code).toMatch(/^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{8}$/);
+    it("generates deterministic deploy-stable codes that round-trip back to the user", () => {
+      for (let i = 0; i < 10; i += 1) {
+        const created = getOrCreateReferralCode(`charset-user-${i}`);
+        const resolved = getReferralCodeByCode(created.code);
+        expect(resolved?.userId).toBe(`charset-user-${i}`);
       }
     });
   });
@@ -82,14 +84,22 @@ describe("referral-store", () => {
       expect(found?.id).toBe(created.id);
     });
 
-    it("normalizes code to uppercase", () => {
+    it("trims surrounding whitespace", () => {
       const created = getOrCreateReferralCode("user-1");
-      const found = getReferralCodeByCode(created.code.toLowerCase());
+      const found = getReferralCodeByCode(`  ${created.code}  `);
       expect(found?.id).toBe(created.id);
     });
 
     it("returns null for unknown code", () => {
       expect(getReferralCodeByCode("XXXXXXXX")).toBeNull();
+    });
+
+    it("accepts legacy signed codes after store state is gone", () => {
+      const legacyCode = createSignedToken("legacy-user", "referral-code");
+      const found = getReferralCodeByCode(legacyCode);
+
+      expect(found?.userId).toBe("legacy-user");
+      expect(found?.code).toBe(legacyCode);
     });
   });
 
@@ -104,8 +114,10 @@ describe("referral-store", () => {
       expect(found?.id).toBe(created.id);
     });
 
-    it("returns null for user with no code", () => {
-      expect(getReferralCodeByUserId("nobody")).toBeNull();
+    it("returns a deterministic code for users without an in-memory entry", () => {
+      const found = getReferralCodeByUserId("nobody");
+      expect(found?.userId).toBe("nobody");
+      expect(found?.code).toBe("u_nobody");
     });
   });
 
@@ -350,6 +362,12 @@ describe("referral-store", () => {
     it("generates correct URL", () => {
       expect(getReferralUrl("ABC123XY")).toBe(
         "https://jeffreysprompts.com/r/ABC123XY"
+      );
+    });
+
+    it("encodes characters that are unsafe inside a URL path segment", () => {
+      expect(getReferralUrl("legacy/user code")).toBe(
+        "https://jeffreysprompts.com/r/legacy%2Fuser%20code"
       );
     });
   });

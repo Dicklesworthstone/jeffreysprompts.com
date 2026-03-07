@@ -6,7 +6,7 @@ const mockReplace = vi.fn();
 const mockSuccess = vi.fn();
 const mockError = vi.fn();
 
-let mockSearch = "ref=testcode&q=robot";
+let mockSearch = "ref=legacy-user.AbcDEF_123&q=robot";
 let mockPathname = "/es";
 
 vi.mock("next/navigation", () => ({
@@ -27,7 +27,7 @@ vi.mock("@/components/ui/toast", () => ({
 describe("ReferralQueryProcessor", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockSearch = "ref=testcode&q=robot";
+    mockSearch = "ref=legacy-user.AbcDEF_123&q=robot";
     mockPathname = "/es";
     vi.stubGlobal("fetch", vi.fn());
   });
@@ -55,7 +55,7 @@ describe("ReferralQueryProcessor", () => {
         "/api/referral/apply",
         expect.objectContaining({
           method: "POST",
-          body: JSON.stringify({ code: "TESTCODE" }),
+          body: JSON.stringify({ code: "legacy-user.AbcDEF_123" }),
         })
       );
     });
@@ -116,4 +116,3 @@ describe("ReferralQueryProcessor", () => {
     expect(mockReplace).not.toHaveBeenCalled();
   });
 });
-

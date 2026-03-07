@@ -7,6 +7,8 @@ import {
 } from "@/lib/referral/referral-store";
 import { USER_ID_COOKIE_NAME } from "@/lib/user-id";
 
+const REFERRAL_CLAIM_COOKIE_NAME = "jfp_referral_claim";
+
 type NextRequestInit = NonNullable<ConstructorParameters<typeof NextRequest>[1]>;
 
 function clearReferralStore() {
@@ -34,10 +36,20 @@ function applyCookieHeaderToRequest(request: NextRequest, cookieHeader: string |
   }
 }
 
-function makeRequest(url: string, cookieValue?: string): NextRequest {
+function buildCookieHeader(
+  cookies: Record<string, string | null | undefined>
+): string | undefined {
+  const parts = Object.entries(cookies)
+    .filter((entry): entry is [string, string] => typeof entry[1] === "string" && entry[1].length > 0)
+    .map(([name, value]) => `${name}=${value}`);
+
+  return parts.length > 0 ? parts.join("; ") : undefined;
+}
+
+function makeRequest(url: string, cookieHeader?: string): NextRequest {
   const headers = new Headers();
-  if (cookieValue) {
-    headers.set("Cookie", `${USER_ID_COOKIE_NAME}=${cookieValue}`);
+  if (cookieHeader) {
+    headers.set("Cookie", cookieHeader);
   }
   const init: NextRequestInit = { method: "GET", headers };
   const request = new NextRequest(url, init);
@@ -45,12 +57,12 @@ function makeRequest(url: string, cookieValue?: string): NextRequest {
   return request;
 }
 
-function makePostRequest(body: unknown, cookieValue?: string): NextRequest {
+function makePostRequest(body: unknown, cookieHeader?: string): NextRequest {
   const headers = new Headers({
     "Content-Type": "application/json",
   });
-  if (cookieValue) {
-    headers.set("Cookie", `${USER_ID_COOKIE_NAME}=${cookieValue}`);
+  if (cookieHeader) {
+    headers.set("Cookie", cookieHeader);
   }
 
   const request = new NextRequest("http://localhost/api/referral/apply", {
@@ -144,7 +156,7 @@ describe("/api/referral/apply GET", () => {
     const referralCode = getOrCreateReferralCode(userId);
     const request = makeRequest(
       `http://localhost/api/referral/apply?code=${referralCode.code}`,
-      cookieValue
+      buildCookieHeader({ [USER_ID_COOKIE_NAME]: cookieValue })
     );
 
     const response = await GET(request);
@@ -162,7 +174,7 @@ describe("/api/referral/apply GET", () => {
     applyReferralCode({ code: referralCode.code, refereeId: userId });
     const request = makeRequest(
       `http://localhost/api/referral/apply?code=${referralCode.code}`,
-      cookieValue
+      buildCookieHeader({ [USER_ID_COOKIE_NAME]: cookieValue })
     );
 
     const response = await GET(request);
@@ -191,6 +203,18 @@ describe("/api/referral/apply POST", () => {
     expect(response.headers.get("set-cookie")).toContain(`${USER_ID_COOKIE_NAME}=`);
   });
 
+  it("applies a valid referral code even after the in-memory store is cleared", async () => {
+    const referralCode = getOrCreateReferralCode("referrer-user");
+    clearReferralStore();
+
+    const response = await POST(makePostRequest({ code: referralCode.code }));
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.success).toBe(true);
+    expect(payload.data.applied).toBe(true);
+  });
+
   it("returns 400 for an invalid referral code", async () => {
     const response = await POST(makePostRequest({ code: "missing123" }));
     const payload = await response.json();
@@ -207,10 +231,46 @@ describe("/api/referral/apply POST", () => {
 
     applyReferralCode({ code: firstCode.code, refereeId: userId });
 
-    const response = await POST(makePostRequest({ code: secondCode.code }, cookieValue));
+    const response = await POST(
+      makePostRequest(
+        { code: secondCode.code },
+        buildCookieHeader({ [USER_ID_COOKIE_NAME]: cookieValue })
+      )
+    );
     const payload = await response.json();
 
     expect(response.status).toBe(400);
+    expect(payload.success).toBe(false);
+    expect(payload.error).toBe("You have already used a referral code.");
+  });
+
+  it("rejects a second referral after store reset when the claim cookie is present", async () => {
+    const firstCode = getOrCreateReferralCode("referrer-a");
+    const firstResponse = await POST(makePostRequest({ code: firstCode.code }));
+
+    expect(firstResponse.status).toBe(200);
+
+    const userCookie = firstResponse.cookies.get(USER_ID_COOKIE_NAME)?.value;
+    const claimCookie = firstResponse.cookies.get(REFERRAL_CLAIM_COOKIE_NAME)?.value;
+
+    expect(userCookie).toBeTruthy();
+    expect(claimCookie).toBeTruthy();
+
+    clearReferralStore();
+
+    const secondCode = getOrCreateReferralCode("referrer-b");
+    const secondResponse = await POST(
+      makePostRequest(
+        { code: secondCode.code },
+        buildCookieHeader({
+          [USER_ID_COOKIE_NAME]: userCookie,
+          [REFERRAL_CLAIM_COOKIE_NAME]: claimCookie,
+        })
+      )
+    );
+    const payload = await secondResponse.json();
+
+    expect(secondResponse.status).toBe(400);
     expect(payload.success).toBe(false);
     expect(payload.error).toBe("You have already used a referral code.");
   });

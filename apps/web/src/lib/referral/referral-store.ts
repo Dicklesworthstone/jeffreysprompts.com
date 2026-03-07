@@ -2,10 +2,13 @@
  * Referral Program Store
  *
  * Manages referral codes and tracking for user growth.
- * Uses in-memory storage pattern consistent with other stores.
+ *
+ * Referral codes use a deterministic deploy-stable format so they remain valid
+ * across serverless instances and future deployments even when anonymous user
+ * cookies still rely on a deployment-scoped fallback secret. Referral stats
+ * remain in-memory and are therefore best-effort only until this subsystem
+ * gets durable storage.
  */
-
-import { randomBytes } from "crypto";
 
 export type ReferralStatus = "pending" | "converted" | "rewarded";
 
@@ -47,11 +50,10 @@ interface ReferralStore {
 }
 
 const STORE_KEY = "__jfp_referral_store__";
-const CODE_LENGTH = 8;
-const MAX_CODE_ATTEMPTS = 10;
-const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // Uppercase + digits, no confusing chars
-const DIGIT_CHARS = "23456789"; // Keep fallback readable and avoid 0/1 ambiguity
-
+const REFERRAL_CODE_PREFIX = "u_";
+const MAX_USER_ID_LENGTH = 200;
+const BASE64_URL_PATTERN = /^[A-Za-z0-9_-]+$/;
+const LEGACY_SIGNED_REFERRAL_SIGNATURE_LENGTH = 43;
 // Reward constants
 const REFERRER_REWARD_MONTHS = 1; // 1 month free Premium per successful referral
 const MAX_REWARD_MONTHS_PER_YEAR = 12;
@@ -77,39 +79,41 @@ function getStore(): ReferralStore {
   return globalStore[STORE_KEY];
 }
 
-/**
- * Generate a cryptographically secure referral code.
- * Uses randomBytes with rejection sampling for unbiased output.
- */
-function createReferralCode(): string {
-  const charSetLength = CODE_CHARS.length;
-  const maxUnbiasedValue = Math.floor(256 / charSetLength) * charSetLength;
-  let code = "";
-
-  while (code.length < CODE_LENGTH) {
-    const bytesNeeded = (CODE_LENGTH - code.length) * 2;
-    const bytes = randomBytes(bytesNeeded);
-    for (const byte of bytes) {
-      if (code.length >= CODE_LENGTH) break;
-      if (byte < maxUnbiasedValue) {
-        code += CODE_CHARS[byte % charSetLength];
-      }
-    }
-  }
-
-  return code;
+function isValidReferralUserId(userId: string): boolean {
+  if (!userId) return false;
+  if (userId.length > MAX_USER_ID_LENGTH) return false;
+  if (userId.trim() !== userId) return false;
+  return !userId.includes(".");
 }
 
-function createUnbiasedDigit(): string {
-  const charSetLength = DIGIT_CHARS.length;
-  const maxUnbiasedValue = Math.floor(256 / charSetLength) * charSetLength;
+function createReferralCodeToken(userId: string): string {
+  return `${REFERRAL_CODE_PREFIX}${userId}`;
+}
 
-  while (true) {
-    const byte = randomBytes(1)[0];
-    if (byte < maxUnbiasedValue) {
-      return DIGIT_CHARS[byte % charSetLength];
-    }
+function decodeReferralCodeToken(code: string): string | null {
+  if (code.startsWith(REFERRAL_CODE_PREFIX)) {
+    const userId = code.slice(REFERRAL_CODE_PREFIX.length);
+    return isValidReferralUserId(userId) ? userId : null;
   }
+
+  const splitAt = code.lastIndexOf(".");
+  if (splitAt <= 0) {
+    return null;
+  }
+
+  const payload = code.slice(0, splitAt);
+  const signature = code.slice(splitAt + 1);
+  if (!isValidReferralUserId(payload)) {
+    return null;
+  }
+  if (
+    signature.length !== LEGACY_SIGNED_REFERRAL_SIGNATURE_LENGTH ||
+    !BASE64_URL_PATTERN.test(signature)
+  ) {
+    return null;
+  }
+
+  return payload;
 }
 
 /**
@@ -126,17 +130,7 @@ export function getOrCreateReferralCode(userId: string): ReferralCode {
     if (existingCode) return existingCode;
   }
 
-  // Generate unique code
-  let code = "";
-  let attempts = 0;
-  while (!code || store.codesByCode.has(code)) {
-    code = createReferralCode();
-    attempts += 1;
-    if (attempts > MAX_CODE_ATTEMPTS) {
-      // Replace the last character to escape repeated collisions.
-      code = `${createReferralCode().slice(0, CODE_LENGTH - 1)}${createUnbiasedDigit()}`;
-    }
-  }
+  const code = createReferralCodeToken(userId);
 
   const referralCode: ReferralCode = {
     id: crypto.randomUUID(),
@@ -157,10 +151,27 @@ export function getOrCreateReferralCode(userId: string): ReferralCode {
  */
 export function getReferralCodeByCode(code: string): ReferralCode | null {
   const store = getStore();
-  const normalizedCode = code.toUpperCase().trim();
-  const codeId = store.codesByCode.get(normalizedCode);
-  if (!codeId) return null;
-  return store.codes.get(codeId) ?? null;
+  const normalizedCode = code.trim();
+
+  const directCodeId =
+    store.codesByCode.get(normalizedCode) ??
+    store.codesByCode.get(normalizedCode.toUpperCase());
+
+  if (directCodeId) {
+    return store.codes.get(directCodeId) ?? null;
+  }
+
+  const userId = decodeReferralCodeToken(normalizedCode);
+  if (!userId) {
+    return null;
+  }
+
+  return {
+    id: `stateless:${userId}`,
+    userId,
+    code: normalizedCode,
+    createdAt: new Date(0).toISOString(),
+  };
 }
 
 /**
@@ -169,8 +180,16 @@ export function getReferralCodeByCode(code: string): ReferralCode | null {
 export function getReferralCodeByUserId(userId: string): ReferralCode | null {
   const store = getStore();
   const codeId = store.codesByUserId.get(userId);
-  if (!codeId) return null;
-  return store.codes.get(codeId) ?? null;
+  if (codeId) {
+    return store.codes.get(codeId) ?? null;
+  }
+
+  return {
+    id: `stateless:${userId}`,
+    userId,
+    code: createReferralCodeToken(userId),
+    createdAt: new Date(0).toISOString(),
+  };
 }
 
 /**
@@ -323,7 +342,7 @@ export function getReferralStats(userId: string): ReferralStats {
  * Generate the referral URL for a code.
  */
 export function getReferralUrl(code: string): string {
-  return `https://jeffreysprompts.com/r/${code}`;
+  return `https://jeffreysprompts.com/r/${encodeURIComponent(code)}`;
 }
 
 /**

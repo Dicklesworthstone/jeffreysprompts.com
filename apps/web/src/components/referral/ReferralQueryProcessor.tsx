@@ -32,7 +32,7 @@ export function ReferralQueryProcessor() {
   const { success, error } = useToast();
   const attemptedCodeRef = useRef<string | null>(null);
 
-  const referralCode = searchParams.get("ref")?.trim().toUpperCase() ?? "";
+  const referralCode = searchParams.get("ref")?.trim() ?? "";
 
   const clearReferralParam = useCallback(() => {
     const nextUrl = buildUrlWithoutReferral(pathname, searchParams);

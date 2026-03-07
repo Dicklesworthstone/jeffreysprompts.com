@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import ReferralLandingPage, { generateMetadata } from "./page";
 import { getOrCreateReferralCode } from "@/lib/referral/referral-store";
+import { createSignedToken } from "@/lib/user-id";
 
 vi.mock("next/link", () => ({
   default: ({
@@ -40,7 +41,7 @@ describe("ReferralLandingPage", () => {
 
     expect(screen.getByRole("link", { name: "Claim Your Reward" })).toHaveAttribute(
       "href",
-      `/es?ref=${referralCode.code}`
+      `/es?ref=${encodeURIComponent(referralCode.code)}`
     );
     expect(
       screen.getByRole("link", { name: "Learn More About JeffreysPrompts" })
@@ -67,5 +68,37 @@ describe("ReferralLandingPage", () => {
     });
 
     expect(metadata.title).toBe("Referral Link Unavailable - JeffreysPrompts");
+  });
+
+  it("accepts a valid referral code even after the in-memory store is cleared", async () => {
+    const referralCode = getOrCreateReferralCode("referrer-2");
+    clearReferralStore();
+
+    const page = await ReferralLandingPage({
+      params: Promise.resolve({ locale: "es", code: referralCode.code }),
+    });
+
+    render(page);
+
+    expect(screen.getByRole("link", { name: "Claim Your Reward" })).toHaveAttribute(
+      "href",
+      `/es?ref=${encodeURIComponent(referralCode.code)}`
+    );
+  });
+
+  it("still accepts legacy signed referral codes after store state is gone", async () => {
+    const legacyCode = createSignedToken("legacy-referrer", "referral-code");
+    clearReferralStore();
+
+    const page = await ReferralLandingPage({
+      params: Promise.resolve({ locale: "fr", code: legacyCode }),
+    });
+
+    render(page);
+
+    expect(screen.getByRole("link", { name: "Claim Your Reward" })).toHaveAttribute(
+      "href",
+      `/fr?ref=${encodeURIComponent(legacyCode)}`
+    );
   });
 });

@@ -5,7 +5,45 @@ import {
   getReferralByReferee,
   REFERRAL_CONSTANTS,
 } from "@/lib/referral/referral-store";
-import { getOrCreateUserId } from "@/lib/user-id";
+import { createSignedToken, getOrCreateUserId, parseSignedToken } from "@/lib/user-id";
+
+const REFERRAL_CLAIM_COOKIE_NAME = "jfp_referral_claim";
+const REFERRAL_CLAIM_COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year
+
+function getClaimedReferralCode(request: NextRequest): string | null {
+  const cookie = request.cookies.get(REFERRAL_CLAIM_COOKIE_NAME)?.value;
+  if (cookie) {
+    return parseSignedToken(cookie, "referral-claim", (value) => value.trim().length > 0);
+  }
+
+  const header = request.headers.get("cookie");
+  if (!header) {
+    return null;
+  }
+
+  for (const rawPart of header.split(";")) {
+    const part = rawPart.trim();
+    if (!part.startsWith(`${REFERRAL_CLAIM_COOKIE_NAME}=`)) continue;
+    const value = part.slice(REFERRAL_CLAIM_COOKIE_NAME.length + 1);
+    return parseSignedToken(value, "referral-claim", (token) => token.trim().length > 0);
+  }
+
+  return null;
+}
+
+function setClaimedReferralCookie(response: NextResponse, code: string) {
+  response.cookies.set(
+    REFERRAL_CLAIM_COOKIE_NAME,
+    createSignedToken(code, "referral-claim"),
+    {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: REFERRAL_CLAIM_COOKIE_MAX_AGE,
+    }
+  );
+}
 
 /**
  * GET /api/referral/apply?code=XXXX
@@ -73,7 +111,7 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  if (getReferralByReferee(userId)) {
+  if (getClaimedReferralCode(request) || getReferralByReferee(userId)) {
     return createValidationResponse({
       valid: false,
       message: "You have already used a referral code.",
@@ -131,8 +169,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Check if user already has a referral
-  const existingReferral = getReferralByReferee(refereeId);
-  if (existingReferral) {
+  if (getClaimedReferralCode(request) || getReferralByReferee(refereeId)) {
     return NextResponse.json(
       { success: false, error: "You have already used a referral code." },
       { status: 400 }
@@ -166,6 +203,7 @@ export async function POST(request: NextRequest) {
   if (cookie) {
     response.cookies.set(cookie.name, cookie.value, cookie.options);
   }
+  setClaimedReferralCookie(response, result.codeUsed);
 
   return response;
 }
