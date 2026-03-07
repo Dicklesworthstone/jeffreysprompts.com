@@ -25,16 +25,20 @@
 
 ## What is JeffreysPrompts.com?
 
-JeffreysPrompts.com is a platform for discovering, copying, and exporting curated prompts that supercharge your work with AI coding agents like Claude Code, Codex CLI, and Gemini CLI.
+JeffreysPrompts.com is a platform for discovering, copying, exporting, and operationalizing curated prompts for AI coding agents like Claude Code, Codex CLI, and Gemini CLI.
 
-It's two things in one:
+At the repo level, it's four closely related layers:
 
 | Component | Purpose |
 |-----------|---------|
-| **Web App** | Beautiful UI to browse, search, filter, and copy prompts |
-| **CLI Tool (`jfp`)** | Agent-optimized command-line interface with JSON output |
+| **Web App** | Browse, search, rate, share, and export prompts, bundles, and workflows |
+| **CLI Tool (`jfp`)** | Agent-optimized command-line interface with JSON output, premium sync, and MCP server mode |
+| **Shared Core Package** | Typed prompt registry, bundles, workflows, search, templates, and export helpers used by both app and CLI |
+| **Rust Workspace** | In-progress Rust port of `jfp` with SQLite-backed local storage and feature-parity tracking |
 
 Claude Code skills are managed separately in **Jeffrey's Skills.md** (`jsm`). JFP focuses on prompts and markdown export.
+
+The current codebase also includes roadmap, ratings, review, sharing, referral, history, status, admin, moderation, appeals, DMCA, and support-ticket surfaces around the core prompt experience.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -92,7 +96,9 @@ Builds what the agent would want to use, because it WILL be using it. JSON outpu
   - [Robot Mode](#robot-mode)
 - [Architecture](#architecture)
   - [TypeScript-Native Prompts](#typescript-native-prompts)
+  - [Monorepo Layers](#monorepo-layers)
   - [Project Structure](#project-structure)
+  - [API Surface](#api-surface)
 - [Development](#development)
   - [Prerequisites](#prerequisites)
   - [Setup](#setup)
@@ -155,11 +161,16 @@ Claude Code skills are managed in **Jeffrey's Skills.md** (`jsm`). Use JFP for p
 | **SpotlightSearch** | `Cmd+K` command palette with fuzzy search |
 | **One-Click Copy** | Copy any prompt with animated feedback |
 | **Basket System** | Collect multiple prompts for bulk export |
+| **Bundles & Workflows** | Explore grouped prompt packs and multi-step prompt workflows |
+| **Ratings & Reviews** | Community scoring, summaries, and leaderboard views |
+| **Sharing & History** | Share prompts/bundles/workflows and track recently viewed content |
+| **Discovery Surfaces** | Featured, trending, and personalized "For You" views |
+| **Roadmap, Referrals, Status** | Public product roadmap, referral program, and status pages |
 | **Category Filters** | Filter by ideation, documentation, automation, etc. |
 | **Tag Filters** | Multi-select tags for precise filtering |
 | **Dark Mode** | Automatic theme detection with manual toggle |
 | **Mobile Optimized** | Touch-friendly UI with bottom sheets |
-| **Markdown Export** | Download prompts as .md files |
+| **Markdown + SKILL Export** | Download prompts as `.md` or Claude Code `SKILL.md` bundles |
 
 ### CLI Features
 
@@ -169,6 +180,10 @@ Claude Code skills are managed in **Jeffrey's Skills.md** (`jsm`). Use JFP for p
 | **Fuzzy Search** | fzf-style interactive search |
 | **Quick Start** | No args shows intuitive help in ~100 tokens |
 | **TTY Detection** | Auto-switches to JSON when piped |
+| **MCP Server Mode** | `jfp serve` exposes prompts as MCP resources and tools |
+| **Registry Cache + Refresh** | Local cache status/refresh flow for public registry data |
+| **Collections, Notes, Sync (Pro)** | Premium account features for saving and organizing prompts |
+| **Graph + Impact Tools** | Inspect prompt relationships and export dependency graphs |
 | **Single Binary** | Bun-compiled, no runtime dependencies |
 | **Cross-Platform** | Linux, macOS, Windows builds |
 | **Cost Estimator (Pro)** | Estimate tokens and USD cost per prompt |
@@ -184,7 +199,8 @@ If you are not subscribed, Pro commands still exist but will return a clear upgr
 
 **Free (no subscription required):**
 - `jfp list`, `jfp search`, `jfp show`, `jfp copy`, `jfp export`, `jfp render`, `jfp suggest`
-- `jfp bundles`, `jfp bundle`, `jfp categories`, `jfp tags`
+- `jfp bundles`, `jfp bundle`, `jfp categories`, `jfp tags`, `jfp random`
+- `jfp impact`, `jfp graph export`, `jfp serve`, `jfp config`
 - `jfp status`, `jfp refresh`, `jfp open`, `jfp doctor`, `jfp about`, `jfp completion`, `jfp update-cli`
 - `jfp i` (interactive browser)
 
@@ -249,10 +265,32 @@ jfp show <id>                 # Show full prompt
 jfp show idea-wizard --json   # JSON output
 jfp show idea-wizard --raw    # Just the prompt text
 
+jfp random                    # Pick a random prompt
+jfp random --category testing # Filtered random prompt
+
+jfp copy <id>                 # Copy to clipboard
+jfp export <id>               # Export as markdown
+jfp export <id> --format md   # Export as markdown (explicit)
+jfp render <id>               # Fill prompt variables/context
+jfp suggest "<task>"          # Task-based recommendations
+
+jfp status                    # Registry cache status
+jfp refresh                   # Refresh cached registry
+jfp config list               # Show CLI configuration
+jfp config get registry.url   # Read a config key
+
 jfp recommend                 # Personalized recommendations (Pro)
 jfp recommend idea-wizard     # Related prompts (Pro)
 jfp cost idea-wizard          # Estimate tokens + cost (Pro)
 jfp cost --alerts             # Show recent budget alerts (Pro)
+
+jfp login                     # Authenticate with JeffreysPrompts Pro
+jfp logout                    # Clear local credentials
+jfp whoami                    # Show current account
+jfp save <id>                 # Save a prompt to your library (Pro)
+jfp notes <id> --add "..."    # Add personal notes (Pro)
+jfp sync                      # Sync premium library locally (Pro)
+jfp collections               # Manage collections (Pro)
 
 jfp impact <id>               # Show downstream dependencies
 jfp graph export              # Export prompt dependency graph
@@ -262,12 +300,9 @@ jfp packs install <id>        # Install/subscribe to premium packs (Pro)
 jfp packs update <id>         # Update a premium pack (Pro)
 jfp packs changelog <id>      # View a pack changelog (Pro)
 
-jfp copy <id>                 # Copy to clipboard
-
-jfp export <id>               # Export as markdown
-jfp export <id> --format md   # Export as markdown (explicit)
-
 jfp i                         # Interactive browser (fzf-style)
+jfp serve                     # Start MCP server on stdio
+jfp serve --config            # Print Claude Desktop MCP config snippet
 
 jfp categories                # List categories
 jfp tags                      # List tags with counts
@@ -342,7 +377,7 @@ MORE: jfp help | Docs: jeffreysprompts.com
 Prompts are defined as TypeScript objects, not markdown files:
 
 ```typescript
-// apps/web/src/lib/prompts/registry.ts
+// packages/core/src/prompts/registry.ts
 
 export const prompts: Prompt[] = [
   {
@@ -380,6 +415,19 @@ export const prompts: Prompt[] = [
 | **No Parsing** | No gray-matter, no markdown AST, no regex |
 | **Single Source** | The data IS the code |
 
+### Monorepo Layers
+
+The repo is organized around a shared data/model layer with multiple consumers:
+
+| Layer | Location | Responsibility |
+|-------|----------|----------------|
+| **Core** | `packages/core` | Prompt registry, bundles, workflows, search, templates, export, cost helpers |
+| **TypeScript CLI** | `packages/cli` + `jfp.ts` | Human/agent CLI commands, auth flows, premium sync, MCP server mode |
+| **Next.js App** | `apps/web` | Public web UI, API routes, install script, public pages, internal ops surfaces |
+| **Rust CLI Port** | `crates/jfp` | Parallel implementation of `jfp` with SQLite storage and parity tracking |
+
+The web app prebuild step validates prompt data and generates `registry.json` / `registry.manifest.json` from `packages/core`, keeping the published registry aligned with the typed source data.
+
 ### Project Structure
 
 ```
@@ -387,11 +435,17 @@ jeffreysprompts.com/
 ├── README.md
 ├── AGENTS.md                      # Rules for AI agents
 ├── PLAN_TO_MAKE_...md             # Detailed implementation blueprint
+├── Cargo.toml                     # Rust workspace for jfp port
 ├── package.json
 ├── bun.lock
 │
 ├── jfp.ts                         # CLI entrypoint
 ├── jfp.test.ts                    # CLI tests
+├── crates/
+│   └── jfp/                       # Rust CLI port
+├── packages/
+│   ├── core/                      # Shared prompt data, search, export, templates
+│   └── cli/                       # TypeScript CLI commands and helpers
 │
 ├── .claude/
 │   └── skills/                    # Internal authoring helpers (not shipped)
@@ -399,23 +453,32 @@ jeffreysprompts.com/
 │       │   └── SKILL.md
 │       └── skill-maker/
 │           └── SKILL.md
-│
 ├── apps/
 │   └── web/                       # Next.js 16 App
 │       ├── src/
 │       │   ├── app/               # App Router pages
 │       │   ├── components/        # React components
-│       │   └── lib/
-│       │       ├── prompts/       # Prompt types & registry
-│       │       ├── search/        # MiniSearch engine
-│       │       ├── export/        # Markdown export
-│       │       └── transcript/    # Making-of page processing
+│       │   ├── hooks/             # Client hooks for filters, ratings, history, etc.
+│       │   └── lib/               # Web-only stores and service modules
 │       └── package.json
 │
 └── scripts/
     ├── build-cli.sh               # Build jfp binaries
+    ├── build-data.ts              # Generate registry JSON assets
+    ├── validate-prompts.ts        # Validate prompts/bundles/workflows
     └── extract-transcript.ts      # Extract Claude Code session
 ```
+
+### API Surface
+
+The Next.js app exposes more than just prompt listing endpoints. Current route groups include:
+
+- `/api/prompts`, `/api/export`, `/api/featured`, `/api/skills/[id]`
+- `/api/ratings`, `/api/reviews`, `/api/share`, `/api/history`
+- `/api/roadmap`, `/api/referral/*`, `/api/status/*`, `/api/health/*`
+- `/api/admin/*`, `/api/appeals`, `/api/dmca`, `/api/support/tickets`
+
+Those APIs back public browsing features plus internal/admin workflows that live in the same monorepo.
 
 ---
 
@@ -459,7 +522,7 @@ bun run lint          # ESLint
 bun run lint:all      # ESLint + Oxlint
 
 # CLI
-bun test jfp.test.ts
+bun run test:cli
 ```
 
 **Important:** Always use `bun run test`, never `bun test`. The latter bypasses vitest's DOM environment configuration.
