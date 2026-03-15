@@ -116,7 +116,7 @@ pub fn run(
         Ok(db) => db,
         Err(e) => {
             if use_json {
-                eprintln!(r#"{{"error": "database_error", "message": "{}"}}"#, e);
+                println!(r#"{{"error": "database_error", "message": "{}"}}"#, e);
             } else {
                 eprintln!("Error opening database: {}", e);
             }
@@ -140,7 +140,7 @@ pub fn run(
             Ok(p) => p,
             Err(e) => {
                 if use_json {
-                    eprintln!(r#"{{"error": "database_error", "message": "{}"}}"#, e);
+                    println!(r#"{{"error": "database_error", "message": "{}"}}"#, e);
                 } else {
                     eprintln!("Error listing prompts: {}", e);
                 }
@@ -155,14 +155,14 @@ pub fn run(
                 Ok(Some(p)) => prompts.push(p),
                 Ok(None) => {
                     if use_json {
-                        eprintln!(r#"{{"error": "not_found", "id": "{}"}}"#, id);
+                        println!(r#"{{"error": "not_found", "id": "{}"}}"#, id);
                     } else {
                         eprintln!("Warning: Prompt '{}' not found, skipping", id);
                     }
                 }
                 Err(e) => {
                     if use_json {
-                        eprintln!(r#"{{"error": "database_error", "message": "{}"}}"#, e);
+                        println!(r#"{{"error": "database_error", "message": "{}"}}"#, e);
                     } else {
                         eprintln!("Error getting prompt '{}': {}", id, e);
                     }
@@ -208,7 +208,7 @@ pub fn run(
         if !dir_path.exists() {
             if let Err(e) = fs::create_dir_all(dir_path) {
                 if use_json {
-                    eprintln!(r#"{{"error": "mkdir_error", "message": "{}"}}"#, e);
+                    println!(r#"{{"error": "mkdir_error", "message": "{}"}}"#, e);
                 } else {
                     eprintln!("Error creating directory: {}", e);
                 }
@@ -220,7 +220,7 @@ pub fn run(
             Ok(path) => path,
             Err(e) => {
                 if use_json {
-                    eprintln!(r#"{{"error": "canonicalize_error", "message": "{}"}}"#, e);
+                    println!(r#"{{"error": "canonicalize_error", "message": "{}"}}"#, e);
                 } else {
                     eprintln!("Error resolving output directory: {}", e);
                 }
@@ -297,7 +297,7 @@ pub fn run(
         match serde_json::to_string_pretty(&output) {
             Ok(json) => println!("{}", json),
             Err(e) => {
-                eprintln!(r#"{{"error": "serialization_error", "message": "{}"}}"#, e);
+                println!(r#"{{"error": "serialization_error", "message": "{}"}}"#, e);
                 return ExitCode::FAILURE;
             }
         }

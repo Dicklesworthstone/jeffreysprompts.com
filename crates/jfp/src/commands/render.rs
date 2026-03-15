@@ -42,7 +42,7 @@ pub fn run(
         Ok(db) => db,
         Err(e) => {
             if use_json {
-                eprintln!(r#"{{"error": "database_error", "message": "{}"}}"#, e);
+                println!(r#"{{"error": "database_error", "message": "{}"}}"#, e);
             } else {
                 eprintln!("Error opening database: {}", e);
             }
@@ -72,7 +72,7 @@ pub fn run(
         }
         Err(e) => {
             if use_json {
-                eprintln!(r#"{{"error": "database_error", "message": "{}"}}"#, e);
+                println!(r#"{{"error": "database_error", "message": "{}"}}"#, e);
             } else {
                 eprintln!("Error getting prompt: {}", e);
             }
@@ -86,7 +86,7 @@ pub fn run(
             Ok(ctx) => ctx,
             Err(e) => {
                 if use_json {
-                    eprintln!(r#"{{"error": "context_error", "message": "{}"}}"#, e);
+                    println!(r#"{{"error": "context_error", "message": "{}"}}"#, e);
                 } else {
                     eprintln!("Error loading context: {}", e);
                 }
@@ -131,7 +131,7 @@ pub fn run(
         match serde_json::to_string_pretty(&output) {
             Ok(json) => println!("{}", json),
             Err(e) => {
-                eprintln!(r#"{{"error": "serialization_error", "message": "{}"}}"#, e);
+                println!(r#"{{"error": "serialization_error", "message": "{}"}}"#, e);
                 return ExitCode::FAILURE;
             }
         }

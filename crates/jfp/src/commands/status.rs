@@ -93,7 +93,7 @@ pub fn run(use_json: bool) -> ExitCode {
         match serde_json::to_string_pretty(&output) {
             Ok(json) => println!("{}", json),
             Err(e) => {
-                eprintln!(r#"{{"error": "serialization_error", "message": "{}"}}"#, e);
+                println!(r#"{{"error": "serialization_error", "message": "{}"}}"#, e);
                 return ExitCode::FAILURE;
             }
         }

@@ -35,7 +35,7 @@ pub fn run(query: &str, limit: usize, use_json: bool) -> ExitCode {
     // Validate limit
     if limit == 0 || limit > 100 {
         if use_json {
-            eprintln!(r#"{{"error": "invalid_limit", "message": "Limit must be between 1 and 100"}}"#);
+            println!(r#"{{"error": "invalid_limit", "message": "Limit must be between 1 and 100"}}"#);
         } else {
             eprintln!("Error: Limit must be between 1 and 100");
         }
@@ -45,7 +45,7 @@ pub fn run(query: &str, limit: usize, use_json: bool) -> ExitCode {
     // Validate query
     if query.trim().is_empty() {
         if use_json {
-            eprintln!(r#"{{"error": "empty_query", "message": "Search query cannot be empty"}}"#);
+            println!(r#"{{"error": "empty_query", "message": "Search query cannot be empty"}}"#);
         } else {
             eprintln!("Error: Search query cannot be empty");
         }
@@ -57,7 +57,7 @@ pub fn run(query: &str, limit: usize, use_json: bool) -> ExitCode {
         Ok(db) => db,
         Err(e) => {
             if use_json {
-                eprintln!(r#"{{"error": "database_error", "message": "{}"}}"#, e);
+                println!(r#"{{"error": "database_error", "message": "{}"}}"#, e);
             } else {
                 eprintln!("Error opening database: {}", e);
             }
@@ -84,7 +84,7 @@ pub fn run(query: &str, limit: usize, use_json: bool) -> ExitCode {
                 Ok(r) => r,
                 Err(_) => {
                     if use_json {
-                        eprintln!(r#"{{"error": "search_error", "message": "{}"}}"#, e);
+                        println!(r#"{{"error": "search_error", "message": "{}"}}"#, e);
                     } else {
                         eprintln!("Search error: {}", e);
                     }
@@ -113,7 +113,7 @@ pub fn run(query: &str, limit: usize, use_json: bool) -> ExitCode {
         match serde_json::to_string_pretty(&output) {
             Ok(json) => println!("{}", json),
             Err(e) => {
-                eprintln!(r#"{{"error": "serialization_error", "message": "{}"}}"#, e);
+                println!(r#"{{"error": "serialization_error", "message": "{}"}}"#, e);
                 return ExitCode::FAILURE;
             }
         }

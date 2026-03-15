@@ -46,7 +46,7 @@ pub fn run(task: &str, limit: usize, semantic: bool, use_json: bool) -> ExitCode
         Ok(db) => db,
         Err(e) => {
             if use_json {
-                eprintln!(r#"{{"error": "database_error", "message": "{}"}}"#, e);
+                println!(r#"{{"error": "database_error", "message": "{}"}}"#, e);
             } else {
                 eprintln!("Error opening database: {}", e);
             }
@@ -68,7 +68,7 @@ pub fn run(task: &str, limit: usize, semantic: bool, use_json: bool) -> ExitCode
         Ok(r) => r,
         Err(e) => {
             if use_json {
-                eprintln!(r#"{{"error": "search_error", "message": "{}"}}"#, e);
+                println!(r#"{{"error": "search_error", "message": "{}"}}"#, e);
             } else {
                 eprintln!("Error searching: {}", e);
             }
@@ -101,7 +101,7 @@ pub fn run(task: &str, limit: usize, semantic: bool, use_json: bool) -> ExitCode
         match serde_json::to_string_pretty(&output) {
             Ok(json) => println!("{}", json),
             Err(e) => {
-                eprintln!(r#"{{"error": "serialization_error", "message": "{}"}}"#, e);
+                println!(r#"{{"error": "serialization_error", "message": "{}"}}"#, e);
                 return ExitCode::FAILURE;
             }
         }

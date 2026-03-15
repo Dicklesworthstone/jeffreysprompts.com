@@ -114,7 +114,7 @@ fn print_output(output: &UpdateOutput, use_json: bool, show_manual_update: bool)
         match serde_json::to_string_pretty(output) {
             Ok(json) => println!("{}", json),
             Err(e) => {
-                eprintln!(r#"{{"error": "serialization_error", "message": "{}"}}"#, e);
+                println!(r#"{{"error": "serialization_error", "message": "{}"}}"#, e);
                 return ExitCode::FAILURE;
             }
         }

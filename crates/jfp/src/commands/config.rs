@@ -44,7 +44,7 @@ fn emit_json(output: &ConfigOutput) -> ExitCode {
             ExitCode::SUCCESS
         }
         Err(e) => {
-            eprintln!(r#"{{"error": "serialization_error", "message": "{}"}}"#, e);
+            println!(r#"{{"error": "serialization_error", "message": "{}"}}"#, e);
             ExitCode::FAILURE
         }
     }
