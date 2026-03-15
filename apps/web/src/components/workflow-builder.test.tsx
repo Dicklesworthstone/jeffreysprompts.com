@@ -61,7 +61,7 @@ vi.mock("@/components/ui/toast", () => ({
 let storedDraft: string | null = null;
 vi.mock("@/hooks/useLocalStorage", () => ({
   useLocalStorage: (_key: string, defaultValue: unknown) => {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { useState, useCallback } = require("react");
     const [value, setValue] = useState(() => {
       if (storedDraft) {
