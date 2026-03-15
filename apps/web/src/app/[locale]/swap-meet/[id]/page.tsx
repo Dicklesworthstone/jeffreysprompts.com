@@ -38,6 +38,7 @@ import { trackHistoryView } from "@/lib/history/client";
 import { copyToClipboard } from "@/lib/clipboard";
 import { localizeHref } from "@/i18n/config";
 import { CommunityPromptCard } from "@/components/swap-meet/CommunityPromptCard";
+import { ClientDate } from "@/components/ClientDate";
 import type { CommunityPrompt } from "@/lib/swap-meet/types";
 import { getCommunityPrompt, getRelatedCommunityPrompts } from "@/lib/swap-meet/data";
 
@@ -227,7 +228,7 @@ export default function CommunityPromptDetailPage() {
               <div className="h-8 w-px bg-neutral-200 dark:bg-neutral-700" />
               <div className="flex items-center gap-1">
                 <Calendar className="h-4 w-4" />
-                {formatDate(prompt.createdAt)}
+                <ClientDate date={prompt.createdAt} format="date" fallback={formatDate(prompt.createdAt)} />
               </div>
               <div className="flex items-center gap-1">
                 <Star className="h-4 w-4 text-amber-500" fill="currentColor" />
