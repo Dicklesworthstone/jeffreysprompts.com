@@ -46,7 +46,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useToast } from "@/components/ui/toast";
+import { useToast } from "@/components/ui/use-toast";
+import { ClientDate } from "@/components/ClientDate";
 import { cn } from "@/lib/utils";
 import { copyToClipboard } from "@/lib/clipboard";
 import { trackEvent } from "@/lib/analytics";
@@ -72,8 +73,7 @@ export interface ShareLink {
 }
 
 export interface ShareDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  isOpen: boolean;
   contentType: ShareableContentType;
   contentId: string;
   contentTitle: string;
@@ -122,8 +122,7 @@ function getContentTypeLabel(contentType: ShareableContentType): string {
 }
 
 export function ShareDialog({
-  open,
-  onOpenChange,
+  isOpen,
   contentType,
   contentId,
   contentTitle,
@@ -152,12 +151,12 @@ export function ShareDialog({
   const contentTypeLabel = getContentTypeLabel(contentType);
 
   useEffect(() => {
-    if (!open) return;
+    if (!isOpen) return;
 
     setPasswordEnabled(hasPassword(existingShare));
     setPassword("");
     setExpiration(getExpirationValue(existingShare));
-  }, [open, existingShare]);
+  }, [isOpen, existingShare]);
 
   const handleCopyLink = useCallback(async () => {
     if (!shareUrl) return;
@@ -291,7 +290,7 @@ export function ShareDialog({
   );
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open}>
       <DialogContent size="default">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -394,7 +393,7 @@ export function ShareDialog({
                       <Clock className="h-4 w-4" />
                       <span>
                         Expires{" "}
-                        {new Date(existingShare.expiresAt).toLocaleDateString()}
+                        <ClientDate date={existingShare.expiresAt} format="date" />
                       </span>
                     </div>
                   )}
@@ -504,7 +503,7 @@ export function ShareDialog({
         </DialogBody>
 
         <DialogFooter separated>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => !isOpen}>
             Close
           </Button>
         </DialogFooter>

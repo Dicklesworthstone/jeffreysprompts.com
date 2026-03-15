@@ -18,6 +18,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { ClientDate } from "@/components/ClientDate";
 import { useToast } from "@/components/ui/toast";
 import type { AppealStatus } from "@/lib/moderation/appeal-store";
 
@@ -615,7 +616,7 @@ function AppealCard({
                     {appeal.action.details && (
                       <p><span className="font-medium">Details:</span> {appeal.action.details}</p>
                     )}
-                    <p><span className="font-medium">Date:</span> {new Date(appeal.action.createdAt).toLocaleDateString()}</p>
+                    <p><span className="font-medium">Date:</span> <ClientDate date={appeal.action.createdAt} format="date" /></p>
                   </div>
                 </div>
               )}

@@ -1,15 +1,10 @@
 "use client";
 
 import * as React from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { motion } from "framer-motion";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { Users, Clock, CheckCircle, Trophy, Gift } from "lucide-react";
+import { Users, Clock, CheckCircle, Trophy, Gift, ClientDate } from "lucide-react";
 
 interface ReferralStatsProps {
   className?: string;
@@ -218,7 +213,7 @@ export function ReferralStats({ className }: ReferralStatsProps) {
                         Referral #{referral.id.slice(0, 8)}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {new Date(referral.createdAt).toLocaleDateString()}
+                        <ClientDate date={referral.createdAt} format="date" />
                       </p>
                     </div>
                   </div>

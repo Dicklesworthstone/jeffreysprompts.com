@@ -66,7 +66,7 @@ export function enforceUserAccess(userId: string): EnforcementResult {
     if (status.endsAt) {
       const endsAt = new Date(status.endsAt);
       if (!Number.isNaN(endsAt.getTime())) {
-        message += ` Access will be restored on ${endsAt.toLocaleDateString()}.`;
+        message += ` Access will be restored on ${endsAt.toISOString().split("T")[0]}.`;
       }
     } else {
       message += " This suspension requires manual review.";
@@ -199,7 +199,7 @@ export function getActionDescription(actionType: ActionType, endsAt?: string | n
       if (endsAt) {
         const date = new Date(endsAt);
         if (!Number.isNaN(date.getTime())) {
-          return `Your account has been temporarily suspended until ${date.toLocaleDateString()}.`;
+          return `Your account has been temporarily suspended until ${date.toISOString().split("T")[0]}.`;
         }
       }
       return "Your account has been temporarily suspended.";
