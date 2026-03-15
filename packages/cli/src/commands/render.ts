@@ -1,4 +1,4 @@
-import { existsSync, openSync, readSync, closeSync, statSync } from "fs";
+import { existsSync, openSync, readSync, closeSync } from "fs";
 import {
   renderPrompt,
   getMissingVariables,
@@ -180,11 +180,9 @@ export async function renderCommand(id: string, options: RenderOptions) {
     try {
       const fd = openSync(options.context, "r");
       try {
-        const stats = statSync(options.context);
-        // Read up to maxContext + 1 to detect truncation
-        const bytesToRead = Math.min(stats.size, maxContext + 1);
-        const buffer = Buffer.alloc(bytesToRead);
-        const bytesRead = readSync(fd, buffer, 0, bytesToRead, 0);
+        // Read up to maxContext + 1 to detect truncation without relying on statSync size (which can be 0 for special files)
+        const buffer = Buffer.alloc(maxContext + 1);
+        const bytesRead = readSync(fd, buffer, 0, maxContext + 1, null);
         context = buffer.slice(0, bytesRead).toString("utf-8");
         contextSource = options.context;
       } finally {
