@@ -93,7 +93,7 @@ vi.mock("@/lib/utils", () => ({
 // Fixtures
 // ---------------------------------------------------------------------------
 
-const categories: PromptCategory[] = ["coding", "writing", "analysis"];
+const categories: PromptCategory[] = ["ideation", "documentation", "automation"];
 
 const defaultProps = {
   promptCount: 150,
@@ -167,15 +167,15 @@ describe("Hero", () => {
 
   it("renders category pills", () => {
     render(<Hero {...defaultProps} />);
-    expect(screen.getByText("coding")).toBeInTheDocument();
-    expect(screen.getByText("writing")).toBeInTheDocument();
-    expect(screen.getByText("analysis")).toBeInTheDocument();
+    expect(screen.getByText("ideation")).toBeInTheDocument();
+    expect(screen.getByText("documentation")).toBeInTheDocument();
+    expect(screen.getByText("automation")).toBeInTheDocument();
   });
 
   it("calls onCategorySelect when category pill clicked", () => {
     render(<Hero {...defaultProps} />);
-    fireEvent.click(screen.getByText("coding"));
-    expect(defaultProps.onCategorySelect).toHaveBeenCalledWith("coding");
+    fireEvent.click(screen.getByText("ideation"));
+    expect(defaultProps.onCategorySelect).toHaveBeenCalledWith("ideation");
   });
 
   it("calls onCategorySelect with null when All clicked", () => {

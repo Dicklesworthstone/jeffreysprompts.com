@@ -46,7 +46,7 @@ describe("history client", () => {
       }
 
       return jsonResponse({ items: [] });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
   });
 
   afterAll(() => {
@@ -318,7 +318,7 @@ describe("history client", () => {
             },
           ],
         });
-      }) as typeof fetch;
+      }) as unknown as typeof fetch;
 
       const items = await listHistory("user", { limit: 10 });
       expect(items).toHaveLength(2);

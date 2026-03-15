@@ -33,15 +33,6 @@ vi.mock("@/hooks/useIsMobile", () => ({
   useIsMobile: () => false,
 }));
 
-vi.mock("@/hooks/useLocalStorage", () => ({
-  useLocalStorage: (_key: string, initial: unknown) => {
-    const [value, setValue] = vi.importActual<typeof import("react")>("react").then(() => {
-      // Can't use real useState in mock factory, use simple pattern
-    });
-    return [initial, vi.fn()];
-  },
-}));
-
 // Simpler useLocalStorage mock using module-level state
 let localStorageState: Record<string, string> = {};
 vi.mock("@/hooks/useLocalStorage", () => ({

@@ -29,9 +29,12 @@ vi.mock("next/link", () => ({
   ),
 }));
 
-let mockPathname = "/help/getting-started";
+let mockPathname = "/help";
 vi.mock("next/navigation", () => ({
   usePathname: () => mockPathname,
+  useRouter: () => ({
+    pathname: mockPathname,
+  }),
 }));
 
 vi.mock("next-intl", () => ({
