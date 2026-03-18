@@ -147,6 +147,7 @@ storage.sqlite3-*
 # UBS scan output files
 .ubs-*.json
 .ubs-*.txt
+ubs-report.*
 
 # Temporary fix scripts (agent-generated one-off patches)
 fix-*.js
