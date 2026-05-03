@@ -46,7 +46,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/components/ui/toast";
 import { ClientDate } from "@/components/ClientDate";
 import { cn } from "@/lib/utils";
 import { copyToClipboard } from "@/lib/clipboard";
@@ -73,7 +73,9 @@ export interface ShareLink {
 }
 
 export interface ShareDialogProps {
-  isOpen: boolean;
+  isOpen?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   contentType: ShareableContentType;
   contentId: string;
   contentTitle: string;
@@ -123,6 +125,8 @@ function getContentTypeLabel(contentType: ShareableContentType): string {
 
 export function ShareDialog({
   isOpen,
+  open,
+  onOpenChange,
   contentType,
   contentId,
   contentTitle,
@@ -136,6 +140,7 @@ export function ShareDialog({
   const [copied, setCopied] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isRevoking, setIsRevoking] = useState(false);
+  const isDialogOpen = isOpen ?? open ?? false;
 
   // Form state
   const [passwordEnabled, setPasswordEnabled] = useState(hasPassword(existingShare));
@@ -151,12 +156,12 @@ export function ShareDialog({
   const contentTypeLabel = getContentTypeLabel(contentType);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isDialogOpen) return;
 
     setPasswordEnabled(hasPassword(existingShare));
     setPassword("");
     setExpiration(getExpirationValue(existingShare));
-  }, [isOpen, existingShare]);
+  }, [isDialogOpen, existingShare]);
 
   const handleCopyLink = useCallback(async () => {
     if (!shareUrl) return;
@@ -290,7 +295,7 @@ export function ShareDialog({
   );
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open}>
+    <Dialog open={isDialogOpen} onOpenChange={onOpenChange}>
       <DialogContent size="default">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -503,7 +508,7 @@ export function ShareDialog({
         </DialogBody>
 
         <DialogFooter separated>
-          <Button variant="outline" onClick={() => !isOpen}>
+          <Button variant="outline" onClick={() => onOpenChange?.(false)}>
             Close
           </Button>
         </DialogFooter>

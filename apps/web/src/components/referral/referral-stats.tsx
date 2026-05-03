@@ -1,10 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { Users, Clock, CheckCircle, Trophy, Gift, ClientDate } from "lucide-react";
+import { ClientDate } from "@/components/ClientDate";
+import { Users, Clock, CheckCircle, Trophy, Gift } from "lucide-react";
 
 interface ReferralStatsProps {
   className?: string;
