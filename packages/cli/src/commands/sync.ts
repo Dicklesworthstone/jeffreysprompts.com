@@ -23,7 +23,6 @@ import {
   formatSyncAge,
   acquireSyncLock,
   releaseSyncLock,
-  parseSyncedPromptArray,
 } from "../lib/offline";
 
 export interface SyncOptions {
@@ -32,11 +31,27 @@ export interface SyncOptions {
   json?: boolean;
 }
 
-interface SyncResponse {
-  prompts: SyncedPrompt[];
-  total: number;
-  last_modified: string;
+interface ApiPrompt {
+  id?: unknown;
+  title?: unknown;
+  content?: unknown;
+  description?: unknown;
+  category?: unknown;
+  tags?: unknown;
+  saved_at?: unknown;
+  createdAt?: unknown;
+  updatedAt?: unknown;
 }
+
+interface PromptsPage {
+  prompts: ApiPrompt[];
+  pagination?: {
+    hasMore?: boolean;
+    total?: number;
+  };
+}
+
+const PROMPTS_PAGE_LIMIT = 100;
 
 function writeMeta(meta: SyncMeta): void {
   const content = JSON.stringify(meta, null, 2);
@@ -54,6 +69,86 @@ function writeJson(payload: Record<string, unknown>): void {
 
 function writeJsonError(code: string, message: string, extra: Record<string, unknown> = {}): void {
   writeJson({ error: true, code, message, ...extra });
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function normalizePromptsPage(payload: unknown): PromptsPage | null {
+  if (!isRecord(payload)) return null;
+
+  if (Array.isArray(payload.prompts)) {
+    return {
+      prompts: payload.prompts as ApiPrompt[],
+      pagination: isRecord(payload.pagination)
+        ? {
+            hasMore: payload.pagination.hasMore === true,
+            total:
+              typeof payload.pagination.total === "number"
+                ? payload.pagination.total
+                : undefined,
+          }
+        : undefined,
+    };
+  }
+
+  if (payload.ok === true && isRecord(payload.data)) {
+    return normalizePromptsPage(payload.data);
+  }
+
+  return null;
+}
+
+function normalizeTags(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const tags = value.filter((tag): tag is string => typeof tag === "string");
+  return tags.length > 0 ? tags : undefined;
+}
+
+function normalizeOptionalString(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+function toSyncedPrompt(prompt: ApiPrompt): SyncedPrompt | null {
+  if (
+    typeof prompt.id !== "string" ||
+    typeof prompt.title !== "string" ||
+    typeof prompt.content !== "string"
+  ) {
+    return null;
+  }
+
+  const savedAt =
+    normalizeOptionalString(prompt.saved_at) ??
+    normalizeOptionalString(prompt.updatedAt) ??
+    normalizeOptionalString(prompt.createdAt);
+
+  if (!savedAt) return null;
+
+  return {
+    id: prompt.id,
+    title: prompt.title,
+    content: prompt.content,
+    saved_at: savedAt,
+    description: normalizeOptionalString(prompt.description),
+    category: normalizeOptionalString(prompt.category),
+    tags: normalizeTags(prompt.tags),
+  };
+}
+
+function countChangedPrompts(existing: SyncedPrompt[], incoming: SyncedPrompt[]): number {
+  const existingById = new Map(existing.map((prompt) => [prompt.id, prompt]));
+  let changedCount = 0;
+
+  for (const prompt of incoming) {
+    const previous = existingById.get(prompt.id);
+    if (!previous || JSON.stringify(previous) !== JSON.stringify(prompt)) {
+      changedCount += 1;
+    }
+  }
+
+  return changedCount;
 }
 
 /**
@@ -163,126 +258,123 @@ export async function syncCommand(options: SyncOptions = {}): Promise<void> {
     process.exit(1);
   }
 
-  // Step 4: Get current meta for incremental sync (unless --force)
-  const meta = options.force ? null : readSyncMeta();
+  // Step 4: Fetch the canonical prompt listing and refresh the local snapshot.
   const spinner = shouldOutputJson(options) ? null : ora("Syncing library...").start();
 
   try {
-    // Build query params for incremental sync
-    const params = new URLSearchParams();
-    if (meta?.lastSync && !options.force) {
-      params.set("since", meta.lastSync);
-    }
+    const incomingPrompts: SyncedPrompt[] = [];
+    let page = 1;
+    let expectedTotal: number | undefined;
 
-    const endpoint = `/cli/sync${params.toString() ? `?${params}` : ""}`;
-    const response = await apiClient.get<SyncResponse>(endpoint);
+    while (true) {
+      const endpoint = `/cli/prompts?page=${page}&limit=${PROMPTS_PAGE_LIMIT}`;
+      const response = await apiClient.get<unknown>(endpoint);
 
-    if (!response.ok) {
-      spinner?.fail("Sync failed");
+      if (!response.ok) {
+        spinner?.fail("Sync failed");
 
-      // Handle auth errors
-      if (isAuthError(response)) {
+        // Handle auth errors
+        if (isAuthError(response)) {
+          releaseSyncLock();
+          if (shouldOutputJson(options)) {
+            writeJsonError("session_expired", "Your session has expired. Please log in again.", {
+              hint: "Run 'jfp login' to sign in",
+            });
+          } else {
+            console.error(chalk.yellow("Your session has expired. Please log in again."));
+            console.log(chalk.dim("Run 'jfp login' to sign in"));
+          }
+          process.exit(1);
+        }
+
+        // Handle permission errors
+        if (isPermissionError(response)) {
+          releaseSyncLock();
+          if (shouldOutputJson(options)) {
+            writeJsonError("requires_premium", "Library sync requires a premium subscription");
+          } else {
+            console.error(chalk.yellow("Library sync requires a premium subscription"));
+            console.log(chalk.dim("Visit https://pro.jeffreysprompts.com/pricing to upgrade"));
+          }
+          process.exit(1);
+        }
+
+        // Other errors
         releaseSyncLock();
         if (shouldOutputJson(options)) {
-          writeJsonError("session_expired", "Your session has expired. Please log in again.", {
-            hint: "Run 'jfp login' to sign in",
-          });
+          writeJsonError("sync_failed", response.error || "Failed to sync library");
         } else {
-          console.error(chalk.yellow("Your session has expired. Please log in again."));
-          console.log(chalk.dim("Run 'jfp login' to sign in"));
+          console.error(chalk.red("Failed to sync:"), response.error);
         }
         process.exit(1);
       }
 
-      // Handle permission errors
-      if (isPermissionError(response)) {
+      const parsedPage = normalizePromptsPage(response.data);
+      if (!parsedPage) {
+        spinner?.fail("Sync failed");
         releaseSyncLock();
         if (shouldOutputJson(options)) {
-          writeJsonError("requires_premium", "Library sync requires a premium subscription");
+          writeJsonError("invalid_sync_payload", "Sync response is missing prompts array.");
         } else {
-          console.error(chalk.yellow("Library sync requires a premium subscription"));
-          console.log(chalk.dim("Visit https://pro.jeffreysprompts.com/pricing to upgrade"));
+          console.error(chalk.red("Sync failed:"), "Sync response is missing prompts array.");
         }
         process.exit(1);
+        return;
       }
 
-      // Other errors
-      releaseSyncLock();
-      if (shouldOutputJson(options)) {
-        writeJsonError("sync_failed", response.error || "Failed to sync library");
-      } else {
-        console.error(chalk.red("Failed to sync:"), response.error);
+      const normalizedPrompts = parsedPage.prompts.map(toSyncedPrompt);
+      const validPrompts = normalizedPrompts.filter(
+        (prompt): prompt is SyncedPrompt => prompt !== null
+      );
+      const invalidCount = normalizedPrompts.length - validPrompts.length;
+      if (invalidCount > 0) {
+        spinner?.fail("Sync failed");
+        releaseSyncLock();
+        if (shouldOutputJson(options)) {
+          writeJsonError(
+            "invalid_sync_payload",
+            `Sync response contains ${invalidCount} invalid prompt(s).`
+          );
+        } else {
+          console.error(
+            chalk.red("Sync failed:"),
+            `Sync response contains ${invalidCount} invalid prompt(s).`
+          );
+        }
+        process.exit(1);
+        return;
       }
-      process.exit(1);
+
+      incomingPrompts.push(...validPrompts);
+      expectedTotal = parsedPage.pagination?.total ?? expectedTotal;
+
+      if (!parsedPage.pagination?.hasMore) {
+        break;
+      }
+
+      page += 1;
+      if (page > 1000) {
+        spinner?.fail("Sync failed");
+        releaseSyncLock();
+        if (shouldOutputJson(options)) {
+          writeJsonError("invalid_sync_payload", "Sync pagination exceeded the safety limit.");
+        } else {
+          console.error(chalk.red("Sync failed:"), "Sync pagination exceeded the safety limit.");
+        }
+        process.exit(1);
+        return;
+      }
     }
 
-    const data = response.data;
-    if (!data || typeof data !== "object") {
-      spinner?.fail("Sync failed");
-      releaseSyncLock();
-      if (shouldOutputJson(options)) {
-        writeJsonError("invalid_sync_payload", "Sync response payload is invalid.");
-      } else {
-        console.error(chalk.red("Sync failed:"), "Sync response payload is invalid.");
-      }
-      process.exit(1);
-    }
-
-    const parsedIncoming = parseSyncedPromptArray((data as SyncResponse).prompts);
-    if (!parsedIncoming.isArray) {
-      spinner?.fail("Sync failed");
-      releaseSyncLock();
-      if (shouldOutputJson(options)) {
-        writeJsonError("invalid_sync_payload", "Sync response is missing prompts array.");
-      } else {
-        console.error(chalk.red("Sync failed:"), "Sync response is missing prompts array.");
-      }
-      process.exit(1);
-    }
-    if (parsedIncoming.invalidCount > 0) {
-      spinner?.fail("Sync failed");
-      releaseSyncLock();
-      if (shouldOutputJson(options)) {
-        writeJsonError(
-          "invalid_sync_payload",
-          `Sync response contains ${parsedIncoming.invalidCount} invalid prompt(s).`
-        );
-      } else {
-        console.error(
-          chalk.red("Sync failed:"),
-          `Sync response contains ${parsedIncoming.invalidCount} invalid prompt(s).`
-        );
-      }
-      process.exit(1);
-    }
-    const incomingPrompts = parsedIncoming.prompts;
-
-    // Merge with existing prompts for incremental sync
-    let allPrompts: SyncedPrompt[];
-    if (options.force) {
-      allPrompts = incomingPrompts;
-    } else {
-      const existing = readOfflineLibrary();
-      // Create a map of server prompts for efficient lookup
-      const serverPromptMap = new Map(incomingPrompts.map((p) => [p.id, p]));
-      // Update existing prompts with server versions, keep others unchanged
-      const mergedExisting = existing.map((p) => serverPromptMap.get(p.id) ?? p);
-      // Add any new prompts that weren't in existing
-      const existingIds = new Set(existing.map((p) => p.id));
-      const newPrompts = incomingPrompts.filter((p) => !existingIds.has(p.id));
-      allPrompts = [...mergedExisting, ...newPrompts];
-    }
+    const existingPrompts = readOfflineLibrary();
+    const changedPrompts = countChangedPrompts(existingPrompts, incomingPrompts);
 
     // Save to local cache
-    const syncedAt =
-      typeof (data as SyncResponse).last_modified === "string" &&
-      (data as SyncResponse).last_modified.trim()
-        ? (data as SyncResponse).last_modified
-        : new Date().toISOString();
-    writeLibrary(allPrompts);
+    const syncedAt = new Date().toISOString();
+    writeLibrary(incomingPrompts);
     writeMeta({
       lastSync: syncedAt,
-      promptCount: allPrompts.length,
+      promptCount: incomingPrompts.length,
       version: "1.0.0",
     });
 
@@ -291,18 +383,20 @@ export async function syncCommand(options: SyncOptions = {}): Promise<void> {
     if (shouldOutputJson(options)) {
       writeJson({
         synced: true,
-        newPrompts: incomingPrompts.length,
-        totalPrompts: allPrompts.length,
+        changedPrompts,
+        newPrompts: changedPrompts,
+        totalPrompts: incomingPrompts.length,
+        expectedTotal: expectedTotal ?? incomingPrompts.length,
         force: options.force ?? false,
         syncedAt,
       });
     } else {
       if (options.force) {
-        console.log(chalk.green(`\nDownloaded ${allPrompts.length} prompts to local library`));
-      } else if (incomingPrompts.length === 0) {
+        console.log(chalk.green(`\nDownloaded ${incomingPrompts.length} prompts to local library`));
+      } else if (changedPrompts === 0) {
         console.log(chalk.dim("\nLibrary is already up to date"));
       } else {
-        console.log(chalk.green(`\nSynced ${incomingPrompts.length} prompts (${allPrompts.length} total)`));
+        console.log(chalk.green(`\nSynced ${changedPrompts} changed prompts (${incomingPrompts.length} total)`));
       }
       console.log(chalk.dim(`Location: ${getLibraryDir()}`));
     }

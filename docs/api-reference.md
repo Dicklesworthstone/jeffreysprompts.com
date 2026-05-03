@@ -201,9 +201,9 @@ Get current authenticated user info.
 
 ### Library & Sync Endpoints
 
-#### GET /sync
+#### GET /prompts
 
-Sync user's saved prompts for offline access.
+List the user's prompts. `jfp sync` uses this endpoint page by page to refresh the local offline cache.
 
 **Headers:** `Authorization: Bearer <token>`
 
@@ -211,7 +211,9 @@ Sync user's saved prompts for offline access.
 
 | Param | Type | Description |
 |-------|------|-------------|
-| `since` | ISO 8601 | Incremental sync from timestamp |
+| `page` | number | Page number, starting at 1 |
+| `limit` | number | Page size, capped by the premium API |
+| `visibility` | string | Optional `private`, `public`, or `link_only` filter |
 
 **Response:**
 
@@ -224,13 +226,20 @@ Sync user's saved prompts for offline access.
       "content": "...",
       "category": "workflow",
       "tags": ["custom"],
-      "saved_at": "2026-01-12T12:00:00Z"
+      "createdAt": "2026-01-12T11:30:00Z",
+      "updatedAt": "2026-01-12T12:00:00Z"
     }
   ],
-  "total": 42,
-  "last_modified": "2026-01-12T12:00:00Z"
+  "pagination": {
+    "page": 1,
+    "limit": 100,
+    "total": 42,
+    "hasMore": false
+  }
 }
 ```
+
+`GET /sync` is kept only as a legacy compatibility fallback for older installed CLIs.
 
 #### GET /saved-prompts
 
@@ -530,7 +539,8 @@ All errors follow this format:
 |----------|-------|
 | `/device-code` | 10/minute |
 | `/device-token` | 60/minute |
-| `/sync` | 10/minute |
+| `/prompts` | 100/minute |
+| `/sync` | 10/minute legacy compatibility fallback |
 | Other endpoints | 100/minute |
 
 Rate limit headers:
@@ -556,7 +566,7 @@ The CLI uses `@jeffreysprompts/cli/lib/api-client` for all requests:
 import { apiClient } from "./lib/api-client";
 
 // GET request
-const response = await apiClient.get<SyncResponse>("/cli/sync");
+const response = await apiClient.get<PromptsResponse>("/cli/prompts?page=1&limit=100");
 if (response.ok) {
   console.log(response.data);
 } else {

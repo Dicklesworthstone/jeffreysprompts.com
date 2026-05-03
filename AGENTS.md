@@ -953,7 +953,7 @@ This matrix documents dependencies between the public CLI (`jfp`) in this repo a
 | `jfp save` | Yes | Premium | `POST /cli/saved-prompts` |
 | `jfp notes` | Yes | Premium | `GET/POST/DELETE /cli/notes/{promptId}` |
 | `jfp collections` | Yes | Premium | `GET/POST /cli/collections/*` |
-| `jfp sync` | Yes | Premium | `GET /cli/sync[?since=...]` |
+| `jfp sync` | Yes | Premium | `GET /cli/prompts?page={n}&limit=100` |
 
 ### Update Rules
 

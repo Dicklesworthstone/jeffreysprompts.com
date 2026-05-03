@@ -103,7 +103,9 @@ All endpoints are prefixed with `/api/cli/` on the premium backend (`https://pro
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/sync` | GET | Sync user's saved prompts (supports incremental via `?since=`) |
+| `/prompts` | GET | List user prompts with pagination; `jfp sync` pulls this endpoint page by page |
+| `/sync` | GET | Legacy compatibility fallback for older installed CLIs |
+| `/sync` | POST | Reserved for future push sync |
 | `/saved-prompts` | GET | List user's saved prompts |
 | `/saved-prompts` | POST | Save a prompt to user's library |
 
@@ -299,14 +301,15 @@ Registry cache uses stale-while-revalidate strategy:
 4. ETag-based validation to minimize bandwidth
 5. Fall back to bundled registry if network fails
 
-### Sync Conflict Resolution
+### Sync Cache Refresh
 
-The sync command uses incremental updates:
+The sync command refreshes the offline cache from the canonical paginated prompt listing:
 
-1. Client sends `?since=<lastSync>` timestamp
-2. Server returns only prompts modified since that time
-3. Client merges: server versions overwrite local, new prompts added
-4. Force sync (`--force`) downloads everything fresh
+1. Client requests `/api/cli/prompts?page=1&limit=100`
+2. Client follows `pagination.hasMore` until all pages are fetched
+3. CLI maps server `updatedAt` timestamps to local cache `saved_at`
+4. The local cache is replaced with the current server snapshot
+5. Force sync (`--force`) still performs a full refresh and rewrites metadata
 
 ## Security
 
