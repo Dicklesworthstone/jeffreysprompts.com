@@ -22,6 +22,7 @@ const originalFetch = globalThis.fetch;
 let originalJfpToken: string | undefined;
 
 let syncCommand: typeof import("../../src/commands/sync").syncCommand;
+let vaultSyncCompatCommand: typeof import("../../src/commands/sync").vaultSyncCompatCommand;
 
 beforeAll(async () => {
   testDir = mkdtempSync(join(tmpdir(), "jfp-sync-test-"));
@@ -31,6 +32,7 @@ beforeAll(async () => {
 
   const mod = await import("../../src/commands/sync");
   syncCommand = mod.syncCommand;
+  vaultSyncCompatCommand = mod.vaultSyncCompatCommand;
 });
 
 afterAll(() => {
@@ -105,6 +107,60 @@ describe("syncCommand", () => {
     const json = JSON.parse(output.join(""));
     expect(json.error).toBe(true);
     expect(json.code).toBe("not_authenticated");
+  });
+
+  it("routes obsolete vault sync action through the canonical sync command", async () => {
+    process.env.JFP_TOKEN = "test-access-token";
+    const requests: URL[] = [];
+
+    globalThis.fetch = (async (input, init) => {
+      const url = new URL(String(input));
+      requests.push(url);
+
+      expect(init?.method).toBe("GET");
+      expect(url.pathname).toBe("/api/cli/prompts");
+
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          data: {
+            prompts: [],
+            pagination: {
+              page: 1,
+              limit: 100,
+              total: 0,
+              hasMore: false,
+            },
+          },
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }) as typeof fetch;
+
+    await vaultSyncCompatCommand("sync", { json: true });
+
+    expect(exitCode).toBeUndefined();
+    expect(requests).toHaveLength(1);
+    const json = JSON.parse(output.join(""));
+    expect(json.synced).toBe(true);
+    expect(json.totalPrompts).toBe(0);
+  });
+
+  it("returns a structured error for unsupported vault actions", async () => {
+    try {
+      await vaultSyncCompatCommand("init", { json: true });
+    } catch (e) {
+      if ((e as Error).message !== "process.exit(1)") throw e;
+    }
+
+    expect(exitCode).toBe(1);
+    const json = JSON.parse(output.join(""));
+    expect(json.error).toBe(true);
+    expect(json.code).toBe("deprecated_command");
+    expect(json.replacement).toBe("jfp sync");
   });
 
   it("syncs library from the canonical prompts endpoint", async () => {

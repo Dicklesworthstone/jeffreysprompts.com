@@ -40,7 +40,7 @@ import { loginCommand } from "./commands/login";
 import { logoutCommand, whoamiCommand } from "./commands/auth";
 import { notesCommand } from "./commands/notes";
 import { saveCommand } from "./commands/save";
-import { syncCommand } from "./commands/sync";
+import { syncCommand, vaultSyncCompatCommand } from "./commands/sync";
 import { premiumPacksCommand } from "./commands/premium-packs";
 import { recommendCommand } from "./commands/recommend";
 import { costCommand } from "./commands/cost";
@@ -255,6 +255,15 @@ cli
   .option("--status", "Show sync status")
   .option("--json", "Output JSON")
   .action(syncCommand);
+
+cli
+  .command("vault [action]", "Obsolete vault namespace; use sync")
+  .option("--force", "Force full re-sync (ignore cache)")
+  .option("--status", "Show sync status")
+  .option("--json", "Output JSON")
+  .action((action: string | undefined, options: { force?: boolean; status?: boolean; json?: boolean }) =>
+    vaultSyncCompatCommand(action, options)
+  );
 
 cli
   .command("notes <prompt-id>", "Manage personal notes on prompts")

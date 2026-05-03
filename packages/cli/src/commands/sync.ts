@@ -31,6 +31,8 @@ export interface SyncOptions {
   json?: boolean;
 }
 
+export type VaultCompatAction = "sync" | "status" | string | undefined;
+
 interface ApiPrompt {
   id?: unknown;
   title?: unknown;
@@ -423,4 +425,29 @@ export async function syncCommand(options: SyncOptions = {}): Promise<void> {
 
   // Release the lock on success
   releaseSyncLock();
+}
+
+export async function vaultSyncCompatCommand(
+  action: VaultCompatAction,
+  options: SyncOptions = {}
+): Promise<void> {
+  if (action === "sync") {
+    return syncCommand(options);
+  }
+
+  if (action === "status") {
+    return syncCommand({ ...options, status: true });
+  }
+
+  const message =
+    action === undefined
+      ? "The vault command namespace is obsolete. Run 'jfp sync' to refresh your local prompt cache."
+      : `The vault ${action} command is not available in this CLI build. Run 'jfp sync' to refresh your local prompt cache.`;
+
+  if (shouldOutputJson(options)) {
+    writeJsonError("deprecated_command", message, { replacement: "jfp sync" });
+  } else {
+    console.error(chalk.yellow(message));
+  }
+  process.exit(1);
 }
