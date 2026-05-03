@@ -137,18 +137,25 @@ function toSyncedPrompt(prompt: ApiPrompt): SyncedPrompt | null {
   };
 }
 
-function countChangedPrompts(existing: SyncedPrompt[], incoming: SyncedPrompt[]): number {
+function summarizePromptChanges(
+  existing: SyncedPrompt[],
+  incoming: SyncedPrompt[]
+): { changedPrompts: number; newPrompts: number } {
   const existingById = new Map(existing.map((prompt) => [prompt.id, prompt]));
   let changedCount = 0;
+  let newCount = 0;
 
   for (const prompt of incoming) {
     const previous = existingById.get(prompt.id);
-    if (!previous || JSON.stringify(previous) !== JSON.stringify(prompt)) {
+    if (!previous) {
+      newCount += 1;
+      changedCount += 1;
+    } else if (JSON.stringify(previous) !== JSON.stringify(prompt)) {
       changedCount += 1;
     }
   }
 
-  return changedCount;
+  return { changedPrompts: changedCount, newPrompts: newCount };
 }
 
 /**
@@ -367,7 +374,10 @@ export async function syncCommand(options: SyncOptions = {}): Promise<void> {
     }
 
     const existingPrompts = readOfflineLibrary();
-    const changedPrompts = countChangedPrompts(existingPrompts, incomingPrompts);
+    const { changedPrompts, newPrompts } = summarizePromptChanges(
+      existingPrompts,
+      incomingPrompts
+    );
 
     // Save to local cache
     const syncedAt = new Date().toISOString();
@@ -384,7 +394,7 @@ export async function syncCommand(options: SyncOptions = {}): Promise<void> {
       writeJson({
         synced: true,
         changedPrompts,
-        newPrompts: changedPrompts,
+        newPrompts,
         totalPrompts: incomingPrompts.length,
         expectedTotal: expectedTotal ?? incomingPrompts.length,
         force: options.force ?? false,

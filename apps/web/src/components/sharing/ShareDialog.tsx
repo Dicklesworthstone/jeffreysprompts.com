@@ -98,6 +98,23 @@ const EXPIRATION_OPTIONS = [
   { value: "90", label: "90 days" },
 ];
 
+const SHARE_REQUEST_TIMEOUT_MS = 30_000;
+
+function createShareRequestSignal(): AbortSignal | undefined {
+  if (typeof AbortSignal === "undefined") return undefined;
+  const timeout = (AbortSignal as typeof AbortSignal & {
+    timeout?: (milliseconds: number) => AbortSignal;
+  }).timeout;
+  return typeof timeout === "function" ? timeout(SHARE_REQUEST_TIMEOUT_MS) : undefined;
+}
+
+function getShareRequestErrorMessage(err: unknown): string {
+  if (err instanceof Error && (err.name === "AbortError" || err.name === "TimeoutError")) {
+    return "Request timed out. Please try again.";
+  }
+  return err instanceof Error ? err.message : "Please try again";
+}
+
 function hasPassword(existingShare?: ShareLink | null): boolean {
   return Boolean(existingShare?.isPasswordProtected || existingShare?.password);
 }
@@ -183,6 +200,7 @@ export function ShareDialog({
     try {
       const response = await fetch("/api/share", {
         method: "POST",
+        signal: createShareRequestSignal(),
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contentType,
@@ -212,8 +230,7 @@ export function ShareDialog({
       success("Share link created", "Your content is now shareable", { duration: 3000 });
       trackEvent("share_link_create", { contentType, contentId });
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Please try again";
-      toastError("Failed to create share link", message);
+      toastError("Failed to create share link", getShareRequestErrorMessage(err));
     } finally {
       setIsCreating(false);
     }
@@ -235,6 +252,7 @@ export function ShareDialog({
     try {
       const response = await fetch(`/api/share/${existingShare.linkCode}`, {
         method: "DELETE",
+        signal: createShareRequestSignal(),
       });
 
       if (!response.ok) {
@@ -246,8 +264,7 @@ export function ShareDialog({
       success("Share link revoked", "The link is no longer accessible", { duration: 3000 });
       trackEvent("share_link_revoke", { contentType, contentId });
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Please try again";
-      toastError("Failed to revoke link", message);
+      toastError("Failed to revoke link", getShareRequestErrorMessage(err));
     } finally {
       setIsRevoking(false);
     }

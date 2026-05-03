@@ -110,6 +110,7 @@ describe("syncCommand", () => {
   it("syncs library from the canonical prompts endpoint", async () => {
     process.env.JFP_TOKEN = "test-access-token";
     const requests: URL[] = [];
+    let promptOneContent = "First prompt content";
 
     globalThis.fetch = (async (input, init) => {
       const url = new URL(String(input));
@@ -127,7 +128,7 @@ describe("syncCommand", () => {
                 id: "prompt-one",
                 title: "Prompt One",
                 description: "First synced prompt",
-                content: "First prompt content",
+                content: promptOneContent,
                 category: "workflow",
                 tags: ["sync"],
                 updatedAt: "2026-05-03T12:00:00.000Z",
@@ -175,6 +176,7 @@ describe("syncCommand", () => {
     const payload = JSON.parse(output.join(""));
     expect(payload.synced).toBe(true);
     expect(payload.changedPrompts).toBe(2);
+    expect(payload.newPrompts).toBe(2);
     expect(payload.totalPrompts).toBe(2);
 
     const cached = JSON.parse(
@@ -185,5 +187,19 @@ describe("syncCommand", () => {
       id: "prompt-one",
       saved_at: "2026-05-03T12:00:00.000Z",
     });
+
+    output = [];
+    errors = [];
+    exitCode = undefined;
+    requests.length = 0;
+    promptOneContent = "Updated first prompt content";
+
+    await syncCommand({ json: true });
+
+    const updatedPayload = JSON.parse(output.join(""));
+    expect(updatedPayload.synced).toBe(true);
+    expect(updatedPayload.changedPrompts).toBe(1);
+    expect(updatedPayload.newPrompts).toBe(0);
+    expect(updatedPayload.totalPrompts).toBe(2);
   });
 });
