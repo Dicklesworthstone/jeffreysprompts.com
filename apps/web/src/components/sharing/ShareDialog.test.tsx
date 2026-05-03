@@ -164,7 +164,10 @@ describe("ShareDialog", () => {
     fireEvent.click(revokeBtn);
 
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith("/api/share/abc123", { method: "DELETE" });
+      expect(mockFetch).toHaveBeenCalledWith(
+        "/api/share/abc123",
+        expect.objectContaining({ method: "DELETE" })
+      );
     });
   });
 

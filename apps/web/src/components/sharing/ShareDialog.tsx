@@ -102,10 +102,12 @@ const SHARE_REQUEST_TIMEOUT_MS = 30_000;
 
 function createShareRequestSignal(): AbortSignal | undefined {
   if (typeof AbortSignal === "undefined") return undefined;
-  const timeout = (AbortSignal as typeof AbortSignal & {
+  const AbortSignalWithTimeout = AbortSignal as typeof AbortSignal & {
     timeout?: (milliseconds: number) => AbortSignal;
-  }).timeout;
-  return typeof timeout === "function" ? timeout(SHARE_REQUEST_TIMEOUT_MS) : undefined;
+  };
+  return typeof AbortSignalWithTimeout.timeout === "function"
+    ? AbortSignalWithTimeout.timeout(SHARE_REQUEST_TIMEOUT_MS)
+    : undefined;
 }
 
 function getShareRequestErrorMessage(err: unknown): string {
