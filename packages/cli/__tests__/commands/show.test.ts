@@ -49,7 +49,11 @@ describe("showCommand", () => {
 
   it("returns not_found JSON and exits for missing prompt", async () => {
     const originalToken = process.env.JFP_TOKEN;
+    const originalJfpHome = process.env.JFP_HOME;
+    const originalXdgConfigHome = process.env.XDG_CONFIG_HOME;
     delete process.env.JFP_TOKEN;
+    delete process.env.XDG_CONFIG_HOME;
+    process.env.JFP_HOME = `/tmp/jfp-show-test-no-auth-${process.pid}-${Date.now()}`;
 
     globalThis.fetch = async (input: RequestInfo | URL) => {
       const url = input.toString();
@@ -87,6 +91,16 @@ describe("showCommand", () => {
         delete process.env.JFP_TOKEN;
       } else {
         process.env.JFP_TOKEN = originalToken;
+      }
+      if (originalJfpHome === undefined) {
+        delete process.env.JFP_HOME;
+      } else {
+        process.env.JFP_HOME = originalJfpHome;
+      }
+      if (originalXdgConfigHome === undefined) {
+        delete process.env.XDG_CONFIG_HOME;
+      } else {
+        process.env.XDG_CONFIG_HOME = originalXdgConfigHome;
       }
     }
     
