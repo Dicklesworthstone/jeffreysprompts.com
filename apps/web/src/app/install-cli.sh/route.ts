@@ -11,11 +11,10 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-// Primary release host (Cloudflare R2 public bucket).
-// Keep GitHub Releases as fallback in case the R2 object is missing.
-const RELEASE_BASE_URL = "https://pub-346a8b7b59de4fa1ae66eb2e1d84d53d.r2.dev/jfp/v0.1.0";
-const RELEASE_FALLBACK_URL =
+// GitHub Releases is the canonical source for jfp binaries.
+const RELEASE_BASE_URL =
   "https://github.com/Dicklesworthstone/jeffreysprompts.com/releases/latest/download";
+const RELEASE_FALLBACK_URL = RELEASE_BASE_URL;
 
 // Generate CLI installer script
 function generateCLIInstaller(): string {
@@ -147,8 +146,13 @@ download_with_fallback() {
     return 0
   fi
 
-  warn "Primary download failed, trying fallback host"
-  download "$fallback_url" "$dest"
+  if [ -n "$fallback_url" ] && [ "$fallback_url" != "$primary_url" ]; then
+    warn "Primary download failed, trying fallback host"
+    download "$fallback_url" "$dest"
+    return $?
+  fi
+
+  return 1
 }
 
 # Install from prebuilt release artifact
