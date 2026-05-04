@@ -48,6 +48,9 @@ describe("showCommand", () => {
   });
 
   it("returns not_found JSON and exits for missing prompt", async () => {
+    const originalToken = process.env.JFP_TOKEN;
+    delete process.env.JFP_TOKEN;
+
     globalThis.fetch = async (input: RequestInfo | URL) => {
       const url = input.toString();
 
@@ -74,9 +77,17 @@ describe("showCommand", () => {
     };
 
     try {
-      await showCommand("missing-prompt", { json: true });
-    } catch (e) {
-      if ((e as Error).message !== "process.exit") throw e;
+      try {
+        await showCommand("missing-prompt", { json: true });
+      } catch (e) {
+        if ((e as Error).message !== "process.exit") throw e;
+      }
+    } finally {
+      if (originalToken === undefined) {
+        delete process.env.JFP_TOKEN;
+      } else {
+        process.env.JFP_TOKEN = originalToken;
+      }
     }
     
     expect(exitCode).toBe(1);

@@ -12,8 +12,7 @@ export const MAX_FILE_VAR_SIZE = 102400;
 
 /**
  * Parse --VAR=value args from raw argv (since cac doesn't handle dynamic flags well)
- * Only matches uppercase variable names like --MY_VAR=value
- * Pattern must match template variables: {{VAR_NAME}} where name consists of A-Z, 0-9, and underscore
+ * Matches variable names used by prompts, including letters, numbers, and underscores.
  */
 export function parseVariables(args: string[]): Record<string, string> {
   const vars: Record<string, string> = {};

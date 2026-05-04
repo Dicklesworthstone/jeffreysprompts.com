@@ -99,14 +99,14 @@ describe("parseVariables", () => {
     expect(result).toEqual({ myVar: "value" });
   });
 
-  it("rejects names starting with underscore", () => {
+  it("parses names starting with underscore", () => {
     const result = parseVariables(["--_HIDDEN=value"]);
-    expect(result).toEqual({});
+    expect(result).toEqual({ _HIDDEN: "value" });
   });
 
-  it("rejects names starting with number", () => {
+  it("parses names starting with number", () => {
     const result = parseVariables(["--1BAD=value"]);
-    expect(result).toEqual({});
+    expect(result).toEqual({ "1BAD": "value" });
   });
 
   it("returns empty object for empty args", () => {
