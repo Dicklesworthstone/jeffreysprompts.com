@@ -72,9 +72,7 @@ const replyTicketRateLimiter = createRateLimiter({
   maxRequests: 15,
 });
 
-const NO_STORE_HEADERS = {
-  "Cache-Control": "no-store, max-age=0",
-};
+const NO_STORE_VALUE = "no-store, max-age=0";
 
 function normalizeText(value: string) {
   return value.replace(/\s+/g, " ").trim();
@@ -82,6 +80,18 @@ function normalizeText(value: string) {
 
 function isJsonObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function noStoreJson(body: unknown, init?: ResponseInit) {
+  const response = NextResponse.json(body, init);
+  response.headers.set("Cache-Control", NO_STORE_VALUE);
+  return response;
+}
+
+function noStoreRateLimitJson(body: unknown, retryAfterSeconds: number) {
+  const response = noStoreJson(body, { status: 429 });
+  response.headers.set("Retry-After", retryAfterSeconds.toString());
+  return response;
 }
 
 export async function POST(request: NextRequest) {
@@ -208,31 +218,25 @@ export async function GET(request: NextRequest) {
 
   const lookupLimit = await lookupRateLimiter.check(`ip:${getTrustedClientIp(request)}`);
   if (!lookupLimit.allowed) {
-    return NextResponse.json(
+    return noStoreRateLimitJson(
       { error: "Too many lookup requests. Please try again later." },
-      {
-        status: 429,
-        headers: {
-          ...NO_STORE_HEADERS,
-          "Retry-After": lookupLimit.retryAfterSeconds.toString(),
-        },
-      }
+      lookupLimit.retryAfterSeconds
     );
   }
 
   if (!ticketNumber || !ticketToken) {
-    return NextResponse.json(
+    return noStoreJson(
       { error: "ticketNumber and ticketToken are required." },
-      { status: 400, headers: NO_STORE_HEADERS }
+      { status: 400 }
     );
   }
 
   const ticket = getSupportTicket(ticketNumber);
   if (!ticket || !safeTokenEqual(ticket.accessToken, ticketToken)) {
-    return NextResponse.json({ error: "Ticket not found." }, { status: 404, headers: NO_STORE_HEADERS });
+    return noStoreJson({ error: "Ticket not found." }, { status: 404 });
   }
 
-  return NextResponse.json(
+  return noStoreJson(
     {
       ticket: {
         ticketNumber: ticket.ticketNumber,
@@ -244,8 +248,7 @@ export async function GET(request: NextRequest) {
         updatedAt: ticket.updatedAt,
         messages: ticket.messages.filter((msg) => !msg.internal),
       },
-    },
-    { headers: NO_STORE_HEADERS }
+    }
   );
 }
 
@@ -267,16 +270,16 @@ export async function PUT(request: NextRequest) {
   const message = typeof payload.message === "string" ? normalizeText(payload.message) : "";
 
   if (!ticketNumber || !ticketToken || !message) {
-    return NextResponse.json(
+    return noStoreJson(
       { error: "Missing required fields." },
-      { status: 400, headers: NO_STORE_HEADERS }
+      { status: 400 }
     );
   }
 
   if (message.length > MAX_MESSAGE_LENGTH) {
-    return NextResponse.json(
+    return noStoreJson(
       { error: `Message must be ${MAX_MESSAGE_LENGTH} characters or fewer.` },
-      { status: 400, headers: NO_STORE_HEADERS }
+      { status: 400 }
     );
   }
 
@@ -284,51 +287,39 @@ export async function PUT(request: NextRequest) {
   // via rate limit bucket consumption on unauthenticated requests.
   const ticket = getSupportTicket(ticketNumber);
   if (!ticket || !safeTokenEqual(ticket.accessToken, ticketToken)) {
-    return NextResponse.json({ error: "Ticket not found." }, { status: 404, headers: NO_STORE_HEADERS });
+    return noStoreJson({ error: "Ticket not found." }, { status: 404 });
   }
 
   if (ticket.status === "closed") {
-    return NextResponse.json({ error: "This ticket is closed." }, { status: 400, headers: NO_STORE_HEADERS });
+    return noStoreJson({ error: "This ticket is closed." }, { status: 400 });
   }
 
   const clientIp = getTrustedClientIp(request);
   const ipReplyLimit = await replyIpRateLimiter.check(`ip:${clientIp}`);
   if (!ipReplyLimit.allowed) {
-    return NextResponse.json(
+    return noStoreRateLimitJson(
       { error: "Too many replies. Please try again later." },
-      {
-        status: 429,
-        headers: {
-          ...NO_STORE_HEADERS,
-          "Retry-After": ipReplyLimit.retryAfterSeconds.toString(),
-        },
-      }
+      ipReplyLimit.retryAfterSeconds
     );
   }
 
   // Apply per-ticket throttling only after the request is authenticated.
   const ticketReplyLimit = await replyTicketRateLimiter.check(`ticket:${ticketNumber}`);
   if (!ticketReplyLimit.allowed) {
-    return NextResponse.json(
+    return noStoreRateLimitJson(
       { error: "Too many replies. Please try again later." },
-      {
-        status: 429,
-        headers: {
-          ...NO_STORE_HEADERS,
-          "Retry-After": ticketReplyLimit.retryAfterSeconds.toString(),
-        },
-      }
+      ticketReplyLimit.retryAfterSeconds
     );
   }
 
   const spamCheck = checkContentForSpam(message);
   if (spamCheck.isSpam) {
-    return NextResponse.json(
+    return noStoreJson(
       {
         error: "Your message was flagged as potential spam. Please remove links or excessive formatting and try again.",
         reasons: spamCheck.reasons,
       },
-      { status: 400, headers: NO_STORE_HEADERS }
+      { status: 400 }
     );
   }
 
@@ -339,7 +330,7 @@ export async function PUT(request: NextRequest) {
   });
 
   if (!updated) {
-    return NextResponse.json({ error: "Unable to update ticket." }, { status: 400, headers: NO_STORE_HEADERS });
+    return noStoreJson({ error: "Unable to update ticket." }, { status: 400 });
   }
 
   if (spamCheck.requiresReview) {
@@ -350,7 +341,7 @@ export async function PUT(request: NextRequest) {
     });
   }
 
-  return NextResponse.json(
+  return noStoreJson(
     {
       success: true,
       ticket: {
@@ -359,7 +350,6 @@ export async function PUT(request: NextRequest) {
         updatedAt: updated.updatedAt,
         messages: updated.messages.filter((msg) => !msg.internal),
       },
-    },
-    { headers: NO_STORE_HEADERS }
+    }
   );
 }
