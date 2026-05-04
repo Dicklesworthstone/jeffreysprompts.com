@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { mkdirSync, rmSync, writeFileSync } from "fs";
+import { mkdtempSync, rmSync, writeFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import {
@@ -23,11 +23,7 @@ import type { PromptVariable } from "@jeffreysprompts/core/prompts/types";
 let TEST_DIR: string;
 
 beforeEach(() => {
-  TEST_DIR = join(
-    tmpdir(),
-    "jfp-var-test-" + Date.now() + "-" + Math.random().toString(36).slice(2)
-  );
-  mkdirSync(TEST_DIR, { recursive: true });
+  TEST_DIR = mkdtempSync(join(tmpdir(), "jfp-var-test-"));
 });
 
 afterEach(() => {
@@ -74,9 +70,7 @@ describe("parseVariables", () => {
       "idea-wizard",
       "--MY_VAR=test",
     ]);
-    expect(result).toEqual({ json: undefined, MY_VAR: "test" });
-    // Actually --json doesn't match because it doesn't have =
-    // Let me re-check the implementation
+    expect(result).toEqual({ MY_VAR: "test" });
   });
 
   it("ignores flags without = sign", () => {

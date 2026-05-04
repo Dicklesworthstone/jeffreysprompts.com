@@ -41,7 +41,9 @@ interface ApiPrompt {
   category?: unknown;
   tags?: unknown;
   saved_at?: unknown;
+  created_at?: unknown;
   createdAt?: unknown;
+  updated_at?: unknown;
   updatedAt?: unknown;
 }
 
@@ -123,7 +125,9 @@ function toSyncedPrompt(prompt: ApiPrompt): SyncedPrompt | null {
 
   const savedAt =
     normalizeOptionalString(prompt.saved_at) ??
+    normalizeOptionalString(prompt.updated_at) ??
     normalizeOptionalString(prompt.updatedAt) ??
+    normalizeOptionalString(prompt.created_at) ??
     normalizeOptionalString(prompt.createdAt);
 
   if (!savedAt) return null;

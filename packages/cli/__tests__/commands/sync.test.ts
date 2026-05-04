@@ -197,7 +197,7 @@ describe("syncCommand", () => {
                 content: "Second prompt content",
                 category: null,
                 tags: [],
-                updatedAt: "2026-05-03T12:01:00.000Z",
+                updated_at: "2026-05-03T12:01:00.000Z",
               },
             ];
 
@@ -242,6 +242,10 @@ describe("syncCommand", () => {
     expect(cached[0]).toMatchObject({
       id: "prompt-one",
       saved_at: "2026-05-03T12:00:00.000Z",
+    });
+    expect(cached[1]).toMatchObject({
+      id: "prompt-two",
+      saved_at: "2026-05-03T12:01:00.000Z",
     });
 
     output = [];

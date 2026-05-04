@@ -14,6 +14,9 @@ const subscribe = () => () => {};
 function formatClientDate(date: string | Date | number, format: ClientDateProps["format"], fallback: string): string {
   try {
     const d = new Date(date);
+    if (Number.isNaN(d.getTime())) {
+      return fallback;
+    }
     if (format === "date") {
       return d.toLocaleDateString();
     }
