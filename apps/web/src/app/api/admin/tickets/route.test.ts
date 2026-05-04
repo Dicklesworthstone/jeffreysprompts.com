@@ -3,9 +3,11 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { NextRequest } from "next/server";
+import { randomUUID } from "node:crypto";
+import { createSupportTicket } from "@/lib/support/ticket-store";
 import { GET, PUT } from "./route";
 
-const TOKEN = "test-admin-token";
+const TOKEN = randomUUID();
 
 function authedRequest(url: string, init?: RequestInit): NextRequest {
   const headers = new Headers(init?.headers);
@@ -15,7 +17,7 @@ function authedRequest(url: string, init?: RequestInit): NextRequest {
 
 function clearStore() {
   const g = globalThis as unknown as Record<string, unknown>;
-  delete g["__jfp_ticket_store__"];
+  delete g["__jfp_support_ticket_store__"];
 }
 
 describe("/api/admin/tickets", () => {
@@ -71,6 +73,29 @@ describe("/api/admin/tickets", () => {
         authedRequest("http://localhost/api/admin/tickets?status=bogus")
       );
       expect(res.status).toBe(200);
+    });
+
+    it("paginates across tickets beyond the former 500 item source cap", async () => {
+      for (let i = 0; i < 501; i++) {
+        createSupportTicket({
+          name: "Pagination User",
+          email: `pagination-${i}@example.com`,
+          subject: `Pagination ticket ${i}`,
+          message: "Need help with pagination.",
+          category: "technical",
+          priority: "normal",
+        });
+      }
+
+      const res = await GET(
+        authedRequest("http://localhost/api/admin/tickets?limit=50&page=11")
+      );
+      const data = await res.json();
+
+      expect(res.status).toBe(200);
+      expect(data.pagination.total).toBe(501);
+      expect(data.pagination.totalPages).toBe(11);
+      expect(data.tickets).toHaveLength(1);
     });
   });
 

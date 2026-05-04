@@ -6,12 +6,14 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import {
   createSupportTicket,
+  MAX_TICKETS_IN_MEMORY,
   listSupportTickets,
   getSupportTicket,
   getSupportTicketsForEmail,
   updateSupportTicketStatus,
   addSupportTicketReply,
   addSupportTicketNote,
+  type SupportTicket,
 } from "./ticket-store";
 
 // ---------------------------------------------------------------------------
@@ -21,6 +23,48 @@ import {
 function clearStore() {
   const g = globalThis as unknown as Record<string, unknown>;
   delete g["__jfp_support_ticket_store__"];
+}
+
+function makeStoredTicket(index: number): SupportTicket {
+  const now = new Date(2026, 0, 1, 12, 0, index % 60).toISOString();
+  const ticketNumber = `SUP-TEST-${index}`;
+  return {
+    id: `ticket-${index}`,
+    ticketNumber,
+    accessToken: `token-${index}`,
+    name: "Stored User",
+    email: "stored@example.com",
+    subject: `Stored Ticket ${index}`,
+    message: "Stored message body.",
+    category: "technical",
+    priority: "normal",
+    status: "open",
+    createdAt: now,
+    updatedAt: now,
+    messages: [
+      {
+        id: `message-${index}`,
+        author: "user",
+        body: "Stored message body.",
+        createdAt: now,
+      },
+    ],
+    notes: [],
+  };
+}
+
+function seedStoreWithTicketCount(count: number) {
+  const tickets = new Map<string, SupportTicket>();
+  const order: string[] = [];
+
+  for (let i = 0; i < count; i++) {
+    const ticket = makeStoredTicket(i);
+    tickets.set(ticket.ticketNumber, ticket);
+    order.unshift(ticket.ticketNumber);
+  }
+
+  const g = globalThis as unknown as Record<string, unknown>;
+  g["__jfp_support_ticket_store__"] = { tickets, order };
 }
 
 function seedTicket(overrides?: Record<string, unknown>) {
@@ -103,6 +147,18 @@ describe("ticket-store", () => {
       const t1 = seedTicket();
       const t2 = seedTicket();
       expect(t1.ticketNumber).not.toBe(t2.ticketNumber);
+    });
+
+    it("evicts oldest tickets after inserts push the store over the in-memory cap", () => {
+      seedStoreWithTicketCount(MAX_TICKETS_IN_MEMORY);
+
+      const oldestBeforeOverflow = listSupportTickets({ limit: MAX_TICKETS_IN_MEMORY }).at(-1);
+      const newest = seedTicket({ subject: "Newest ticket" });
+      const tickets = listSupportTickets({ limit: MAX_TICKETS_IN_MEMORY + 1 });
+
+      expect(tickets.length).toBeLessThanOrEqual(MAX_TICKETS_IN_MEMORY);
+      expect(tickets[0].ticketNumber).toBe(newest.ticketNumber);
+      expect(tickets.some((ticket) => ticket.ticketNumber === oldestBeforeOverflow?.ticketNumber)).toBe(false);
     });
   });
 

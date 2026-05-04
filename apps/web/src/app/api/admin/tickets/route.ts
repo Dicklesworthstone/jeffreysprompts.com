@@ -15,10 +15,15 @@ import {
   addSupportTicketReply,
   getSupportTicket,
   listSupportTickets,
+  MAX_TICKETS_IN_MEMORY,
   updateSupportTicketStatus,
 } from "@/lib/support/ticket-store";
 
-const ADMIN_HEADERS = { "Cache-Control": "no-store" };
+function adminJson(body: unknown, init?: ResponseInit) {
+  const response = NextResponse.json(body, init);
+  response.headers.set("Cache-Control", "no-store");
+  return response;
+}
 
 export async function GET(request: NextRequest) {
   const auth = checkAdminPermission(request, "support.view");
@@ -46,7 +51,7 @@ export async function GET(request: NextRequest) {
     category: normalizedCategory,
     priority: normalizedPriority,
     search,
-    limit: 500,
+    limit: MAX_TICKETS_IN_MEMORY,
   });
 
   const start = (page - 1) * limit;
@@ -61,7 +66,7 @@ export async function GET(request: NextRequest) {
     stats[ticket.status] = (stats[ticket.status] ?? 0) + 1;
   });
 
-  return NextResponse.json({
+  return adminJson({
     tickets: pageTickets,
     pagination: {
       page,
@@ -75,7 +80,7 @@ export async function GET(request: NextRequest) {
       priorities: SUPPORT_PRIORITIES,
     },
     stats,
-  }, { headers: ADMIN_HEADERS });
+  });
 }
 
 export async function PUT(request: NextRequest) {
@@ -142,8 +147,8 @@ export async function PUT(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({
+  return adminJson({
     success: true,
     ticket: updatedTicket,
-  }, { headers: ADMIN_HEADERS });
+  });
 }

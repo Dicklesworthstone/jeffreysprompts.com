@@ -44,7 +44,7 @@ interface SupportTicketStore {
 }
 
 const STORE_KEY = "__jfp_support_ticket_store__";
-const MAX_TICKETS_IN_MEMORY = 10000;
+export const MAX_TICKETS_IN_MEMORY = 10000;
 
 function getStore(): SupportTicketStore {
   const globalStore = globalThis as typeof globalThis & {
@@ -112,7 +112,6 @@ export function createSupportTicket(input: {
   status?: SupportStatus;
 }): SupportTicket {
   const store = getStore();
-  evictOldestTicketsIfNeeded(store);
 
   const now = new Date().toISOString();
   const ticketNumber = createTicketNumber(store);
@@ -143,6 +142,7 @@ export function createSupportTicket(input: {
 
   store.tickets.set(ticketNumber, ticket);
   touchTicket(store, ticketNumber);
+  evictOldestTicketsIfNeeded(store);
   return ticket;
 }
 
