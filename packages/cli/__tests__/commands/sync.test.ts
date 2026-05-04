@@ -163,6 +163,42 @@ describe("syncCommand", () => {
     expect(json.replacement).toBe("jfp sync");
   });
 
+  it("returns a structured error when a prompts page contains malformed entries", async () => {
+    process.env.JFP_TOKEN = "test-access-token";
+
+    globalThis.fetch = (async () =>
+      new Response(
+        JSON.stringify({
+          ok: true,
+          data: {
+            prompts: [null],
+            pagination: {
+              page: 1,
+              limit: 100,
+              total: 1,
+              hasMore: false,
+            },
+          },
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      )) as typeof fetch;
+
+    try {
+      await syncCommand({ json: true });
+    } catch (e) {
+      if ((e as Error).message !== "process.exit(1)") throw e;
+    }
+
+    expect(exitCode).toBe(1);
+    const json = JSON.parse(output.join(""));
+    expect(json.error).toBe(true);
+    expect(json.code).toBe("invalid_sync_payload");
+    expect(json.message).toContain("1 invalid prompt");
+  });
+
   it("syncs library from the canonical prompts endpoint", async () => {
     process.env.JFP_TOKEN = "test-access-token";
     const requests: URL[] = [];

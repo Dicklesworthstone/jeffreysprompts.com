@@ -33,22 +33,8 @@ export interface SyncOptions {
 
 export type VaultCompatAction = "sync" | "status" | string | undefined;
 
-interface ApiPrompt {
-  id?: unknown;
-  title?: unknown;
-  content?: unknown;
-  description?: unknown;
-  category?: unknown;
-  tags?: unknown;
-  saved_at?: unknown;
-  created_at?: unknown;
-  createdAt?: unknown;
-  updated_at?: unknown;
-  updatedAt?: unknown;
-}
-
 interface PromptsPage {
-  prompts: ApiPrompt[];
+  prompts: unknown[];
   pagination?: {
     hasMore?: boolean;
     total?: number;
@@ -84,7 +70,7 @@ function normalizePromptsPage(payload: unknown): PromptsPage | null {
 
   if (Array.isArray(payload.prompts)) {
     return {
-      prompts: payload.prompts as ApiPrompt[],
+      prompts: payload.prompts,
       pagination: isRecord(payload.pagination)
         ? {
             hasMore: payload.pagination.hasMore === true,
@@ -114,7 +100,9 @@ function normalizeOptionalString(value: unknown): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
-function toSyncedPrompt(prompt: ApiPrompt): SyncedPrompt | null {
+function toSyncedPrompt(prompt: unknown): SyncedPrompt | null {
+  if (!isRecord(prompt)) return null;
+
   if (
     typeof prompt.id !== "string" ||
     typeof prompt.title !== "string" ||
