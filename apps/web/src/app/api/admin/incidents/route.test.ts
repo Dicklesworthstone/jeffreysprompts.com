@@ -3,9 +3,10 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { NextRequest } from "next/server";
+import { randomUUID } from "node:crypto";
 import { GET, POST, PUT } from "./route";
 
-const TOKEN = "test-admin-token";
+const TOKEN = randomUUID();
 
 function authedRequest(
   url: string,
@@ -18,7 +19,7 @@ function authedRequest(
 
 function clearStore() {
   const g = globalThis as unknown as Record<string, unknown>;
-  delete g["__jfp_status_store__"];
+  delete g["__jfp_incident_store__"];
 }
 
 describe("/api/admin/incidents", () => {
@@ -95,6 +96,33 @@ describe("/api/admin/incidents", () => {
         authedRequest("http://localhost/api/admin/incidents", {
           method: "POST",
           body: JSON.stringify({ title: "test", impact: "extreme", message: "msg" }),
+          headers: { "content-type": "application/json" },
+        })
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 400 for blank title or message", async () => {
+      const res = await POST(
+        authedRequest("http://localhost/api/admin/incidents", {
+          method: "POST",
+          body: JSON.stringify({ title: "   ", impact: "minor", message: "   " }),
+          headers: { "content-type": "application/json" },
+        })
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 400 for malformed affected components", async () => {
+      const res = await POST(
+        authedRequest("http://localhost/api/admin/incidents", {
+          method: "POST",
+          body: JSON.stringify({
+            title: "Database outage",
+            impact: "major",
+            message: "Primary DB is down",
+            affectedComponents: "database",
+          }),
           headers: { "content-type": "application/json" },
         })
       );

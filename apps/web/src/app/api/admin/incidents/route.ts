@@ -14,7 +14,12 @@ import {
 
 const VALID_IMPACTS: IncidentImpact[] = ["none", "minor", "major", "critical"];
 const VALID_STATUSES: IncidentStatus[] = ["investigating", "identified", "monitoring", "resolved"];
-const ADMIN_HEADERS = { "Cache-Control": "no-store" };
+
+function adminJson(body: unknown, init?: ResponseInit) {
+  const response = NextResponse.json(body, init);
+  response.headers.set("Cache-Control", "no-store");
+  return response;
+}
 
 export async function GET(request: NextRequest) {
   const auth = checkAdminPermission(request, "support.view");
@@ -28,14 +33,11 @@ export async function GET(request: NextRequest) {
 
   if (action === "stats") {
     const stats = getIncidentStats();
-    return NextResponse.json({ stats }, { headers: ADMIN_HEADERS });
+    return adminJson({ stats });
   }
 
   const incidents = listIncidents({ limit: 100 });
-  return NextResponse.json(
-    { incidents, total: incidents.length },
-    { headers: ADMIN_HEADERS }
-  );
+  return adminJson({ incidents, total: incidents.length });
 }
 
 export async function POST(request: NextRequest) {
@@ -59,8 +61,11 @@ export async function POST(request: NextRequest) {
   }
 
   const { title, impact, affectedComponents, message } = payload;
+  const trimmedTitle = typeof title === "string" ? title.trim() : "";
+  const trimmedMessage = typeof message === "string" ? message.trim() : "";
+  const components = affectedComponents ?? [];
 
-  if (!title || !impact || !message) {
+  if (!trimmedTitle || !impact || !trimmedMessage) {
     return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
   }
 
@@ -68,14 +73,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid impact level." }, { status: 400 });
   }
 
+  if (!Array.isArray(components) || !components.every((component) => typeof component === "string")) {
+    return NextResponse.json({ error: "Affected components must be an array of strings." }, { status: 400 });
+  }
+
   const incident = createIncident({
-    title: title.trim(),
+    title: trimmedTitle,
     impact,
-    affectedComponents: affectedComponents ?? [],
-    message: message.trim(),
+    affectedComponents: components.map((component) => component.trim()).filter(Boolean),
+    message: trimmedMessage,
   });
 
-  return NextResponse.json({ success: true, incident }, { headers: ADMIN_HEADERS });
+  return adminJson({ success: true, incident });
 }
 
 export async function PUT(request: NextRequest) {
@@ -152,16 +161,10 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Failed to update incident." }, { status: 500 });
     }
 
-    return NextResponse.json(
-      { success: true, incident: updated },
-      { headers: ADMIN_HEADERS }
-    );
+    return adminJson({ success: true, incident: updated });
   }
 
   // Return current state if only impact was updated
   const refreshed = getIncident(incidentId);
-  return NextResponse.json(
-    { success: true, incident: refreshed },
-    { headers: ADMIN_HEADERS }
-  );
+  return adminJson({ success: true, incident: refreshed });
 }

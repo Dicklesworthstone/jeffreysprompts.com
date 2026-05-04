@@ -7,7 +7,7 @@ import { GET } from "./route";
 
 function clearStore() {
   const g = globalThis as unknown as Record<string, unknown>;
-  delete g["__jfp_status_store__"];
+  delete g["__jfp_incident_store__"];
 }
 
 function makeRequest(params = ""): NextRequest {
