@@ -76,7 +76,7 @@
     },
     "packages/cli": {
       "name": "@jeffreysprompts/cli",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "dependencies": {
         "@inquirer/prompts": "^7.2.0",
         "@jeffreysprompts/core": "workspace:*",
