@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 interface ClientDateProps {
   date: string | Date | number;
@@ -9,23 +9,29 @@ interface ClientDateProps {
   fallback?: string;
 }
 
-export function ClientDate({ date, format = "datetime", className = "", fallback = "" }: ClientDateProps) {
-  const [formatted, setFormatted] = useState<string | null>(null);
+const subscribe = () => () => {};
 
-  useEffect(() => {
-    try {
-      const d = new Date(date);
-      if (format === "date") {
-        setFormatted(d.toLocaleDateString());
-      } else if (format === "time") {
-        setFormatted(d.toLocaleTimeString());
-      } else {
-        setFormatted(d.toLocaleString());
-      }
-    } catch {
-      setFormatted(fallback);
+function formatClientDate(date: string | Date | number, format: ClientDateProps["format"], fallback: string): string {
+  try {
+    const d = new Date(date);
+    if (format === "date") {
+      return d.toLocaleDateString();
     }
-  }, [date, format, fallback]);
+    if (format === "time") {
+      return d.toLocaleTimeString();
+    }
+    return d.toLocaleString();
+  } catch {
+    return fallback;
+  }
+}
+
+export function ClientDate({ date, format = "datetime", className = "", fallback = "" }: ClientDateProps) {
+  const formatted = useSyncExternalStore(
+    subscribe,
+    () => formatClientDate(date, format, fallback),
+    () => null
+  );
 
   if (formatted === null) {
     // Return empty string or fallback during SSR to avoid hydration mismatch
