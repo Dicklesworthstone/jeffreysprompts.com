@@ -41,6 +41,30 @@ describe("/api/support/tickets", () => {
     clearSupportStore();
   });
 
+  it("returns 400 when POST receives valid JSON that is not an object", async () => {
+    const response = await POST(
+      makeRequest("http://localhost/api/support/tickets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(null),
+      })
+    );
+
+    expect(response.status).toBe(400);
+  });
+
+  it("returns 400 when PUT receives valid JSON that is not an object", async () => {
+    const response = await PUT(
+      makeRequest("http://localhost/api/support/tickets", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(null),
+      })
+    );
+
+    expect(response.status).toBe(400);
+  });
+
   it("does not let unauthenticated attempts consume per-ticket reply quota", async () => {
     const { response, payload } = await createTicket("198.51.100.11");
     expect(response.status).toBe(200);

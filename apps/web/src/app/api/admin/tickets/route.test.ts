@@ -157,5 +157,16 @@ describe("/api/admin/tickets", () => {
       );
       expect(res.status).toBe(400);
     });
+
+    it("handles non-object JSON body", async () => {
+      const res = await PUT(
+        authedRequest("http://localhost/api/admin/tickets", {
+          method: "PUT",
+          body: JSON.stringify(null),
+          headers: { "content-type": "application/json" },
+        })
+      );
+      expect(res.status).toBe(400);
+    });
   });
 });

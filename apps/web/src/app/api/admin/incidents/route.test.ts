@@ -91,6 +91,17 @@ describe("/api/admin/incidents", () => {
       expect(res.status).toBe(400);
     });
 
+    it("returns 400 for non-object JSON body", async () => {
+      const res = await POST(
+        authedRequest("http://localhost/api/admin/incidents", {
+          method: "POST",
+          body: JSON.stringify(null),
+          headers: { "content-type": "application/json" },
+        })
+      );
+      expect(res.status).toBe(400);
+    });
+
     it("returns 400 for invalid impact", async () => {
       const res = await POST(
         authedRequest("http://localhost/api/admin/incidents", {
@@ -156,6 +167,17 @@ describe("/api/admin/incidents", () => {
         authedRequest("http://localhost/api/admin/incidents", {
           method: "PUT",
           body: JSON.stringify({}),
+          headers: { "content-type": "application/json" },
+        })
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 400 for non-object JSON body", async () => {
+      const res = await PUT(
+        authedRequest("http://localhost/api/admin/incidents", {
+          method: "PUT",
+          body: JSON.stringify(null),
           headers: { "content-type": "application/json" },
         })
       );
