@@ -15,6 +15,12 @@ const VALID_STATUSES: FeatureStatus[] = [
 ];
 const ADMIN_HEADERS = { "Cache-Control": "no-store" };
 
+function adminJson(body: unknown, init?: ResponseInit) {
+  const response = NextResponse.json(body, init);
+  response.headers.set("Cache-Control", ADMIN_HEADERS["Cache-Control"]);
+  return response;
+}
+
 function isValidStatus(value: unknown): value is FeatureStatus {
   return typeof value === "string" && VALID_STATUSES.includes(value as FeatureStatus);
 }
@@ -31,24 +37,24 @@ export async function GET(
   const auth = checkAdminPermission(request, "content.view_reported");
   if (!auth.ok) {
     const status = auth.reason === "unauthorized" ? 401 : 403;
-    return NextResponse.json({ error: auth.reason ?? "forbidden" }, { status });
+    return adminJson({ error: auth.reason ?? "forbidden" }, { status });
   }
 
   const { id } = await context.params;
   const feature = getFeature(id);
 
   if (!feature) {
-    return NextResponse.json(
+    return adminJson(
       { error: "not_found", message: "Feature not found" },
       { status: 404 }
     );
   }
 
-  return NextResponse.json({
+  return adminJson({
     success: true,
     feature,
     adminRole: auth.role,
-  }, { headers: ADMIN_HEADERS });
+  });
 }
 
 /**
@@ -68,7 +74,7 @@ export async function PATCH(
   const auth = checkAdminPermission(request, "content.moderate");
   if (!auth.ok) {
     const status = auth.reason === "unauthorized" ? 401 : 403;
-    return NextResponse.json({ error: auth.reason ?? "forbidden" }, { status });
+    return adminJson({ error: auth.reason ?? "forbidden" }, { status });
   }
 
   const { id } = await context.params;
@@ -78,14 +84,14 @@ export async function PATCH(
     const { status, statusNote, plannedQuarter } = body;
 
     if (!status) {
-      return NextResponse.json(
+      return adminJson(
         { error: "missing_status", message: "Status is required" },
         { status: 400 }
       );
     }
 
     if (!isValidStatus(status)) {
-      return NextResponse.json(
+      return adminJson(
         {
           error: "invalid_status",
           message: `Invalid status: ${status}. Valid statuses are: ${VALID_STATUSES.join(", ")}`,
@@ -100,19 +106,19 @@ export async function PATCH(
     });
 
     if (!feature) {
-      return NextResponse.json(
+      return adminJson(
         { error: "not_found", message: "Feature not found" },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({
+    return adminJson({
       success: true,
       feature,
       message: `Feature status updated to ${status}`,
-    }, { headers: ADMIN_HEADERS });
+    });
   } catch {
-    return NextResponse.json(
+    return adminJson(
       { error: "invalid_json", message: "Invalid JSON body" },
       { status: 400 }
     );

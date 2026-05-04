@@ -8,6 +8,12 @@ import {
 
 const ADMIN_HEADERS = { "Cache-Control": "no-store" };
 
+function adminJson(body: unknown, init?: ResponseInit) {
+  const response = NextResponse.json(body, init);
+  response.headers.set("Cache-Control", ADMIN_HEADERS["Cache-Control"]);
+  return response;
+}
+
 interface BulkActionRequest {
   itemIds: string[];
   action: "dismiss" | "warn" | "remove";
@@ -38,7 +44,7 @@ export async function POST(request: NextRequest) {
   const auth = checkAdminPermission(request, "content.moderate");
   if (!auth.ok) {
     const status = auth.reason === "unauthorized" ? 401 : 403;
-    return NextResponse.json(
+    return adminJson(
       { error: auth.reason ?? "forbidden" },
       { status }
     );
@@ -50,21 +56,21 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     if (!itemIds || !Array.isArray(itemIds) || itemIds.length === 0) {
-      return NextResponse.json(
+      return adminJson(
         { error: "Missing or empty itemIds array" },
         { status: 400 }
       );
     }
 
     if (!itemIds.every((id): id is string => typeof id === "string" && id.trim().length > 0)) {
-      return NextResponse.json(
+      return adminJson(
         { error: "All itemIds must be non-empty strings" },
         { status: 400 }
       );
     }
 
     if (!action) {
-      return NextResponse.json(
+      return adminJson(
         { error: "Missing required field: action" },
         { status: 400 }
       );
@@ -72,7 +78,7 @@ export async function POST(request: NextRequest) {
 
     const validActions = ["dismiss", "warn", "remove"];
     if (!validActions.includes(action)) {
-      return NextResponse.json(
+      return adminJson(
         { error: `Invalid action. Must be one of: ${validActions.join(", ")}` },
         { status: 400 }
       );
@@ -81,7 +87,7 @@ export async function POST(request: NextRequest) {
     // Limit batch size to prevent abuse
     const MAX_BATCH_SIZE = 100;
     if (itemIds.length > MAX_BATCH_SIZE) {
-      return NextResponse.json(
+      return adminJson(
         { error: `Batch size exceeds limit of ${MAX_BATCH_SIZE} items` },
         { status: 400 }
       );
@@ -125,7 +131,7 @@ export async function POST(request: NextRequest) {
     const succeeded = results.filter((r) => r.success).length;
     const failed = results.filter((r) => !r.success).length;
 
-    return NextResponse.json({
+    return adminJson({
       success: true,
       results,
       summary: {
@@ -134,9 +140,9 @@ export async function POST(request: NextRequest) {
         failed,
       },
       message: `Processed ${succeeded} of ${itemIds.length} reports with action: ${action}`,
-    }, { headers: ADMIN_HEADERS });
+    });
   } catch {
-    return NextResponse.json(
+    return adminJson(
       { error: "Invalid request body" },
       { status: 400 }
     );

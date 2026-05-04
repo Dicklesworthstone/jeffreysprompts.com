@@ -3,6 +3,12 @@ import { checkAdminPermission } from "@/lib/admin/permissions";
 
 const ADMIN_HEADERS = { "Cache-Control": "no-store" };
 
+function adminJson(body: unknown, init?: ResponseInit) {
+  const response = NextResponse.json(body, init);
+  response.headers.set("Cache-Control", ADMIN_HEADERS["Cache-Control"]);
+  return response;
+}
+
 /**
  * GET /api/admin/users
  * Returns paginated list of users with optional filtering.
@@ -22,7 +28,7 @@ export async function GET(request: NextRequest) {
   const auth = checkAdminPermission(request, "users.view");
   if (!auth.ok) {
     const status = auth.reason === "unauthorized" ? 401 : 403;
-    return NextResponse.json(
+    return adminJson(
       { error: auth.reason ?? "forbidden" },
       { status }
     );
@@ -108,7 +114,7 @@ export async function GET(request: NextRequest) {
     filteredUsers = filteredUsers.filter((u) => u.status === status);
   }
 
-  return NextResponse.json({
+  return adminJson({
     users: filteredUsers,
     pagination: {
       page,
@@ -121,5 +127,5 @@ export async function GET(request: NextRequest) {
       tier,
       status,
     },
-  }, { headers: ADMIN_HEADERS });
+  });
 }

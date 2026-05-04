@@ -100,11 +100,11 @@ export async function POST(request: NextRequest) {
   try {
     const parsed = await request.json();
     if (!isJsonObject(parsed)) {
-      return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+      return noStoreJson({ error: "Invalid JSON body." }, { status: 400 });
     }
     payload = parsed;
   } catch {
-    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+    return noStoreJson({ error: "Invalid JSON body." }, { status: 400 });
   }
 
   const name = typeof payload.name === "string" ? payload.name.trim() : "";
@@ -116,30 +116,30 @@ export async function POST(request: NextRequest) {
   const honeypot = typeof payload.company === "string" ? payload.company.trim() : undefined;
 
   if (honeypot) {
-    return NextResponse.json({ error: "Spam detected." }, { status: 400 });
+    return noStoreJson({ error: "Spam detected." }, { status: 400 });
   }
 
   if (!name || !email || !subject || !message) {
-    return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
+    return noStoreJson({ error: "Missing required fields." }, { status: 400 });
   }
 
   if (name.length > MAX_NAME_LENGTH) {
-    return NextResponse.json({ error: `Name must be ${MAX_NAME_LENGTH} characters or fewer.` }, { status: 400 });
+    return noStoreJson({ error: `Name must be ${MAX_NAME_LENGTH} characters or fewer.` }, { status: 400 });
   }
 
   if (!EMAIL_REGEX.test(email)) {
-    return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 });
+    return noStoreJson({ error: "Enter a valid email address." }, { status: 400 });
   }
 
   if (subject.length > MAX_SUBJECT_LENGTH) {
-    return NextResponse.json(
+    return noStoreJson(
       { error: `Subject must be ${MAX_SUBJECT_LENGTH} characters or fewer.` },
       { status: 400 }
     );
   }
 
   if (message.length > MAX_MESSAGE_LENGTH) {
-    return NextResponse.json(
+    return noStoreJson(
       { error: `Message must be ${MAX_MESSAGE_LENGTH} characters or fewer.` },
       { status: 400 }
     );
@@ -151,22 +151,19 @@ export async function POST(request: NextRequest) {
   ]);
 
   if (!rateLimitResult.allowed) {
-    return NextResponse.json(
+    return noStoreRateLimitJson(
       { error: "Support request limit reached. Please try again later." },
-      {
-        status: 429,
-        headers: { "Retry-After": rateLimitResult.retryAfterSeconds.toString() },
-      }
+      rateLimitResult.retryAfterSeconds
     );
   }
 
   if (!isSupportCategory(category) || !isSupportPriority(priority)) {
-    return NextResponse.json({ error: "Invalid category or priority." }, { status: 400 });
+    return noStoreJson({ error: "Invalid category or priority." }, { status: 400 });
   }
 
   const spamCheck = checkContentForSpam(`${subject}\n\n${message}`);
   if (spamCheck.isSpam) {
-    return NextResponse.json(
+    return noStoreJson(
       {
         error: "Your message was flagged as potential spam. Please remove links or excessive formatting and try again.",
         reasons: spamCheck.reasons,
@@ -195,7 +192,7 @@ export async function POST(request: NextRequest) {
 
   // In production, send confirmation email and notify support staff here.
 
-  return NextResponse.json({
+  return noStoreJson({
     success: true,
     ticket: {
       ticketNumber: ticket.ticketNumber,
@@ -258,11 +255,11 @@ export async function PUT(request: NextRequest) {
   try {
     const parsed = await request.json();
     if (!isJsonObject(parsed)) {
-      return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+      return noStoreJson({ error: "Invalid JSON body." }, { status: 400 });
     }
     payload = parsed;
   } catch {
-    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+    return noStoreJson({ error: "Invalid JSON body." }, { status: 400 });
   }
 
   const ticketNumber = typeof payload.ticketNumber === "string" ? payload.ticketNumber.trim().toUpperCase() : "";

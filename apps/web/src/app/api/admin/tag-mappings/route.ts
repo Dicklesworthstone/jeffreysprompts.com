@@ -11,6 +11,12 @@ import {
 export const runtime = "nodejs";
 const ADMIN_HEADERS = { "Cache-Control": "no-store" };
 
+function adminJson(body: unknown, init?: ResponseInit) {
+  const response = NextResponse.json(body, init);
+  response.headers.set("Cache-Control", ADMIN_HEADERS["Cache-Control"]);
+  return response;
+}
+
 function requirePermission(
   request: NextRequest,
   permission: Parameters<typeof checkAdminPermission>[1]
@@ -18,7 +24,7 @@ function requirePermission(
   const auth = checkAdminPermission(request, permission);
   if (auth.ok) return { response: null, auth };
   const status = auth.reason === "unauthorized" ? 401 : 403;
-  return { response: NextResponse.json({ error: auth.reason ?? "forbidden" }, { status }), auth };
+  return { response: adminJson({ error: auth.reason ?? "forbidden" }, { status }), auth };
 }
 
 export async function GET(request: NextRequest) {
@@ -28,7 +34,7 @@ export async function GET(request: NextRequest) {
   const mappings = listTagMappings();
   const meta = getTagMappingsMeta();
 
-  return NextResponse.json(
+  return adminJson(
     {
       success: true,
       data: mappings,
@@ -38,9 +44,6 @@ export async function GET(request: NextRequest) {
         persisted: Boolean(meta.persistedPath),
         lastPersistError: meta.lastPersistError,
       },
-    },
-    {
-      headers: ADMIN_HEADERS,
     }
   );
 }
@@ -55,7 +58,7 @@ export async function POST(request: NextRequest) {
   } | null;
 
   if (!body?.alias || !body?.canonical) {
-    return NextResponse.json(
+    return adminJson(
       {
         success: false,
         error: "missing_fields",
@@ -66,7 +69,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (body.alias.length > 200 || body.canonical.length > 200) {
-    return NextResponse.json(
+    return adminJson(
       {
         success: false,
         error: "field_too_long",
@@ -83,12 +86,12 @@ export async function POST(request: NextRequest) {
       updatedBy: auth.role,
     });
 
-    return NextResponse.json({
+    return adminJson({
       success: true,
       data: mapping,
-    }, { headers: ADMIN_HEADERS });
+    });
   } catch {
-    return NextResponse.json(
+    return adminJson(
       {
         success: false,
         error: "invalid_payload",
@@ -108,7 +111,7 @@ export async function DELETE(request: NextRequest) {
   const alias = aliasParam ?? body?.alias;
 
   if (!alias) {
-    return NextResponse.json(
+    return adminJson(
       {
         success: false,
         error: "missing_alias",
@@ -120,7 +123,7 @@ export async function DELETE(request: NextRequest) {
 
   const removed = removeTagMapping(alias);
   if (!removed) {
-    return NextResponse.json(
+    return adminJson(
       {
         success: false,
         error: "not_found",
@@ -130,5 +133,5 @@ export async function DELETE(request: NextRequest) {
     );
   }
 
-  return NextResponse.json({ success: true }, { headers: ADMIN_HEADERS });
+  return adminJson({ success: true });
 }

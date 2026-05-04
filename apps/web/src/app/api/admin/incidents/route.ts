@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
   const auth = checkAdminPermission(request, "support.view");
   if (!auth.ok) {
     const status = auth.reason === "unauthorized" ? 401 : 403;
-    return NextResponse.json({ error: auth.reason ?? "forbidden" }, { status });
+    return adminJson({ error: auth.reason ?? "forbidden" }, { status });
   }
 
   const searchParams = request.nextUrl.searchParams;
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
   const auth = checkAdminPermission(request, "support.manage");
   if (!auth.ok) {
     const status = auth.reason === "unauthorized" ? 401 : 403;
-    return NextResponse.json({ error: auth.reason ?? "forbidden" }, { status });
+    return adminJson({ error: auth.reason ?? "forbidden" }, { status });
   }
 
   let payload: Record<string, unknown>;
@@ -64,11 +64,11 @@ export async function POST(request: NextRequest) {
   try {
     const parsed = await request.json();
     if (!isJsonObject(parsed)) {
-      return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+      return adminJson({ error: "Invalid JSON body." }, { status: 400 });
     }
     payload = parsed;
   } catch {
-    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+    return adminJson({ error: "Invalid JSON body." }, { status: 400 });
   }
 
   const { title, impact, affectedComponents, message } = payload;
@@ -77,18 +77,18 @@ export async function POST(request: NextRequest) {
   const components = affectedComponents ?? [];
 
   if (!trimmedTitle || !impact || !trimmedMessage) {
-    return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
+    return adminJson({ error: "Missing required fields." }, { status: 400 });
   }
 
   if (!isIncidentImpact(impact)) {
-    return NextResponse.json({ error: "Invalid impact level." }, { status: 400 });
+    return adminJson({ error: "Invalid impact level." }, { status: 400 });
   }
 
   if (
     !Array.isArray(components) ||
     !components.every((component) => typeof component === "string")
   ) {
-    return NextResponse.json(
+    return adminJson(
       { error: "Affected components must be an array of strings." },
       { status: 400 }
     );
@@ -108,7 +108,7 @@ export async function PUT(request: NextRequest) {
   const auth = checkAdminPermission(request, "support.manage");
   if (!auth.ok) {
     const status = auth.reason === "unauthorized" ? 401 : 403;
-    return NextResponse.json({ error: auth.reason ?? "forbidden" }, { status });
+    return adminJson({ error: auth.reason ?? "forbidden" }, { status });
   }
 
   let payload: Record<string, unknown>;
@@ -116,17 +116,17 @@ export async function PUT(request: NextRequest) {
   try {
     const parsed = await request.json();
     if (!isJsonObject(parsed)) {
-      return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+      return adminJson({ error: "Invalid JSON body." }, { status: 400 });
     }
     payload = parsed;
   } catch {
-    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+    return adminJson({ error: "Invalid JSON body." }, { status: 400 });
   }
 
   const { incidentId, status, message, impact } = payload;
 
   if (typeof incidentId !== "string" || !incidentId) {
-    return NextResponse.json({ error: "Missing incident ID." }, { status: 400 });
+    return adminJson({ error: "Missing incident ID." }, { status: 400 });
   }
 
   const hasStatus = status !== undefined;
@@ -134,14 +134,14 @@ export async function PUT(request: NextRequest) {
   const trimmedMessage = typeof message === "string" ? message.trim() : "";
 
   if (hasStatus !== hasMessage) {
-    return NextResponse.json(
+    return adminJson(
       { error: "Status updates require both status and message." },
       { status: 400 }
     );
   }
 
   if (hasStatus && !trimmedMessage) {
-    return NextResponse.json(
+    return adminJson(
       { error: "Status update message cannot be empty." },
       { status: 400 }
     );
@@ -149,15 +149,15 @@ export async function PUT(request: NextRequest) {
 
   const existing = getIncident(incidentId);
   if (!existing) {
-    return NextResponse.json({ error: "Incident not found." }, { status: 404 });
+    return adminJson({ error: "Incident not found." }, { status: 404 });
   }
 
   // Validate all inputs before any mutations
   if (impact !== undefined && !isIncidentImpact(impact)) {
-    return NextResponse.json({ error: "Invalid impact level." }, { status: 400 });
+    return adminJson({ error: "Invalid impact level." }, { status: 400 });
   }
   if (status !== undefined && !isIncidentStatus(status)) {
-    return NextResponse.json({ error: "Invalid status." }, { status: 400 });
+    return adminJson({ error: "Invalid status." }, { status: 400 });
   }
 
   // Apply mutations after all validation passes
@@ -174,7 +174,7 @@ export async function PUT(request: NextRequest) {
     });
 
     if (!updated) {
-      return NextResponse.json({ error: "Failed to update incident." }, { status: 500 });
+      return adminJson({ error: "Failed to update incident." }, { status: 500 });
     }
 
     return adminJson({ success: true, incident: updated });

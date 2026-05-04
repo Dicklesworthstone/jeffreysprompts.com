@@ -14,6 +14,12 @@ import {
 
 const ADMIN_HEADERS = { "Cache-Control": "no-store" };
 
+function adminJson(body: unknown, init?: ResponseInit) {
+  const response = NextResponse.json(body, init);
+  response.headers.set("Cache-Control", ADMIN_HEADERS["Cache-Control"]);
+  return response;
+}
+
 /**
  * GET /api/admin/appeals/[id]
  * Get a specific appeal with full details.
@@ -25,7 +31,7 @@ export async function GET(
   const auth = checkAdminPermission(request, "content.moderate");
   if (!auth.ok) {
     const status = auth.reason === "unauthorized" ? 401 : 403;
-    return NextResponse.json(
+    return adminJson(
       { error: auth.reason ?? "forbidden" },
       { status }
     );
@@ -35,7 +41,7 @@ export async function GET(
   const appeal = getAppeal(id);
 
   if (!appeal) {
-    return NextResponse.json({ error: "Appeal not found." }, { status: 404 });
+    return adminJson({ error: "Appeal not found." }, { status: 404 });
   }
 
   const action = getModerationAction(appeal.actionId);
@@ -43,7 +49,7 @@ export async function GET(
   const deadline = new Date(appeal.deadlineAt).getTime();
   const isOverdue = (appeal.status === "pending" || appeal.status === "under_review") && now > deadline;
 
-  return NextResponse.json({
+  return adminJson({
     appeal: {
       id: appeal.id,
       actionId: appeal.actionId,
@@ -76,7 +82,7 @@ export async function GET(
           reversedAt: action.reversedAt,
         }
       : null,
-  }, { headers: ADMIN_HEADERS });
+  });
 }
 
 /**
@@ -95,7 +101,7 @@ export async function PATCH(
   const auth = checkAdminPermission(request, "content.moderate");
   if (!auth.ok) {
     const status = auth.reason === "unauthorized" ? 401 : 403;
-    return NextResponse.json(
+    return adminJson(
       { error: auth.reason ?? "forbidden" },
       { status }
     );
@@ -105,7 +111,7 @@ export async function PATCH(
   const appeal = getAppeal(id);
 
   if (!appeal) {
-    return NextResponse.json({ error: "Appeal not found." }, { status: 404 });
+    return adminJson({ error: "Appeal not found." }, { status: 404 });
   }
 
   let payload: {
@@ -117,7 +123,7 @@ export async function PATCH(
   try {
     payload = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+    return adminJson({ error: "Invalid JSON body." }, { status: 400 });
   }
 
   const newStatus = payload.status as AppealStatus;
@@ -127,7 +133,7 @@ export async function PATCH(
   // Validate status
   const validStatuses: AppealStatus[] = ["under_review", "approved", "denied"];
   if (!newStatus || !validStatuses.includes(newStatus)) {
-    return NextResponse.json(
+    return adminJson(
       { error: `Status must be one of: ${validStatuses.join(", ")}` },
       { status: 400 }
     );
@@ -135,7 +141,7 @@ export async function PATCH(
 
   // Require admin response for final decisions
   if ((newStatus === "approved" || newStatus === "denied") && !adminResponse) {
-    return NextResponse.json(
+    return adminJson(
       { error: "Admin response is required for final decisions." },
       { status: 400 }
     );
@@ -143,7 +149,7 @@ export async function PATCH(
 
   // Can't change already-decided appeals
   if (appeal.status === "approved" || appeal.status === "denied") {
-    return NextResponse.json(
+    return adminJson(
       { error: "This appeal has already been decided and cannot be modified." },
       { status: 400 }
     );
@@ -162,7 +168,7 @@ export async function PATCH(
   });
 
   if (!updated) {
-    return NextResponse.json({ error: "Failed to update appeal." }, { status: 500 });
+    return adminJson({ error: "Failed to update appeal." }, { status: 500 });
   }
 
   // If approved and reverseAction is true, reverse the moderation action
@@ -179,7 +185,7 @@ export async function PATCH(
     }
   }
 
-  return NextResponse.json({
+  return adminJson({
     success: true,
     appeal: {
       id: updated.id,
@@ -190,5 +196,5 @@ export async function PATCH(
     },
     actionReversed,
     message: `Appeal has been ${newStatus === "under_review" ? "marked for review" : newStatus}.`,
-  }, { headers: ADMIN_HEADERS });
+  });
 }

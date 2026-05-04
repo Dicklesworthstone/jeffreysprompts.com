@@ -7,6 +7,7 @@ import { randomUUID } from "node:crypto";
 import { GET, POST, PUT } from "./route";
 
 const TOKEN = randomUUID();
+const NO_STORE = "no-store";
 
 function authedRequest(
   url: string,
@@ -44,6 +45,7 @@ describe("/api/admin/incidents", () => {
     it("returns 401 without token", async () => {
       const res = await GET(new NextRequest("http://localhost/api/admin/incidents"));
       expect(res.status).toBe(401);
+      expect(res.headers.get("cache-control")).toBe(NO_STORE);
     });
 
     it("returns 403 for wrong role", async () => {
@@ -55,6 +57,7 @@ describe("/api/admin/incidents", () => {
     it("returns incidents list", async () => {
       const res = await GET(authedRequest("http://localhost/api/admin/incidents"));
       expect(res.status).toBe(200);
+      expect(res.headers.get("cache-control")).toBe(NO_STORE);
       const data = await res.json();
       expect(data.incidents).toBeDefined();
       expect(typeof data.total).toBe("number");
@@ -89,6 +92,7 @@ describe("/api/admin/incidents", () => {
         })
       );
       expect(res.status).toBe(400);
+      expect(res.headers.get("cache-control")).toBe(NO_STORE);
     });
 
     it("returns 400 for non-object JSON body", async () => {
@@ -154,6 +158,7 @@ describe("/api/admin/incidents", () => {
         })
       );
       expect(res.status).toBe(200);
+      expect(res.headers.get("cache-control")).toBe(NO_STORE);
       const data = await res.json();
       expect(data.success).toBe(true);
       expect(data.incident).toBeDefined();
@@ -171,6 +176,7 @@ describe("/api/admin/incidents", () => {
         })
       );
       expect(res.status).toBe(400);
+      expect(res.headers.get("cache-control")).toBe(NO_STORE);
     });
 
     it("returns 400 for non-object JSON body", async () => {

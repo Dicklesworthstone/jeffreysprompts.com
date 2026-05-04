@@ -16,6 +16,12 @@ import {
 export const runtime = "nodejs";
 const ADMIN_HEADERS = { "Cache-Control": "no-store" };
 
+function adminJson(body: unknown, init?: ResponseInit) {
+  const response = NextResponse.json(body, init);
+  response.headers.set("Cache-Control", ADMIN_HEADERS["Cache-Control"]);
+  return response;
+}
+
 /**
  * GET /api/admin/featured
  *
@@ -25,7 +31,7 @@ export async function GET(request: NextRequest) {
   const auth = checkAdminPermission(request, "content.view_reported");
   if (!auth.ok) {
     const status = auth.reason === "unauthorized" ? 401 : 403;
-    return NextResponse.json({ error: auth.reason ?? "forbidden" }, { status });
+    return adminJson({ error: auth.reason ?? "forbidden" }, { status });
   }
 
   try {
@@ -46,7 +52,7 @@ export async function GET(request: NextRequest) {
 
     const stats = getFeaturedStats();
 
-    return NextResponse.json({
+    return adminJson({
       success: true,
       data: items,
       stats,
@@ -54,10 +60,10 @@ export async function GET(request: NextRequest) {
         count: items.length,
         limit,
       },
-    }, { headers: ADMIN_HEADERS });
+    });
   } catch (error) {
     console.error("Error listing featured content:", error);
-    return NextResponse.json(
+    return adminJson(
       {
         success: false,
         error: "internal_error",
@@ -77,14 +83,14 @@ export async function POST(request: NextRequest) {
   const auth = checkAdminPermission(request, "content.moderate");
   if (!auth.ok) {
     const status = auth.reason === "unauthorized" ? 401 : 403;
-    return NextResponse.json({ error: auth.reason ?? "forbidden" }, { status });
+    return adminJson({ error: auth.reason ?? "forbidden" }, { status });
   }
 
   try {
     const body = await request.json().catch(() => null);
 
     if (!body) {
-      return NextResponse.json(
+      return adminJson(
         { success: false, error: "invalid_body", message: "Invalid JSON body" },
         { status: 400 }
       );
@@ -92,7 +98,7 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     if (!body.resourceType || !body.resourceId || !body.featureType) {
-      return NextResponse.json(
+      return adminJson(
         {
           success: false,
           error: "missing_fields",
@@ -104,7 +110,7 @@ export async function POST(request: NextRequest) {
 
     // Validate types
     if (!isResourceType(body.resourceType)) {
-      return NextResponse.json(
+      return adminJson(
         {
           success: false,
           error: "invalid_resource_type",
@@ -115,7 +121,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!isFeatureType(body.featureType)) {
-      return NextResponse.json(
+      return adminJson(
         {
           success: false,
           error: "invalid_feature_type",
@@ -139,15 +145,15 @@ export async function POST(request: NextRequest) {
       featuredBy: body.featuredBy ?? "admin",
     });
 
-    return NextResponse.json({
+    return adminJson({
       success: true,
       data: item,
-    }, { headers: ADMIN_HEADERS });
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to create featured content";
 
     if (message.includes("already featured")) {
-      return NextResponse.json(
+      return adminJson(
         {
           success: false,
           error: "already_featured",
@@ -158,7 +164,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.error("Error creating featured content:", error);
-    return NextResponse.json(
+    return adminJson(
       {
         success: false,
         error: "internal_error",
@@ -178,14 +184,14 @@ export async function PATCH(request: NextRequest) {
   const auth = checkAdminPermission(request, "content.moderate");
   if (!auth.ok) {
     const status = auth.reason === "unauthorized" ? 401 : 403;
-    return NextResponse.json({ error: auth.reason ?? "forbidden" }, { status });
+    return adminJson({ error: auth.reason ?? "forbidden" }, { status });
   }
 
   try {
     const body = await request.json().catch(() => null);
 
     if (!body) {
-      return NextResponse.json(
+      return adminJson(
         { success: false, error: "invalid_body", message: "Invalid JSON body" },
         { status: 400 }
       );
@@ -194,15 +200,15 @@ export async function PATCH(request: NextRequest) {
     // Handle reorder
     if (body.action === "reorder" && Array.isArray(body.ids)) {
       reorderFeaturedContent(body.ids);
-      return NextResponse.json({
+      return adminJson({
         success: true,
         message: "Reordered successfully",
-      }, { headers: ADMIN_HEADERS });
+      });
     }
 
     // Handle single item update
     if (!body.id) {
-      return NextResponse.json(
+      return adminJson(
         {
           success: false,
           error: "missing_id",
@@ -221,7 +227,7 @@ export async function PATCH(request: NextRequest) {
     });
 
     if (!item) {
-      return NextResponse.json(
+      return adminJson(
         {
           success: false,
           error: "not_found",
@@ -231,13 +237,13 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({
+    return adminJson({
       success: true,
       data: item,
-    }, { headers: ADMIN_HEADERS });
+    });
   } catch (error) {
     console.error("Error updating featured content:", error);
-    return NextResponse.json(
+    return adminJson(
       {
         success: false,
         error: "internal_error",
@@ -257,7 +263,7 @@ export async function DELETE(request: NextRequest) {
   const auth = checkAdminPermission(request, "content.moderate");
   if (!auth.ok) {
     const status = auth.reason === "unauthorized" ? 401 : 403;
-    return NextResponse.json({ error: auth.reason ?? "forbidden" }, { status });
+    return adminJson({ error: auth.reason ?? "forbidden" }, { status });
   }
 
   try {
@@ -265,7 +271,7 @@ export async function DELETE(request: NextRequest) {
     const id = searchParams.get("id");
 
     if (!id) {
-      return NextResponse.json(
+      return adminJson(
         {
           success: false,
           error: "missing_id",
@@ -278,7 +284,7 @@ export async function DELETE(request: NextRequest) {
     const item = removeFeaturedContent(id);
 
     if (!item) {
-      return NextResponse.json(
+      return adminJson(
         {
           success: false,
           error: "not_found",
@@ -288,14 +294,14 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({
+    return adminJson({
       success: true,
       message: "Featured content removed",
       data: item,
-    }, { headers: ADMIN_HEADERS });
+    });
   } catch (error) {
     console.error("Error removing featured content:", error);
-    return NextResponse.json(
+    return adminJson(
       {
         success: false,
         error: "internal_error",

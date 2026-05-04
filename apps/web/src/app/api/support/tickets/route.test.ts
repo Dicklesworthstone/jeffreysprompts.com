@@ -51,6 +51,15 @@ describe("/api/support/tickets", () => {
     );
 
     expect(response.status).toBe(400);
+    expect(response.headers.get("cache-control")).toBe("no-store, max-age=0");
+  });
+
+  it("marks ticket creation responses as no-store", async () => {
+    const { response, payload } = await createTicket("198.51.100.13");
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store, max-age=0");
+    expect(payload.ticket.accessToken).toEqual(expect.any(String));
   });
 
   it("returns 400 when PUT receives valid JSON that is not an object", async () => {
@@ -63,6 +72,7 @@ describe("/api/support/tickets", () => {
     );
 
     expect(response.status).toBe(400);
+    expect(response.headers.get("cache-control")).toBe("no-store, max-age=0");
   });
 
   it("does not let unauthenticated attempts consume per-ticket reply quota", async () => {

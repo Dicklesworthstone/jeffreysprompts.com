@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
   const auth = checkAdminPermission(request, "support.view");
   if (!auth.ok) {
     const status = auth.reason === "unauthorized" ? 401 : 403;
-    return NextResponse.json({ error: auth.reason ?? "forbidden" }, { status });
+    return adminJson({ error: auth.reason ?? "forbidden" }, { status });
   }
 
   const searchParams = request.nextUrl.searchParams;
@@ -90,7 +90,7 @@ export async function PUT(request: NextRequest) {
   const auth = checkAdminPermission(request, "support.manage");
   if (!auth.ok) {
     const status = auth.reason === "unauthorized" ? 401 : 403;
-    return NextResponse.json({ error: auth.reason ?? "forbidden" }, { status });
+    return adminJson({ error: auth.reason ?? "forbidden" }, { status });
   }
 
   let payload: Record<string, unknown>;
@@ -98,35 +98,35 @@ export async function PUT(request: NextRequest) {
   try {
     const parsed = await request.json();
     if (!isJsonObject(parsed)) {
-      return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+      return adminJson({ error: "Invalid JSON body." }, { status: 400 });
     }
     payload = parsed;
   } catch {
-    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+    return adminJson({ error: "Invalid JSON body." }, { status: 400 });
   }
 
   const ticketNumber = typeof payload.ticketNumber === "string" ? payload.ticketNumber.trim().toUpperCase() : "";
   if (!ticketNumber) {
-    return NextResponse.json({ error: "ticketNumber is required." }, { status: 400 });
+    return adminJson({ error: "ticketNumber is required." }, { status: 400 });
   }
 
   const ticket = getSupportTicket(ticketNumber);
   if (!ticket) {
-    return NextResponse.json({ error: "Ticket not found." }, { status: 404 });
+    return adminJson({ error: "Ticket not found." }, { status: 404 });
   }
 
   let updatedTicket = ticket;
 
   if (typeof payload.status === "string" && payload.status) {
     if (!isSupportStatus(payload.status)) {
-      return NextResponse.json({ error: "Invalid status." }, { status: 400 });
+      return adminJson({ error: "Invalid status." }, { status: 400 });
     }
     const statusUpdate = updateSupportTicketStatus(ticketNumber, payload.status);
     if (statusUpdate) {
       updatedTicket = statusUpdate;
     }
   } else if (payload.status !== undefined) {
-    return NextResponse.json({ error: "Invalid status." }, { status: 400 });
+    return adminJson({ error: "Invalid status." }, { status: 400 });
   }
 
   if (typeof payload.reply === "string" && payload.reply.trim()) {

@@ -8,6 +8,7 @@ import { createSupportTicket } from "@/lib/support/ticket-store";
 import { GET, PUT } from "./route";
 
 const TOKEN = randomUUID();
+const NO_STORE = "no-store";
 
 function authedRequest(url: string, init?: RequestInit): NextRequest {
   const headers = new Headers(init?.headers);
@@ -42,6 +43,7 @@ describe("/api/admin/tickets", () => {
     it("returns 401 without token", async () => {
       const res = await GET(new NextRequest("http://localhost/api/admin/tickets"));
       expect(res.status).toBe(401);
+      expect(res.headers.get("cache-control")).toBe(NO_STORE);
     });
 
     it("returns 403 for wrong role", async () => {
@@ -53,6 +55,7 @@ describe("/api/admin/tickets", () => {
     it("returns tickets with pagination and filters", async () => {
       const res = await GET(authedRequest("http://localhost/api/admin/tickets"));
       expect(res.status).toBe(200);
+      expect(res.headers.get("cache-control")).toBe(NO_STORE);
       const data = await res.json();
       expect(Array.isArray(data.tickets)).toBe(true);
       expect(data.pagination).toBeDefined();
@@ -120,6 +123,7 @@ describe("/api/admin/tickets", () => {
         })
       );
       expect(res.status).toBe(400);
+      expect(res.headers.get("cache-control")).toBe(NO_STORE);
     });
 
     it("returns 404 for unknown ticket", async () => {

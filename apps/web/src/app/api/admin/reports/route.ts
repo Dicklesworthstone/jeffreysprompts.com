@@ -9,6 +9,12 @@ import {
 
 const ADMIN_HEADERS = { "Cache-Control": "no-store" };
 
+function adminJson(body: unknown, init?: ResponseInit) {
+  const response = NextResponse.json(body, init);
+  response.headers.set("Cache-Control", ADMIN_HEADERS["Cache-Control"]);
+  return response;
+}
+
 /**
  * GET /api/admin/reports
  * Returns content moderation reports queue.
@@ -27,7 +33,7 @@ export async function GET(request: NextRequest) {
   const auth = checkAdminPermission(request, "content.view_reported");
   if (!auth.ok) {
     const status = auth.reason === "unauthorized" ? 401 : 403;
-    return NextResponse.json(
+    return adminJson(
       { error: auth.reason ?? "forbidden" },
       { status }
     );
@@ -91,7 +97,7 @@ export async function GET(request: NextRequest) {
     priority: report.priority,
   }));
 
-  return NextResponse.json({
+  return adminJson({
     reports: payload,
     pagination: {
       page,
@@ -105,7 +111,7 @@ export async function GET(request: NextRequest) {
       actioned: reportStats.actioned,
       dismissed: reportStats.dismissed,
     },
-  }, { headers: ADMIN_HEADERS });
+  });
 }
 
 /**
@@ -121,7 +127,7 @@ export async function PUT(request: NextRequest) {
   const auth = checkAdminPermission(request, "content.moderate");
   if (!auth.ok) {
     const status = auth.reason === "unauthorized" ? 401 : 403;
-    return NextResponse.json(
+    return adminJson(
       { error: auth.reason ?? "forbidden" },
       { status }
     );
@@ -132,7 +138,7 @@ export async function PUT(request: NextRequest) {
     const { reportId, action, notes } = body;
 
     if (!reportId || !action) {
-      return NextResponse.json(
+      return adminJson(
         { error: "Missing required fields: reportId, action" },
         { status: 400 }
       );
@@ -140,7 +146,7 @@ export async function PUT(request: NextRequest) {
 
     const validActions = ["dismiss", "warn", "remove", "ban"];
     if (!validActions.includes(action)) {
-      return NextResponse.json(
+      return adminJson(
         { error: `Invalid action. Must be one of: ${validActions.join(", ")}` },
         { status: 400 }
       );
@@ -154,22 +160,22 @@ export async function PUT(request: NextRequest) {
     });
 
     if (!updated) {
-      return NextResponse.json(
+      return adminJson(
         { error: "Report not found." },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({
+    return adminJson({
       success: true,
       reportId: updated.id,
       action: updated.action,
       notes: updated.reviewNotes,
       processedAt: updated.reviewedAt,
       message: `Report ${updated.id} has been processed with action: ${action}`,
-    }, { headers: ADMIN_HEADERS });
+    });
   } catch {
-    return NextResponse.json(
+    return adminJson(
       { error: "Invalid request body" },
       { status: 400 }
     );

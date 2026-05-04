@@ -3,6 +3,12 @@ import { checkAdminPermission } from "@/lib/admin/permissions";
 
 const ADMIN_HEADERS = { "Cache-Control": "no-store" };
 
+function adminJson(body: unknown, init?: ResponseInit) {
+  const response = NextResponse.json(body, init);
+  response.headers.set("Cache-Control", ADMIN_HEADERS["Cache-Control"]);
+  return response;
+}
+
 /**
  * GET /api/admin/stats
  * Returns dashboard statistics for the admin panel.
@@ -18,7 +24,7 @@ export async function GET(request: NextRequest) {
   const auth = checkAdminPermission(request, "admins.view");
   if (!auth.ok) {
     const status = auth.reason === "unauthorized" ? 401 : 403;
-    return NextResponse.json(
+    return adminJson(
       { error: auth.reason ?? "forbidden" },
       { status }
     );
@@ -37,5 +43,5 @@ export async function GET(request: NextRequest) {
     generatedAt: new Date().toISOString(),
   };
 
-  return NextResponse.json(stats, { headers: ADMIN_HEADERS });
+  return adminJson(stats);
 }

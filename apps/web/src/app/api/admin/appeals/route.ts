@@ -13,6 +13,12 @@ import {
 
 const ADMIN_HEADERS = { "Cache-Control": "no-store" };
 
+function adminJson(body: unknown, init?: ResponseInit) {
+  const response = NextResponse.json(body, init);
+  response.headers.set("Cache-Control", ADMIN_HEADERS["Cache-Control"]);
+  return response;
+}
+
 /**
  * GET /api/admin/appeals
  * Returns appeals queue for admin review.
@@ -26,7 +32,7 @@ export async function GET(request: NextRequest) {
   const auth = checkAdminPermission(request, "content.moderate");
   if (!auth.ok) {
     const status = auth.reason === "unauthorized" ? 401 : 403;
-    return NextResponse.json(
+    return adminJson(
       { error: auth.reason ?? "forbidden" },
       { status }
     );
@@ -105,7 +111,7 @@ export async function GET(request: NextRequest) {
 
   const stats = getAppealStats();
 
-  return NextResponse.json({
+  return adminJson({
     appeals: payload,
     pagination: {
       page,
@@ -121,5 +127,5 @@ export async function GET(request: NextRequest) {
       denied: stats.denied,
       overdue: stats.overdueCount,
     },
-  }, { headers: ADMIN_HEADERS });
+  });
 }
