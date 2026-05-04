@@ -8,7 +8,6 @@ import {
   isSupportStatus,
   isSupportCategory,
   isSupportPriority,
-  type SupportStatus,
 } from "@/lib/support/tickets";
 import {
   addSupportTicketNote,
@@ -23,6 +22,10 @@ function adminJson(body: unknown, init?: ResponseInit) {
   const response = NextResponse.json(body, init);
   response.headers.set("Cache-Control", "no-store");
   return response;
+}
+
+function isJsonObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 export async function GET(request: NextRequest) {
@@ -90,15 +93,14 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: auth.reason ?? "forbidden" }, { status });
   }
 
-  let payload: {
-    ticketNumber?: string;
-    status?: string;
-    reply?: string;
-    note?: string;
-  };
+  let payload: Record<string, unknown>;
 
   try {
-    payload = await request.json();
+    const parsed = await request.json();
+    if (!isJsonObject(parsed)) {
+      return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+    }
+    payload = parsed;
   } catch {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
@@ -115,14 +117,16 @@ export async function PUT(request: NextRequest) {
 
   let updatedTicket = ticket;
 
-  if (payload.status) {
-    if (!isSupportStatus(payload.status as string)) {
+  if (typeof payload.status === "string" && payload.status) {
+    if (!isSupportStatus(payload.status)) {
       return NextResponse.json({ error: "Invalid status." }, { status: 400 });
     }
-    const statusUpdate = updateSupportTicketStatus(ticketNumber, payload.status as SupportStatus);
+    const statusUpdate = updateSupportTicketStatus(ticketNumber, payload.status);
     if (statusUpdate) {
       updatedTicket = statusUpdate;
     }
+  } else if (payload.status !== undefined) {
+    return NextResponse.json({ error: "Invalid status." }, { status: 400 });
   }
 
   if (typeof payload.reply === "string" && payload.reply.trim()) {

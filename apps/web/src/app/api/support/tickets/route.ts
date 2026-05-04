@@ -80,19 +80,19 @@ function normalizeText(value: string) {
   return value.replace(/\s+/g, " ").trim();
 }
 
+function isJsonObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 export async function POST(request: NextRequest) {
-  let payload: {
-    name?: string;
-    email?: string;
-    subject?: string;
-    message?: string;
-    category?: string;
-    priority?: string;
-    company?: string;
-  };
+  let payload: Record<string, unknown>;
 
   try {
-    payload = await request.json();
+    const parsed = await request.json();
+    if (!isJsonObject(parsed)) {
+      return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+    }
+    payload = parsed;
   } catch {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
@@ -101,8 +101,8 @@ export async function POST(request: NextRequest) {
   const email = typeof payload.email === "string" ? payload.email.trim().toLowerCase() : "";
   const subject = typeof payload.subject === "string" ? normalizeText(payload.subject) : "";
   const message = typeof payload.message === "string" ? normalizeText(payload.message) : "";
-  const category = payload.category ?? "";
-  const priority = payload.priority ?? "";
+  const category = typeof payload.category === "string" ? payload.category : "";
+  const priority = typeof payload.priority === "string" ? payload.priority : "";
   const honeypot = typeof payload.company === "string" ? payload.company.trim() : undefined;
 
   if (honeypot) {
@@ -250,14 +250,14 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  let payload: {
-    ticketNumber?: string;
-    ticketToken?: string;
-    message?: string;
-  };
+  let payload: Record<string, unknown>;
 
   try {
-    payload = await request.json();
+    const parsed = await request.json();
+    if (!isJsonObject(parsed)) {
+      return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+    }
+    payload = parsed;
   } catch {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
