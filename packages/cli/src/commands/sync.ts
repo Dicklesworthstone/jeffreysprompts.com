@@ -61,6 +61,10 @@ function writeJsonError(code: string, message: string, extra: Record<string, unk
   writeJson({ error: true, code, message, ...extra });
 }
 
+function isProcessExitSignal(error: unknown): boolean {
+  return error instanceof Error && /^process\.exit\(\d+\)$/.test(error.message);
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
@@ -405,6 +409,8 @@ export async function syncCommand(options: SyncOptions = {}): Promise<void> {
       console.log(chalk.dim(`Location: ${getLibraryDir()}`));
     }
   } catch (err) {
+    if (isProcessExitSignal(err)) throw err;
+
     spinner?.fail("Sync failed");
     releaseSyncLock();
     if (shouldOutputJson(options)) {
