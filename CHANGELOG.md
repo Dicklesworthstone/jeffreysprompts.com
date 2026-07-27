@@ -24,7 +24,7 @@ callback against spoofing.
   accepts state-less requests from older CLIs again; upgrading to 1.0.3
   restores the full CSRF binding.
 
-This project has no formal releases or tags. The timeline below is reconstructed from the full git history (1,274 commits on `main`) and organized by capability rather than raw diff order. Each section groups related work under thematic headings so readers can find what matters to them. Commit links point to the canonical repository at [`Dicklesworthstone/jeffreysprompts.com`](https://github.com/Dicklesworthstone/jeffreysprompts.com).
+The `jfp` CLI ships as tagged GitHub releases (v1.0.1+). Earlier history below is reconstructed from the full git history (1,274 commits on `main`) and organized by capability rather than raw diff order. Each section groups related work under thematic headings so readers can find what matters to them. Commit links point to the canonical repository at [`Dicklesworthstone/jeffreysprompts.com`](https://github.com/Dicklesworthstone/jeffreysprompts.com).
 
 ---
 
