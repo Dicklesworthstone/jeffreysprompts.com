@@ -2,6 +2,28 @@
 
 All notable changes to **JeffreysPrompts.com** are documented here.
 
+---
+
+## 2026-07-27: jfp v1.0.3 -- CLI Login State Binding
+
+Fixes the broken default `jfp login` browser flow and hardens the loopback
+callback against spoofing.
+
+### CLI
+
+- `jfp login` (local browser flow) now generates a 32-hex `state` nonce, sends
+  it to `https://pro.jeffreysprompts.com/cli/auth`, and verifies the premium
+  backend echoes it back to the `http://127.0.0.1:<port>/callback` listener. A
+  callback without the matching nonce is rejected (HTTP 400) while the pending
+  login keeps waiting for the legitimate one.
+- Error callbacks now surface the backend's `error_description` (e.g. "User
+  cancelled authentication") instead of the bare error code.
+- Background: the premium backend began requiring `state` on 2026-04-16, which
+  broke every released CLI's browser login with an "Invalid Request" page (the
+  device-code flow, `jfp login --remote`, was unaffected). The backend now
+  accepts state-less requests from older CLIs again; upgrading to 1.0.3
+  restores the full CSRF binding.
+
 This project has no formal releases or tags. The timeline below is reconstructed from the full git history (1,274 commits on `main`) and organized by capability rather than raw diff order. Each section groups related work under thematic headings so readers can find what matters to them. Commit links point to the canonical repository at [`Dicklesworthstone/jeffreysprompts.com`](https://github.com/Dicklesworthstone/jeffreysprompts.com).
 
 ---

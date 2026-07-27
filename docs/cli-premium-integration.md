@@ -45,12 +45,15 @@ For machines with a display/browser available:
 
 ```
 1. User runs `jfp login`
-2. CLI starts a local HTTP server on a random port
-3. CLI opens browser to https://pro.jeffreysprompts.com/cli/auth?port=<port>&redirect=local
-4. User authenticates with Google OAuth
-5. Premium backend redirects to http://localhost:<port>/callback?token=<jwt>&email=<email>&tier=<tier>
-6. CLI receives token and saves to credentials file
+2. CLI starts a local HTTP server on a random port and generates a 32-hex `state` nonce
+3. CLI opens browser to https://pro.jeffreysprompts.com/cli/auth?port=<port>&redirect=local&state=<32-hex>
+4. User authenticates with Google OAuth, then explicitly clicks Authorize
+5. Premium backend 303-redirects to http://127.0.0.1:<port>/callback?state=<32-hex>&token=<jwt>&email=<email>&tier=<tier>&...
+6. CLI verifies `state` matches the nonce it generated, then saves credentials
 ```
+
+Note: `state` is sent and verified since CLI 1.0.3. The backend treats it as
+optional so older installed CLIs (<= 1.0.2, which never send it) keep working.
 
 ### Device Code Flow (Headless/SSH)
 

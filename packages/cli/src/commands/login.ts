@@ -7,6 +7,7 @@
  */
 
 import { createServer, type IncomingMessage, type ServerResponse } from "http";
+import { randomBytes } from "crypto";
 import { URL } from "url";
 import open from "open";
 import chalk from "chalk";
@@ -21,6 +22,10 @@ import {
 import { shouldOutputJson } from "../lib/utils";
 
 const DEFAULT_TIMEOUT = 120_000; // 2 minutes
+
+// 16 random bytes hex-encoded -> the 32-hex state nonce the premium backend
+// echoes back to the loopback callback so we can reject spoofed callbacks.
+const CALLBACK_STATE_BYTES = 16;
 
 export interface LoginOptions {
   remote?: boolean;
@@ -87,13 +92,16 @@ async function loginLocal(options: LoginOptions): Promise<void> {
     console.log(chalk.dim("Starting login flow..."));
   }
 
+  const callbackState = createLocalCallbackState();
+
   // Start local server to receive callback
-  const { port, tokenPromise, close } = await startCallbackServer(timeout);
+  const { port, tokenPromise, close } = await startCallbackServer(timeout, callbackState);
 
   // Build auth URL
   const authUrl = new URL(`${getPremiumUrl()}/cli/auth`);
   authUrl.searchParams.set("port", String(port));
   authUrl.searchParams.set("redirect", "local");
+  authUrl.searchParams.set("state", callbackState);
 
   if (!jsonOutput) {
     console.log(chalk.dim("\nOpening browser to sign in with Google..."));
@@ -158,6 +166,10 @@ async function loginLocal(options: LoginOptions): Promise<void> {
   }
 }
 
+function createLocalCallbackState(): string {
+  return randomBytes(CALLBACK_STATE_BYTES).toString("hex");
+}
+
 interface CallbackServer {
   port: number;
   tokenPromise: Promise<Credentials>;
@@ -165,9 +177,13 @@ interface CallbackServer {
 }
 
 /**
- * Start a local HTTP server to receive the OAuth callback
+ * Start a local HTTP server to receive the OAuth callback.
+ * Exported for tests; production use stays inside loginLocal().
  */
-async function startCallbackServer(timeoutMs: number): Promise<CallbackServer> {
+export async function startCallbackServer(
+  timeoutMs: number,
+  expectedState: string
+): Promise<CallbackServer> {
   return new Promise((resolve, reject) => {
     let resolveToken!: (creds: Credentials) => void;
     let rejectToken!: (err: Error) => void;
@@ -191,12 +207,22 @@ async function startCallbackServer(timeoutMs: number): Promise<CallbackServer> {
         const expiresAt = url.searchParams.get("expires_at");
         const userId = url.searchParams.get("user_id");
         const refreshToken = url.searchParams.get("refresh_token");
+        const state = url.searchParams.get("state");
         const error = url.searchParams.get("error");
+        const errorDescription = url.searchParams.get("error_description");
+
+        // A callback that doesn't echo our nonce is not the login we started.
+        // Reject the request but keep the server alive for the real callback.
+        if (state !== expectedState) {
+          res.writeHead(400, { "Content-Type": "text/html" });
+          res.end(errorPage("Invalid callback state"));
+          return;
+        }
 
         if (error) {
           res.writeHead(200, { "Content-Type": "text/html" });
-          res.end(errorPage(error));
-          rejectToken(new Error(error));
+          res.end(errorPage(errorDescription ?? error));
+          rejectToken(new Error(errorDescription ?? error));
           return;
         }
 
