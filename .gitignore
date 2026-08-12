@@ -116,8 +116,11 @@ apps/web/public/registry.manifest.json
 # Beads (tracked separately by bd)
 # ------------------------------------------------------------------------------
 # Note: .beads/ is managed by beads and should be committed
-# The daemon socket is excluded
+# The daemon socket and per-process writer locks are excluded
 .beads/*.sock
+.beads/.write.lock
+.beads/.sync.lock
+.beads/.br-*-write-*.lock
 
 # bv (beads viewer) local config and caches
 .bv/
