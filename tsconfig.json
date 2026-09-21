@@ -31,9 +31,5 @@
     "jfp.test.ts",
     "scripts/**/*.ts"
   ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "apps/web/.next"
-  ]
+  "exclude": ["node_modules", "dist", "apps/web/.next"]
 }
