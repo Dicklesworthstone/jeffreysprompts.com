@@ -5,6 +5,7 @@
 #
 # Platforms:
 #   - linux-x64
+#   - linux-x64-baseline (explicit older-CPU asset for the cloud mirror)
 #   - linux-arm64
 #   - darwin-x64
 #   - darwin-arm64
@@ -43,7 +44,8 @@ echo -e "${BLUE}Building jfp CLI for all platforms...${NC}\n"
 # Platform configurations
 # Format: target:output_name
 PLATFORMS=(
-  "bun-linux-x64:jfp-linux-x64"
+  "bun-linux-x64-baseline:jfp-linux-x64"
+  "bun-linux-x64-baseline:jfp-linux-x64-baseline"
   "bun-linux-arm64:jfp-linux-arm64"
   "bun-darwin-x64:jfp-darwin-x64"
   "bun-darwin-arm64:jfp-darwin-arm64"
@@ -86,7 +88,7 @@ hash_file() {
   return 1
 }
 
-> "$CHECKSUM_FILE"
+: > "$CHECKSUM_FILE"
 
 for file in "$OUTPUT_DIR"/jfp-*; do
   if [[ ! -f "$file" ]]; then
@@ -108,7 +110,7 @@ echo ""
 echo -e "${GREEN}Build complete!${NC}"
 echo ""
 echo "Files:"
-ls -lh "$OUTPUT_DIR"/ | tail -n +2
+ls -lh "$OUTPUT_DIR"/
 
 echo ""
 echo "Checksums:"

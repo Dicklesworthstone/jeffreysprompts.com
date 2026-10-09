@@ -115,8 +115,12 @@ jobs:
         include:
           - target: linux-x64
             os: ubuntu-latest
-            bun-target: bun-linux-x64
+            bun-target: bun-linux-x64-baseline
             artifact: jfp-linux-x64
+          - target: linux-x64-baseline
+            os: ubuntu-latest
+            bun-target: bun-linux-x64-baseline
+            artifact: jfp-linux-x64-baseline
           - target: linux-arm64
             os: ubuntu-latest
             bun-target: bun-linux-arm64
@@ -268,6 +272,7 @@ jobs:
         with:
           files: |
             release/jfp-linux-x64
+            release/jfp-linux-x64-baseline
             release/jfp-linux-arm64
             release/jfp-darwin-x64
             release/jfp-darwin-arm64
