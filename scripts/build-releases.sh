@@ -11,7 +11,7 @@
 #   - darwin-arm64
 #   - windows-x64
 
-set -e
+set -euo pipefail
 
 # Colors
 GREEN='\033[0;32m'
@@ -60,11 +60,12 @@ for platform_config in "${PLATFORMS[@]}"; do
 
   echo -e "${YELLOW}Building for $TARGET...${NC}"
 
-  if bun build --compile --target="$TARGET" ./jfp.ts --outfile "$OUTPUT_PATH" 2>/dev/null; then
+  if bun build --compile --target="$TARGET" ./jfp.ts --outfile "$OUTPUT_PATH"; then
     SIZE=$(du -h "$OUTPUT_PATH" | cut -f1)
     echo -e "${GREEN}  ✓ $OUTPUT_NAME ($SIZE)${NC}"
   else
-    echo -e "${YELLOW}  ⚠ Failed to build for $TARGET (may not be supported on this system)${NC}"
+    echo "Failed to build for $TARGET; refusing incomplete release checksums." >&2
+    exit 1
   fi
 done
 
