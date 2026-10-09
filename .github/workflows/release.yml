@@ -187,43 +187,46 @@ jobs:
 
           echo ""
           echo "=== Smoke Test: List prompts (JSON) ==="
-          OUTPUT=$($BINARY list --json)
-          if echo "$OUTPUT" | head -1 | grep -q '^\['; then
-            echo "OK: list --json returns JSON array"
-          else
-            echo "FAIL: list --json failed"
-            exit 1
-          fi
+          OUTPUT=$("$BINARY" list --json)
+          printf '%s' "$OUTPUT" | bun -e '
+            const data = await Bun.stdin.json();
+            if (!Array.isArray(data.prompts) || data.prompts.length === 0 ||
+                data.count !== data.prompts.length || !data.prompts.some(p => p.id === "idea-wizard")) {
+              throw new Error("list --json must return nonempty prompts and a matching count");
+            }'
+          echo "OK: list --json returns the prompt collection and count"
 
           echo ""
           echo "=== Smoke Test: Show prompt (JSON) ==="
-          OUTPUT=$($BINARY show idea-wizard --json)
-          if echo "$OUTPUT" | grep -q '"id": "idea-wizard"'; then
-            echo "OK: show idea-wizard --json returns correct prompt"
-          else
-            echo "FAIL: show idea-wizard --json failed"
-            exit 1
-          fi
+          OUTPUT=$("$BINARY" show idea-wizard --json)
+          printf '%s' "$OUTPUT" | bun -e '
+            const data = await Bun.stdin.json();
+            if (data.id !== "idea-wizard" || typeof data.content !== "string" || data.content.length === 0) {
+              throw new Error("show --json must return the requested prompt and its content");
+            }'
+          echo "OK: show idea-wizard --json returns correct prompt"
 
           echo ""
           echo "=== Smoke Test: Search prompts (JSON) ==="
-          OUTPUT=$($BINARY search wizard --json)
-          if echo "$OUTPUT" | head -1 | grep -q '^\['; then
-            echo "OK: search wizard --json returns JSON array"
-          else
-            echo "FAIL: search wizard --json failed"
-            exit 1
-          fi
+          OUTPUT=$("$BINARY" search wizard --json)
+          printf '%s' "$OUTPUT" | bun -e '
+            const data = await Bun.stdin.json();
+            if (data.query !== "wizard" || !Array.isArray(data.results) ||
+                !data.results.some(p => p.id === "idea-wizard")) {
+              throw new Error("search --json must return matching prompts for the requested query");
+            }'
+          echo "OK: search wizard --json returns matching prompts"
 
           echo ""
           echo "=== Smoke Test: Categories (JSON) ==="
-          OUTPUT=$($BINARY categories --json)
-          if echo "$OUTPUT" | head -1 | grep -q '^\['; then
-            echo "OK: categories --json returns JSON array"
-          else
-            echo "FAIL: categories --json failed"
-            exit 1
-          fi
+          OUTPUT=$("$BINARY" categories --json)
+          printf '%s' "$OUTPUT" | bun -e '
+            const data = await Bun.stdin.json();
+            if (!Array.isArray(data) || data.length === 0 ||
+                !data.every(c => typeof c.name === "string" && Number.isInteger(c.count) && c.count > 0)) {
+              throw new Error("categories --json must return category names and positive prompt counts");
+            }'
+          echo "OK: categories --json returns populated categories"
 
           echo ""
           echo "=== All smoke tests passed! ==="
