@@ -2,7 +2,7 @@
  * Unit tests for packages/cli/src/lib/utils.ts
  * Tests utility functions: JSON output detection, safe path resolution,
  * skill ID validation, and atomic file writes.
- * Uses real filesystem (temp files) - no mocks.
+ * Uses real filesystem (temp files); stdout writes are controlled for completion tests.
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
@@ -11,6 +11,7 @@ import { join } from "path";
 import { tmpdir } from "os";
 import {
   shouldOutputJson,
+  writeStdout,
   isSafeSkillId,
   resolveSafeChildPath,
   atomicWriteFileSync,
@@ -60,6 +61,59 @@ describe("shouldOutputJson", () => {
     const result = shouldOutputJson({});
     // Should depend on TTY status
     expect(typeof result).toBe("boolean");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// writeStdout
+// ---------------------------------------------------------------------------
+
+describe("writeStdout", () => {
+  const originalWrite = process.stdout.write;
+
+  afterEach(() => {
+    process.stdout.write = originalWrite;
+  });
+
+  it("waits for the write callback when the pipe applies backpressure", async () => {
+    let complete: ((error?: Error | null) => void) | undefined;
+    let written = "";
+    process.stdout.write = ((chunk: string, callback: (error?: Error | null) => void) => {
+      written = chunk;
+      complete = callback;
+      return false;
+    }) as typeof process.stdout.write;
+
+    const listenersBefore = process.stdout.listenerCount("error");
+    let finished = false;
+    const pending = writeStdout("é🚀漢字\n").then(() => {
+      finished = true;
+    });
+    await Promise.resolve();
+
+    expect(written).toBe("é🚀漢字\n");
+    expect(finished).toBe(false);
+    expect(complete).toBeDefined();
+    complete!(null);
+    await pending;
+    expect(finished).toBe(true);
+    expect(process.stdout.listenerCount("error")).toBe(listenersBefore);
+  });
+
+  it("rejects write errors and consumes the subsequent error event", async () => {
+    const error = Object.assign(new Error("Broken pipe"), { code: "EPIPE" });
+    process.stdout.write = ((_chunk: string, callback: (error?: Error | null) => void) => {
+      queueMicrotask(() => {
+        // Node's stream contract invokes the callback before emitting error.
+        callback(error);
+        process.stdout.emit("error", error);
+      });
+      return false;
+    }) as typeof process.stdout.write;
+
+    const listenersBefore = process.stdout.listenerCount("error");
+    await expect(writeStdout("payload\n")).rejects.toBe(error);
+    expect(process.stdout.listenerCount("error")).toBe(listenersBefore);
   });
 });
 

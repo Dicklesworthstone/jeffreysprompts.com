@@ -8,4 +8,7 @@ if (!process.argv.includes("update-check-internal")) {
   checkForUpdatesInBackground();
 }
 
-cli.parse();
+// CAC's parse() does not await async actions. Keep the command (including its
+// stdout writes) alive until completion, and propagate failures as a nonzero exit.
+cli.parse(process.argv, { run: false });
+await cli.runMatchedCommand();

@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { listCommand } from "../../src/commands/list";
 
-// Mock console.log to capture output
+// Capture human-readable logs and JSON stream output
 let output: string[] = [];
 const originalLog = console.log;
+const originalWrite = process.stdout.write;
 const originalIsTTY = process.stdout.isTTY;
 
 beforeEach(() => {
@@ -11,10 +12,21 @@ beforeEach(() => {
   console.log = (...args: unknown[]) => {
     output.push(args.join(" "));
   };
+  process.stdout.write = ((
+    chunk: string | Uint8Array,
+    encodingOrCallback?: BufferEncoding | ((error?: Error | null) => void),
+    callback?: (error?: Error | null) => void
+  ) => {
+    output.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString());
+    const done = typeof encodingOrCallback === "function" ? encodingOrCallback : callback;
+    done?.(null);
+    return true;
+  }) as typeof process.stdout.write;
 });
 
 afterEach(() => {
   console.log = originalLog;
+  process.stdout.write = originalWrite;
   // Restore isTTY after each test
   Object.defineProperty(process.stdout, "isTTY", {
     value: originalIsTTY,

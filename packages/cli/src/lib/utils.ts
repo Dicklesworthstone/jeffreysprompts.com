@@ -11,6 +11,34 @@ export function shouldOutputJson(options: { json?: boolean }): boolean {
   return options.json === true || !process.stdout.isTTY;
 }
 
+/**
+ * Write a complete payload before the caller returns or exits.
+ * Bun's native console.log can drop bytes when a nonblocking pipe is full.
+ */
+export function writeStdout(content: string): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const stdout = process.stdout;
+    const onError = (error: Error) => reject(error);
+    stdout.once("error", onError);
+
+    try {
+      stdout.write(content, (error) => {
+        if (error) {
+          // The callback precedes the stream's error event. Keep the listener
+          // until that event so a failed write also rejects cleanly.
+          reject(error);
+        } else {
+          stdout.removeListener("error", onError);
+          resolve();
+        }
+      });
+    } catch (error) {
+      stdout.removeListener("error", onError);
+      reject(error);
+    }
+  });
+}
+
 export function isSafeSkillId(id: string): boolean {
   return SAFE_SKILL_ID.test(id);
 }
