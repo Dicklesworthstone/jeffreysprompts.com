@@ -9,6 +9,7 @@ let errors: string[] = [];
 let exitCode: number | undefined;
 
 const originalLog = console.log;
+const originalWrite = process.stdout.write;
 const originalError = console.error;
 const originalExit = process.exit;
 const originalFetch = globalThis.fetch;
@@ -41,6 +42,16 @@ beforeEach(() => {
   console.log = (...args: unknown[]) => {
     output.push(args.join(" "));
   };
+  process.stdout.write = ((
+    chunk: string | Uint8Array,
+    encodingOrCallback?: BufferEncoding | ((error?: Error | null) => void),
+    callback?: (error?: Error | null) => void
+  ) => {
+    output.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString());
+    const done = typeof encodingOrCallback === "function" ? encodingOrCallback : callback;
+    done?.(null);
+    return true;
+  }) as typeof process.stdout.write;
   console.error = (...args: unknown[]) => {
     errors.push(args.join(" "));
   };
@@ -52,6 +63,7 @@ beforeEach(() => {
 
 afterEach(() => {
   console.log = originalLog;
+  process.stdout.write = originalWrite;
   console.error = originalError;
   process.exit = originalExit;
   globalThis.fetch = originalFetch;
@@ -291,8 +303,8 @@ describe("graphExportCommand", () => {
     ).toBe(true);
   });
 
-  it("returns error payload and exits for invalid format", () => {
-    expect(() => graphExportCommand({ json: true, format: "csv" })).toThrow();
+  it("returns error payload and exits for invalid format", async () => {
+    await expect(graphExportCommand({ json: true, format: "csv" })).rejects.toThrow();
     const payload = parseJson<Record<string, unknown>>(output.join(""));
     expect(payload.code).toBe("invalid_format");
     expect(exitCode).toBe(1);

@@ -16,6 +16,7 @@ let errors: string[] = [];
 let exitCode: number | undefined;
 
 const originalLog = console.log;
+const originalWrite = process.stdout.write;
 const originalError = console.error;
 const originalExit = process.exit;
 const originalFetch = globalThis.fetch;
@@ -59,6 +60,16 @@ beforeEach(() => {
   console.log = (...args: unknown[]) => {
     output.push(args.join(" "));
   };
+  process.stdout.write = ((
+    chunk: string | Uint8Array,
+    encodingOrCallback?: BufferEncoding | ((error?: Error | null) => void),
+    callback?: (error?: Error | null) => void
+  ) => {
+    output.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString());
+    const done = typeof encodingOrCallback === "function" ? encodingOrCallback : callback;
+    done?.(null);
+    return true;
+  }) as typeof process.stdout.write;
   console.error = (...args: unknown[]) => {
     errors.push(args.join(" "));
   };
@@ -76,6 +87,7 @@ beforeEach(() => {
 
 afterEach(() => {
   console.log = originalLog;
+  process.stdout.write = originalWrite;
   console.error = originalError;
   process.exit = originalExit;
   globalThis.fetch = originalFetch;
@@ -296,6 +308,56 @@ describe("syncCommand", () => {
     expect(updatedPayload.synced).toBe(true);
     expect(updatedPayload.changedPrompts).toBe(1);
     expect(updatedPayload.newPrompts).toBe(0);
+    expect(updatedPayload.removedPrompts).toBe(0);
     expect(updatedPayload.totalPrompts).toBe(2);
+
+    // Deleting a prompt on the server removes it from local cache and reports removedPrompts
+    output = [];
+    errors = [];
+    exitCode = undefined;
+    globalThis.fetch = (async () =>
+      new Response(
+        JSON.stringify({
+          ok: true,
+          data: {
+            prompts: [
+              {
+                id: "prompt-one",
+                title: "Prompt One",
+                description: "First synced prompt",
+                content: promptOneContent,
+                category: "workflow",
+                tags: ["sync"],
+                updatedAt: "2026-05-03T12:00:00.000Z",
+              },
+            ],
+            pagination: {
+              page: 1,
+              limit: 100,
+              total: 1,
+              hasMore: false,
+            },
+          },
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      )) as typeof fetch;
+
+    await syncCommand({ json: true });
+
+    const deletionPayload = JSON.parse(output.join(""));
+    expect(deletionPayload.synced).toBe(true);
+    expect(deletionPayload.changedPrompts).toBe(1);
+    expect(deletionPayload.newPrompts).toBe(0);
+    expect(deletionPayload.removedPrompts).toBe(1);
+    expect(deletionPayload.totalPrompts).toBe(1);
+
+    const cachedAfterDeletion = JSON.parse(
+      readFileSync(join(testDir, ".config", "jfp", "library", "prompts.json"), "utf-8")
+    );
+    expect(cachedAfterDeletion).toHaveLength(1);
+    expect(cachedAfterDeletion[0].id).toBe("prompt-one");
   });
 });

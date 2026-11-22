@@ -4,6 +4,8 @@ import chalk from "chalk";
 import {
   exitWithDeprecatedSkillCommand,
   shouldOutputJson,
+  writeJsonStdout,
+  writeStdout,
   atomicWriteFileSync,
   isSafeSkillId,
   resolveSafeChildPath,
@@ -29,7 +31,7 @@ export async function exportCommand(
   const jsonOutput = options.json === true || (!process.stdout.isTTY && !options.stdout);
 
   const writeJsonError = (code: string, message: string, extra: Record<string, unknown> = {}) => {
-    console.log(JSON.stringify({ error: true, code, message, ...extra }, null, 2));
+    return writeJsonStdout({ error: true, code, message, ...extra }, true);
   };
 
   if (format === "skill") {
@@ -40,7 +42,7 @@ export async function exportCommand(
   }
   if (format !== "md") {
     if (jsonOutput) {
-      writeJsonError("invalid_format", `Unsupported format: ${format}`, { supported: ["md"] });
+      await writeJsonError("invalid_format", `Unsupported format: ${format}`, { supported: ["md"] });
     } else {
       console.error(chalk.red(`Unsupported format: ${format}. Supported: md`));
     }
@@ -55,7 +57,7 @@ export async function exportCommand(
   if (!options.all) {
     if (ids.length === 0) {
       if (jsonOutput) {
-        writeJsonError("missing_ids", "No prompts specified. Use <id> or --all");
+        await writeJsonError("missing_ids", "No prompts specified. Use <id> or --all");
       } else {
         console.error(chalk.red("Error: No prompts specified. Use <id> or --all"));
       }
@@ -68,7 +70,7 @@ export async function exportCommand(
       const resolved = await resolvePromptById(id, { env, registry });
       if (!resolved.prompt) {
         if (jsonOutput) {
-          writeJsonError(
+          await writeJsonError(
             resolved.error ?? "not_found",
             resolved.message ?? `Prompt not found: ${id}`,
             { id }
@@ -90,7 +92,7 @@ export async function exportCommand(
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       if (jsonOutput) {
-        writeJsonError("fs_error", message);
+        await writeJsonError("fs_error", message);
       } else {
         console.error(chalk.red(`Failed to create output directory: ${message}`));
       }
@@ -109,9 +111,9 @@ export async function exportCommand(
       if (jsonOutput) {
         results.push({ id: prompt.id, content });
       } else {
-        console.log(content);
+        await writeStdout(content + "\n");
         if (index < promptsToExport.length - 1) {
-          console.log("\n---\n");
+          await writeStdout("\n---\n\n");
         }
       }
     } else {
@@ -138,13 +140,13 @@ export async function exportCommand(
   }
 
   if (jsonOutput) {
-    console.log(JSON.stringify({
+    await writeJsonStdout({
       success: failed.length === 0,
       format,
       stdout: options.stdout ?? false,
       exported: results,
       failed: failed.length > 0 ? failed : undefined,
-    }, null, 2));
+    }, true);
     if (!options.stdout && failed.length > 0) {
       process.exit(1);
     }

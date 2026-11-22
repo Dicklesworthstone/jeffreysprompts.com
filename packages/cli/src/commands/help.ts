@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import { shouldOutputJson } from "../lib/utils";
+import { shouldOutputJson, writeJsonStdout, writeStdout } from "../lib/utils";
 import { version } from "../../package.json";
 
 interface HelpOptions {
@@ -11,7 +11,7 @@ interface HelpOptions {
  */
 export async function helpCommand(options: HelpOptions) {
   if (shouldOutputJson(options)) {
-    console.log(JSON.stringify(getHelpData(), null, 2));
+    await writeJsonStdout(getHelpData(), true);
     return;
   }
 
@@ -25,7 +25,7 @@ export async function helpCommand(options: HelpOptions) {
   if (usePager) {
     await outputWithPager(helpText);
   } else {
-    console.log(helpText);
+    await writeStdout(helpText + "\n");
   }
 }
 

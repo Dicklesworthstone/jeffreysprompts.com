@@ -6,7 +6,7 @@ import {
   getDynamicDefaults,
 } from "@jeffreysprompts/core/template";
 import chalk from "chalk";
-import { shouldOutputJson } from "../lib/utils";
+import { shouldOutputJson, writeJsonStdout, writeStdout } from "../lib/utils";
 import {
   parseVariables,
   promptForVariable,
@@ -31,12 +31,10 @@ export async function renderCommand(id: string, options: RenderOptions) {
 
   if (!prompt) {
     if (shouldOutputJson(options)) {
-      console.log(
-        JSON.stringify({
-          error: resolved.error ?? "not_found",
-          message: resolved.message ?? `Prompt not found: ${id}`,
-        })
-      );
+      await writeJsonStdout({
+        error: resolved.error ?? "not_found",
+        message: resolved.message ?? `Prompt not found: ${id}`,
+      });
     } else {
       console.error(chalk.red(resolved.message ?? `Prompt not found: ${id}`));
     }
@@ -61,7 +59,7 @@ export async function renderCommand(id: string, options: RenderOptions) {
       processedVars[name] = processVariableValue(value, varDef);
     } catch (err) {
       if (shouldOutputJson(options)) {
-        console.log(JSON.stringify({ error: "variable_error", message: (err as Error).message }));
+        await writeJsonStdout({ error: "variable_error", message: (err as Error).message });
       } else {
         console.error(chalk.red((err as Error).message));
       }
@@ -83,7 +81,7 @@ export async function renderCommand(id: string, options: RenderOptions) {
         } catch (err) {
           // User cancelled (Ctrl+C)
           if (shouldOutputJson(options)) {
-            console.log(JSON.stringify({ error: "cancelled", message: "User cancelled input" }));
+            await writeJsonStdout({ error: "cancelled", message: "User cancelled input" });
           } else {
             console.error(chalk.yellow("\nCancelled."));
           }
@@ -97,14 +95,14 @@ export async function renderCommand(id: string, options: RenderOptions) {
   const missing = getMissingVariables(promptData, variables);
   if (missing.length > 0) {
     if (shouldOutputJson(options)) {
-      console.log(JSON.stringify({
+      await writeJsonStdout({
         error: "missing_variables",
         message: `Missing required variables: ${missing.join(", ")}`,
         missing,
         hint: options.fill
           ? "Required variables cannot be empty"
           : "Use --fill to prompt interactively or provide --VAR=value flags",
-      }));
+      });
     } else {
       console.error(chalk.red(`Missing required variables: ${missing.join(", ")}`));
       if (!options.fill) {
@@ -152,7 +150,7 @@ export async function renderCommand(id: string, options: RenderOptions) {
     } catch (err) {
       if (err instanceof Error && err.message === "stdin_timeout") {
         if (shouldOutputJson(options)) {
-          console.log(JSON.stringify({ error: "stdin_timeout", message: "Timed out waiting for stdin input (30s)" }));
+          await writeJsonStdout({ error: "stdin_timeout", message: "Timed out waiting for stdin input (30s)" });
         } else {
           console.error(chalk.red("Timed out waiting for stdin input (30s). Did you mean to pipe content?"));
         }
@@ -169,7 +167,7 @@ export async function renderCommand(id: string, options: RenderOptions) {
   } else if (options.context) {
     if (!existsSync(options.context)) {
       if (shouldOutputJson(options)) {
-        console.log(JSON.stringify({ error: "file_not_found", message: `Context file not found: ${options.context}` }));
+        await writeJsonStdout({ error: "file_not_found", message: `Context file not found: ${options.context}` });
       } else {
         console.error(chalk.red(`Context file not found: ${options.context}`));
       }
@@ -190,7 +188,7 @@ export async function renderCommand(id: string, options: RenderOptions) {
       }
     } catch (err) {
       if (shouldOutputJson(options)) {
-        console.log(JSON.stringify({ error: "read_error", message: `Failed to read context file: ${(err as Error).message}` }));
+        await writeJsonStdout({ error: "read_error", message: `Failed to read context file: ${(err as Error).message}` });
       } else {
         console.error(chalk.red(`Failed to read context file: ${(err as Error).message}`));
       }
@@ -220,14 +218,14 @@ export async function renderCommand(id: string, options: RenderOptions) {
 
   // Output
   if (shouldOutputJson(options)) {
-    console.log(JSON.stringify({
+    await writeJsonStdout({
       id: promptData.id,
       title: promptData.title,
       rendered,
       variables: Object.keys(variables).length > 0 ? variables : undefined,
       context: context ? { source: contextSource, truncated, characters: context.length } : undefined,
-    }, null, 2));
+    }, true);
   } else {
-    console.log(rendered);
+    await writeStdout(rendered + "\n");
   }
 }

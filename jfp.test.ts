@@ -173,6 +173,20 @@ describe("CLI (jfp)", () => {
       if (exitCode !== 0) {
         throw new Error(`Failed to compile CLI for pipe regression: ${stdout}\n${stderr}`);
       }
+      if (process.platform === "darwin") {
+        const sign = spawn(["codesign", "--force", "--sign", "-", binary], {
+          stdout: "pipe",
+          stderr: "pipe",
+        });
+        const [signOut, signErr, signCode] = await Promise.all([
+          new Response(sign.stdout).text(),
+          new Response(sign.stderr).text(),
+          sign.exited,
+        ]);
+        if (signCode !== 0) {
+          throw new Error(`Failed to ad-hoc codesign compiled CLI: ${signOut}\n${signErr}`);
+        }
+      }
     }, 60000);
 
     async function runPipe(command: string[], reader: string, outputPath: string) {
@@ -231,6 +245,41 @@ describe("CLI (jfp)", () => {
           expect(data.prompts[0].content).toBe(prompt.content);
         }, 30000);
       }
+
+      it(`preserves all ${name} show/export/render bytes with a slow reader`, async () => {
+        const reader = `
+          import { readSync, writeFileSync } from "node:fs";
+          const chunks = [];
+          const buffer = Buffer.alloc(4096);
+          await Bun.sleep(100);
+          for (;;) {
+            const bytes = readSync(0, buffer, 0, buffer.length, null);
+            if (bytes === 0) break;
+            chunks.push(Buffer.from(buffer.subarray(0, bytes)));
+            await Bun.sleep(1);
+          }
+          writeFileSync(process.env.JFP_TEST_OUTPUT, Buffer.concat(chunks));
+        `;
+
+        for (const [label, args, expectJson] of [
+          ["show-json", ["show", "pipe-regression", "--json"], true],
+          ["show-raw", ["show", "pipe-regression", "--raw"], false],
+          ["export-json", ["export", "--all", "--stdout", "--json"], true],
+          ["export-raw", ["export", "--all", "--stdout"], false],
+          ["render-json", ["render", "pipe-regression", "--json"], true],
+        ] as const) {
+          const outputPath = join(pipeHome, `${name}-${label}.out`);
+          const { stderr, exitCode } = await runPipe([...command, ...args], reader, outputPath);
+          expect(stderr).toBe("");
+          expect(exitCode).toBe(0);
+          const text = readFileSync(outputPath, "utf-8");
+          expect(text).toContain("END-OF-PROMPT");
+          if (expectJson) {
+            const parsed = parseJson<Record<string, unknown>>(text);
+            expect(parsed).toBeDefined();
+          }
+        }
+      }, 60000);
 
       it(`fails when the ${name} output pipe closes early`, async () => {
         const outputPath = join(pipeHome, `${name}-closed-pipe.txt`);

@@ -13,7 +13,7 @@
 import { searchPrompts, buildScorerIndex, type ScorerIndex } from "@jeffreysprompts/core/search";
 import { type Prompt } from "@jeffreysprompts/core/prompts";
 import chalk from "chalk";
-import { shouldOutputJson } from "../lib/utils";
+import { shouldOutputJson, writeJsonStdout } from "../lib/utils";
 import { apiClient, isAuthError, isPermissionError } from "../lib/api-client";
 import { isLoggedIn, loadCredentials } from "../lib/credentials";
 import {
@@ -23,12 +23,12 @@ import {
 } from "../lib/offline";
 import { loadRegistry } from "../lib/registry-loader";
 
-function writeJson(payload: Record<string, unknown>): void {
-  console.log(JSON.stringify(payload));
+function writeJson(payload: Record<string, unknown>, pretty = false): Promise<void> {
+  return writeJsonStdout(payload, pretty);
 }
 
-function writeJsonError(code: string, message: string, extra: Record<string, unknown> = {}): void {
-  writeJson({ error: true, code, message, ...extra });
+function writeJsonError(code: string, message: string, extra: Record<string, unknown> = {}): Promise<void> {
+  return writeJson({ error: true, code, message, ...extra });
 }
 
 interface SearchOptions {
@@ -233,7 +233,7 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
   const limit = options.limit !== undefined ? Number(options.limit) : 10;
   if (!Number.isFinite(limit) || limit <= 0) {
     if (shouldOutputJson(options)) {
-      writeJsonError("invalid_limit", "Invalid --limit value. Provide a positive number.");
+      await writeJsonError("invalid_limit", "Invalid --limit value. Provide a positive number.");
     } else {
       console.error(chalk.red("Invalid --limit value. Provide a positive number."));
     }
@@ -264,7 +264,7 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
   // If user requests personal search without being logged in
   if ((searchMine || searchSaved || searchAllExplicit) && !loggedIn) {
     if (shouldOutputJson(options)) {
-      writeJsonError("not_authenticated", "You must be logged in to search personal prompts", {
+      await writeJsonError("not_authenticated", "You must be logged in to search personal prompts", {
         hint: "Run 'jfp login' to sign in",
       });
     } else {
@@ -277,7 +277,7 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
   // If user requests personal search without premium tier
   if ((searchMine || searchSaved || searchAllExplicit) && loggedIn && !canAttemptPersonalSearch) {
     if (shouldOutputJson(options)) {
-      writeJsonError("premium_required", "Personal prompt search requires a premium subscription", {
+      await writeJsonError("premium_required", "Personal prompt search requires a premium subscription", {
         hint: "Visit https://pro.jeffreysprompts.com/pricing to upgrade",
       });
     } else {
@@ -323,7 +323,7 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
   const premiumDenied = personalError === "premium_required";
   if (authExpired && (searchMine || searchSaved || searchAllExplicit)) {
     if (shouldOutputJson(options)) {
-      writeJsonError("not_authenticated", "Session expired. Please run 'jfp login' again.");
+      await writeJsonError("not_authenticated", "Session expired. Please run 'jfp login' again.");
     } else {
       console.log(chalk.yellow("Session expired. Please run 'jfp login' again."));
     }
@@ -332,7 +332,7 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
 
   if (premiumDenied && (searchMine || searchSaved || searchAllExplicit)) {
     if (shouldOutputJson(options)) {
-      writeJsonError("premium_required", "Personal prompt search requires a premium subscription", {
+      await writeJsonError("premium_required", "Personal prompt search requires a premium subscription", {
         hint: "Visit https://pro.jeffreysprompts.com/pricing to upgrade",
       });
     } else {
@@ -372,7 +372,7 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
       output.warning = "Personal search unavailable (premium required). Showing local results only.";
     }
 
-    console.log(JSON.stringify(output, null, 2));
+    await writeJson(output, true);
     return;
   }
 

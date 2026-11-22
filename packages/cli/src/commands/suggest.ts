@@ -1,7 +1,7 @@
 import { searchPrompts, semanticRerank, buildScorerIndex, type SearchResult, type RankedResult } from "@jeffreysprompts/core/search";
 import { type Prompt } from "@jeffreysprompts/core/prompts";
 import chalk from "chalk";
-import { shouldOutputJson } from "../lib/utils";
+import { shouldOutputJson, writeJsonStdout } from "../lib/utils";
 import { loadRegistry } from "../lib/registry-loader";
 
 interface SuggestOptions {
@@ -36,7 +36,7 @@ export async function suggestCommand(task: string, options: SuggestOptions) {
   const limit = options.limit !== undefined ? Number(options.limit) : 3;
   if (!Number.isFinite(limit) || limit <= 0) {
     if (shouldOutputJson(options)) {
-      console.log(JSON.stringify({ error: "invalid_limit", message: "Provide a positive number for --limit." }));
+      await writeJsonStdout({ error: "invalid_limit", message: "Provide a positive number for --limit." });
     } else {
       console.error(chalk.red("Invalid --limit value. Provide a positive number."));
     }
@@ -51,7 +51,7 @@ export async function suggestCommand(task: string, options: SuggestOptions) {
 
   if (!task.trim()) {
     if (shouldOutputJson(options)) {
-      console.log(JSON.stringify({ error: "empty_task", message: "Please provide a task description" }));
+      await writeJsonStdout({ error: "empty_task", message: "Please provide a task description" });
     } else {
       console.error(chalk.red("Please provide a task description."));
       console.log(chalk.dim("Example: jfp suggest \"improve documentation for my API\""));
@@ -123,7 +123,7 @@ export async function suggestCommand(task: string, options: SuggestOptions) {
       suggestions: results.map((r) => formatSuggestion(r, task, options.semantic)),
       total: results.length,
     };
-    console.log(JSON.stringify(output, null, 2));
+    await writeJsonStdout(output, true);
     return;
   }
 

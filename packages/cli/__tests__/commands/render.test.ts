@@ -17,6 +17,7 @@ let errors: string[] = [];
 let exitCode: number | undefined;
 
 const originalLog = console.log;
+const originalWrite = process.stdout.write;
 const originalError = console.error;
 const originalExit = process.exit;
 const originalArgv = process.argv;
@@ -44,6 +45,16 @@ beforeEach(() => {
   console.log = (...args: unknown[]) => {
     output.push(args.join(" "));
   };
+  process.stdout.write = ((
+    chunk: string | Uint8Array,
+    encodingOrCallback?: BufferEncoding | ((error?: Error | null) => void),
+    callback?: (error?: Error | null) => void
+  ) => {
+    output.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString());
+    const done = typeof encodingOrCallback === "function" ? encodingOrCallback : callback;
+    done?.(null);
+    return true;
+  }) as typeof process.stdout.write;
   console.error = (...args: unknown[]) => {
     errors.push(args.join(" "));
   };
@@ -56,6 +67,7 @@ beforeEach(() => {
 
 afterEach(() => {
   console.log = originalLog;
+  process.stdout.write = originalWrite;
   console.error = originalError;
   process.exit = originalExit;
   process.argv = originalArgv;

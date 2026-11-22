@@ -1,7 +1,7 @@
 import Table from "cli-table3";
 import boxen from "boxen";
 import chalk from "chalk";
-import { shouldOutputJson } from "../lib/utils";
+import { shouldOutputJson, writeJsonStdout } from "../lib/utils";
 import { loadRegistry } from "../lib/registry-loader";
 
 interface BundlesListOptions {
@@ -29,7 +29,7 @@ export async function bundlesCommand(options: BundlesListOptions) {
       featured: bundle.featured || false,
       author: bundle.author,
     }));
-    console.log(JSON.stringify(output, null, 2));
+    await writeJsonStdout(output, true);
     return;
   }
 
@@ -60,7 +60,7 @@ export async function bundleShowCommand(id: string, options: BundleShowOptions) 
 
   if (!bundle) {
     if (shouldOutputJson(options)) {
-      console.log(JSON.stringify({ error: "not_found", message: `Bundle not found: ${id}` }));
+      await writeJsonStdout({ error: "not_found", message: `Bundle not found: ${id}` });
     } else {
       console.error(chalk.red("Bundle not found: " + id));
       console.log(chalk.dim("\nAvailable bundles:"));
@@ -82,7 +82,7 @@ export async function bundleShowCommand(id: string, options: BundleShowOptions) 
     .filter((p): p is NonNullable<typeof p> => p !== undefined);
 
   if (shouldOutputJson(options)) {
-    console.log(JSON.stringify({
+    await writeJsonStdout({
       ...bundle,
       prompts: prompts.map((p) => ({
         id: p.id,
@@ -90,7 +90,7 @@ export async function bundleShowCommand(id: string, options: BundleShowOptions) 
         description: p.description,
         category: p.category,
       })),
-    }, null, 2));
+    }, true);
     return;
   }
 

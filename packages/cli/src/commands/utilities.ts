@@ -15,7 +15,7 @@ import { platform } from "os";
 import { version } from "../../package.json";
 import { getHomeDir } from "../lib/config";
 import { isLoggedIn, loadCredentials } from "../lib/credentials";
-import { shouldOutputJson } from "../lib/utils";
+import { shouldOutputJson, writeJsonStdout } from "../lib/utils";
 import { loadRegistry } from "../lib/registry-loader";
 
 interface JsonOptions {
@@ -68,14 +68,12 @@ async function requirePremium(options: { json?: boolean }, action: string): Prom
   const loggedIn = await isLoggedIn();
   if (!loggedIn) {
     if (shouldOutputJson(options)) {
-      console.log(
-        JSON.stringify({
-          error: true,
-          code: "not_authenticated",
-          message: `${action} requires login.`,
-          hint: "Run 'jfp login' to sign in",
-        })
-      );
+      await writeJsonStdout({
+        error: true,
+        code: "not_authenticated",
+        message: `${action} requires login.`,
+        hint: "Run 'jfp login' to sign in",
+      });
     } else {
       console.log(chalk.yellow(`${action} requires login.`));
       console.log(chalk.dim("Run 'jfp login' to sign in to JeffreysPrompts Premium"));
@@ -87,14 +85,12 @@ async function requirePremium(options: { json?: boolean }, action: string): Prom
   if (creds?.tier === "premium") return;
 
   if (shouldOutputJson(options)) {
-    console.log(
-      JSON.stringify({
-        error: true,
-        code: "premium_required",
-        message: `${action} requires a JeffreysPrompts Pro subscription.`,
-        hint: "Visit https://pro.jeffreysprompts.com/pricing to upgrade",
-      })
-    );
+    await writeJsonStdout({
+      error: true,
+      code: "premium_required",
+      message: `${action} requires a JeffreysPrompts Pro subscription.`,
+      hint: "Visit https://pro.jeffreysprompts.com/pricing to upgrade",
+    });
   } else {
     console.log(chalk.yellow(`${action} requires a JeffreysPrompts Pro subscription.`));
     console.log(chalk.dim("Upgrade at https://pro.jeffreysprompts.com/pricing"));
@@ -126,7 +122,7 @@ export async function categoriesCommand(options: JsonOptions): Promise<void> {
       name: cat,
       count: counts[cat] ?? 0,
     }));
-    console.log(JSON.stringify(data, null, 2));
+    await writeJsonStdout(data, true);
     return;
   }
 
@@ -164,7 +160,7 @@ export async function tagsCommand(options: JsonOptions): Promise<void> {
       name: tag,
       count: counts[tag] ?? 0,
     }));
-    console.log(JSON.stringify(data, null, 2));
+    await writeJsonStdout(data, true);
     return;
   }
 
@@ -185,9 +181,7 @@ export async function tagsSuggestCommand(
 ): Promise<void> {
   if (!id) {
     if (shouldOutputJson(options)) {
-      console.log(
-        JSON.stringify({ error: true, code: "missing_prompt", message: "Provide a prompt id to suggest tags for." })
-      );
+      await writeJsonStdout({ error: true, code: "missing_prompt", message: "Provide a prompt id to suggest tags for." });
     } else {
       console.error(chalk.red("Missing prompt id. Example: jfp tags suggest idea-wizard"));
     }
@@ -202,7 +196,7 @@ export async function tagsSuggestCommand(
 
   if (!Number.isFinite(maxTags) || maxTags <= 0) {
     if (shouldOutputJson(options)) {
-      console.log(JSON.stringify({ error: true, code: "invalid_limit", message: "Invalid --limit value." }));
+      await writeJsonStdout({ error: true, code: "invalid_limit", message: "Invalid --limit value." });
     } else {
       console.error(chalk.red("Invalid --limit value. Provide a positive number."));
     }
@@ -211,7 +205,7 @@ export async function tagsSuggestCommand(
 
   if (!Number.isFinite(maxSimilar) || maxSimilar <= 0) {
     if (shouldOutputJson(options)) {
-      console.log(JSON.stringify({ error: true, code: "invalid_similar", message: "Invalid --similar value." }));
+      await writeJsonStdout({ error: true, code: "invalid_similar", message: "Invalid --similar value." });
     } else {
       console.error(chalk.red("Invalid --similar value. Provide a positive number."));
     }
@@ -220,7 +214,7 @@ export async function tagsSuggestCommand(
 
   if (!Number.isFinite(threshold) || threshold < 0 || threshold > 1) {
     if (shouldOutputJson(options)) {
-      console.log(JSON.stringify({ error: true, code: "invalid_threshold", message: "Invalid --threshold value." }));
+      await writeJsonStdout({ error: true, code: "invalid_threshold", message: "Invalid --threshold value." });
     } else {
       console.error(chalk.red("Invalid --threshold value. Provide a number between 0 and 1."));
     }
@@ -232,7 +226,7 @@ export async function tagsSuggestCommand(
 
   if (!prompt) {
     if (shouldOutputJson(options)) {
-      console.log(JSON.stringify({ error: true, code: "prompt_not_found", message: `Prompt not found: ${id}` }));
+      await writeJsonStdout({ error: true, code: "prompt_not_found", message: `Prompt not found: ${id}` });
     } else {
       console.error(chalk.red(`Prompt not found: ${id}`));
     }
@@ -248,28 +242,25 @@ export async function tagsSuggestCommand(
   });
 
   if (shouldOutputJson(options)) {
-    console.log(
-      JSON.stringify(
-        {
-          promptId: prompt.id,
-          promptTitle: prompt.title,
-          suggestions: {
-            tags: suggestions.tags,
-            categories: suggestions.categories,
-            descriptions: suggestions.descriptions,
-          },
-          similar: suggestions.similar.map((item) => ({
-            id: item.prompt.id,
-            title: item.prompt.title,
-            score: item.score,
-            sharedTags: item.sharedTags,
-            sharedTokens: item.sharedTokens,
-            titleMatch: item.titleMatch,
-          })),
+    await writeJsonStdout(
+      {
+        promptId: prompt.id,
+        promptTitle: prompt.title,
+        suggestions: {
+          tags: suggestions.tags,
+          categories: suggestions.categories,
+          descriptions: suggestions.descriptions,
         },
-        null,
-        2
-      )
+        similar: suggestions.similar.map((item) => ({
+          id: item.prompt.id,
+          title: item.prompt.title,
+          score: item.score,
+          sharedTags: item.sharedTags,
+          sharedTokens: item.sharedTokens,
+          titleMatch: item.titleMatch,
+        })),
+      },
+      true
     );
     return;
   }
@@ -320,7 +311,7 @@ export async function dedupeScanCommand(options: DedupeOptions): Promise<void> {
 
   if (!Number.isFinite(minScore) || minScore < 0 || minScore > 1) {
     if (shouldOutputJson(options)) {
-      console.log(JSON.stringify({ error: true, code: "invalid_min_score", message: "Invalid --min-score value." }));
+      await writeJsonStdout({ error: true, code: "invalid_min_score", message: "Invalid --min-score value." });
     } else {
       console.error(chalk.red("Invalid --min-score value. Provide a number between 0 and 1."));
     }
@@ -329,7 +320,7 @@ export async function dedupeScanCommand(options: DedupeOptions): Promise<void> {
 
   if (!Number.isFinite(maxPairs) || maxPairs <= 0) {
     if (shouldOutputJson(options)) {
-      console.log(JSON.stringify({ error: true, code: "invalid_limit", message: "Invalid --limit value." }));
+      await writeJsonStdout({ error: true, code: "invalid_limit", message: "Invalid --limit value." });
     } else {
       console.error(chalk.red("Invalid --limit value. Provide a positive number."));
     }
@@ -345,20 +336,17 @@ export async function dedupeScanCommand(options: DedupeOptions): Promise<void> {
   });
 
   if (shouldOutputJson(options)) {
-    console.log(
-      JSON.stringify(
-        duplicates.map((candidate) => ({
-          promptA: { id: candidate.promptA.id, title: candidate.promptA.title },
-          promptB: { id: candidate.promptB.id, title: candidate.promptB.title },
-          score: candidate.score,
-          reasons: candidate.reasons,
-          sharedTags: candidate.sharedTags,
-          sharedTokens: candidate.sharedTokens,
-          titleMatch: candidate.titleMatch,
-        })),
-        null,
-        2
-      )
+    await writeJsonStdout(
+      duplicates.map((candidate) => ({
+        promptA: { id: candidate.promptA.id, title: candidate.promptA.title },
+        promptB: { id: candidate.promptB.id, title: candidate.promptB.title },
+        score: candidate.score,
+        reasons: candidate.reasons,
+        sharedTags: candidate.sharedTags,
+        sharedTokens: candidate.sharedTokens,
+        titleMatch: candidate.titleMatch,
+      })),
+      true
     );
     return;
   }
@@ -555,7 +543,7 @@ export async function doctorCommand(options: JsonOptions): Promise<void> {
   });
 
   if (shouldOutputJson(options)) {
-    console.log(JSON.stringify({ results }, null, 2));
+    await writeJsonStdout({ results }, true);
     return;
   }
 
@@ -600,7 +588,7 @@ export async function aboutCommand(options: JsonOptions): Promise<void> {
   };
 
   if (shouldOutputJson(options)) {
-    console.log(JSON.stringify(info, null, 2));
+    await writeJsonStdout(info, true);
     return;
   }
 

@@ -9,6 +9,7 @@ let errors: string[] = [];
 let exitCode: number | undefined;
 
 const originalLog = console.log;
+const originalWrite = process.stdout.write;
 const originalError = console.error;
 const originalExit = process.exit;
 
@@ -20,6 +21,16 @@ beforeEach(() => {
   console.log = (...args: unknown[]) => {
     output.push(args.join(" "));
   };
+  process.stdout.write = ((
+    chunk: string | Uint8Array,
+    encodingOrCallback?: BufferEncoding | ((error?: Error | null) => void),
+    callback?: (error?: Error | null) => void
+  ) => {
+    output.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString());
+    const done = typeof encodingOrCallback === "function" ? encodingOrCallback : callback;
+    done?.(null);
+    return true;
+  }) as typeof process.stdout.write;
   console.error = (...args: unknown[]) => {
     errors.push(args.join(" "));
   };
@@ -31,34 +42,35 @@ beforeEach(() => {
 
 afterEach(() => {
   console.log = originalLog;
+  process.stdout.write = originalWrite;
   console.error = originalError;
   process.exit = originalExit;
 });
 
 describe("completionCommand", () => {
-  it("generates bash completion script", () => {
-    completionCommand({ shell: "bash" });
+  it("generates bash completion script", async () => {
+    await completionCommand({ shell: "bash" });
     const script = output.join("\n");
     expect(script).toContain("_jfp_completions");
     expect(script).toContain("complete -F _jfp_completions jfp");
   });
 
-  it("generates zsh completion script", () => {
-    completionCommand({ shell: "zsh" });
+  it("generates zsh completion script", async () => {
+    await completionCommand({ shell: "zsh" });
     const script = output.join("\n");
     expect(script).toContain("#compdef jfp");
     expect(script).toContain("compdef _jfp jfp");
   });
 
-  it("generates fish completion script", () => {
-    completionCommand({ shell: "fish" });
+  it("generates fish completion script", async () => {
+    await completionCommand({ shell: "fish" });
     const script = output.join("\n");
     expect(script).toContain("complete -c jfp");
     expect(script).toContain("__fish_use_subcommand");
   });
 
-  it("bash script includes all commands", () => {
-    completionCommand({ shell: "bash" });
+  it("bash script includes all commands", async () => {
+    await completionCommand({ shell: "bash" });
     const script = output.join("\n");
     expect(script).toContain("list");
     expect(script).toContain("search");
@@ -68,36 +80,36 @@ describe("completionCommand", () => {
     expect(script).toContain("interactive");
   });
 
-  it("bash script includes option completions for --shell", () => {
-    completionCommand({ shell: "bash" });
+  it("bash script includes option completions for --shell", async () => {
+    await completionCommand({ shell: "bash" });
     const script = output.join("\n");
     expect(script).toContain("bash zsh fish");
   });
 
-  it("zsh script includes option specs", () => {
-    completionCommand({ shell: "zsh" });
+  it("zsh script includes option specs", async () => {
+    await completionCommand({ shell: "zsh" });
     const script = output.join("\n");
     expect(script).toContain("--json");
     expect(script).toContain("--shell");
   });
 
-  it("fish script includes command-specific options", () => {
-    completionCommand({ shell: "fish" });
+  it("fish script includes command-specific options", async () => {
+    await completionCommand({ shell: "fish" });
     const script = output.join("\n");
     expect(script).toContain("__fish_seen_subcommand_from");
   });
 
-  it("normalizes shell name case-insensitively", () => {
-    completionCommand({ shell: "BASH" });
+  it("normalizes shell name case-insensitively", async () => {
+    await completionCommand({ shell: "BASH" });
     const script = output.join("\n");
     expect(script).toContain("_jfp_completions");
   });
 
-  it("exits with error for unknown shell when no SHELL env", () => {
+  it("exits with error for unknown shell when no SHELL env", async () => {
     const origShell = process.env.SHELL;
     delete process.env.SHELL;
     try {
-      completionCommand({ shell: "powershell" });
+      await completionCommand({ shell: "powershell" });
     } catch (e) {
       if ((e as Error).message !== "process.exit(1)") throw e;
     } finally {
@@ -107,11 +119,11 @@ describe("completionCommand", () => {
     expect(errors.join(" ")).toContain("Unknown shell");
   });
 
-  it("uses CAC context when provided", () => {
+  it("uses CAC context when provided", async () => {
     const mockOutput = "# CAC generated completion";
-    completionCommand({ shell: "bash" }, {
+    await completionCommand({ shell: "bash" }, {
       generateCompletion: () => mockOutput,
     });
-    expect(output.join("")).toBe(mockOutput);
+    expect(output.join("").trimEnd()).toBe(mockOutput);
   });
 });

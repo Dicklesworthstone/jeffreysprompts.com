@@ -4,6 +4,24 @@ All notable changes to **JeffreysPrompts.com** are documented here.
 
 ---
 
+## 2026-11-22: jfp v1.0.4 -- Pipe-Safe Stdout Across Commands, Sync Deletion Reporting & Security Dependency Upgrades
+
+Completes full OS-pipe backpressure safety across CLI output commands, fixes incremental sync deletion reporting, hardens macOS release binary signing, and upgrades runtime and web dependencies to clear critical and high security advisories.
+
+### CLI
+
+- Extended awaited stdout flushing (`writeStdout` / `writeJsonStdout`) from `jfp list` to `show` (`--json`, `--raw`, and formatted output), `export` (`--stdout` and `--json`), `render` (`--json` and raw rendered content), `search`, `graph` (`json`, `dot`, and `mermaid`), `help`, `bundles` / `bundle`, `completion`, `suggest`, `categories`, `tags`, `doctor`, `about`, and `sync`, eliminating silent truncation at pipe buffer boundaries when stdout is piped to slow consumers (#10).
+- Updated `jfp sync` change accounting to detect removed prompts when a cached prompt is deleted remotely, reporting `removedPrompts` in JSON output and including removals in `changedPrompts` and human summaries instead of reporting the library as unchanged.
+- Added ad-hoc `codesign --force --sign -` signing for macOS targets in `scripts/build-releases.sh` and compiled CLI regression tests so standalone Darwin executables pass Apple Silicon AMFI verification before hashing and distribution.
+- Fixed hardcoded checkout paths in `e2e/cli-workflow.test.ts` so the CLI end-to-end suite runs portably across macOS and Linux.
+
+### Dependencies & Security
+
+- Upgraded CLI runtime dependencies: `@modelcontextprotocol/sdk` (`1.25.2 -> 1.32.2`), `zod` (`4.3.5 -> 4.6.7`), `ora` (`9.0.0 -> 9.4.1`), `open` (`11.0.0 -> 11.0.4`), and refreshed transitive dependencies (`hono`, `@hono/node-server`, `express`, `body-parser`, `qs`, `proxy-addr`, `path-to-regexp`, `ajv`, `fast-uri`), bringing CLI and core package vulnerabilities to 0.
+- Upgraded web runtime and tooling dependencies: `next` (`16.1.1 -> 16.4.6`), `react` / `react-dom` (`19.2.3 -> 19.3.1`), `@sentry/nextjs` (`10.32.1 -> 10.78.0`), `next-intl` (`4.7.0 -> 4.15.3`), `framer-motion` (`12.25.0 -> 12.43.0`), `tailwindcss` / `@tailwindcss/postcss` (`4.1.18 -> 4.3.5`), `vitest` (`4.0.16 -> 4.1.12`), `happy-dom` (`20.1.0 -> 21.0.4`), `playwright` (`1.57.0 -> 1.65.1`), `oxlint` (`1.38.0 -> 1.94.0`), and Radix UI packages, reducing workspace `bun audit` advisories from 229 (8 critical, 91 high) to 11 dev-tooling-only transitive advisories (0 critical).
+
+---
+
 ## 2026-07-27: jfp v1.0.3 -- CLI Login State Binding
 
 Fixes the broken default `jfp login` browser flow and hardens the loopback

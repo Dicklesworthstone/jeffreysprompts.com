@@ -1,4 +1,5 @@
 import chalk from "chalk";
+import { writeStdout } from "../lib/utils";
 
 const SUPPORTED_SHELLS = ["bash", "zsh", "fish"] as const;
 type SupportedShell = (typeof SUPPORTED_SHELLS)[number];
@@ -281,7 +282,7 @@ function buildCompletion(shell: SupportedShell): string {
   }
 }
 
-export function completionCommand(options: CompletionOptions, context?: CompletionContext) {
+export async function completionCommand(options: CompletionOptions, context?: CompletionContext) {
   const resolved = normalizeShell(options.shell) ?? detectShell();
 
   if (!resolved) {
@@ -294,7 +295,7 @@ export function completionCommand(options: CompletionOptions, context?: Completi
 
   const generated = tryCacCompletion(resolved, context);
   if (generated) {
-    console.log(generated.trimEnd());
+    await writeStdout(generated.trimEnd() + "\n");
     return;
   }
 
@@ -304,5 +305,5 @@ export function completionCommand(options: CompletionOptions, context?: Completi
     process.exit(1);
   }
 
-  console.log(output.trimEnd());
+  await writeStdout(output.trimEnd() + "\n");
 }

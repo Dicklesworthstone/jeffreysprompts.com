@@ -3,41 +3,53 @@ import { helpCommand } from "../../src/commands/help";
 
 let output: string[] = [];
 const originalLog = console.log;
+const originalWrite = process.stdout.write;
 
 beforeEach(() => {
   output = [];
   console.log = (...args: unknown[]) => {
     output.push(args.join(" "));
   };
+  process.stdout.write = ((
+    chunk: string | Uint8Array,
+    encodingOrCallback?: BufferEncoding | ((error?: Error | null) => void),
+    callback?: (error?: Error | null) => void
+  ) => {
+    output.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString());
+    const done = typeof encodingOrCallback === "function" ? encodingOrCallback : callback;
+    done?.(null);
+    return true;
+  }) as typeof process.stdout.write;
 });
 
 afterEach(() => {
   console.log = originalLog;
+  process.stdout.write = originalWrite;
 });
 
 describe("helpCommand", () => {
   describe("JSON output", () => {
-    it("outputs valid JSON", () => {
-      helpCommand({ json: true });
+    it("outputs valid JSON", async () => {
+      await helpCommand({ json: true });
       const json = JSON.parse(output.join(""));
       expect(typeof json).toBe("object");
     });
 
-    it("includes name and version", () => {
-      helpCommand({ json: true });
+    it("includes name and version", async () => {
+      await helpCommand({ json: true });
       const json = JSON.parse(output.join(""));
       expect(json.name).toBe("jfp");
       expect(json.version).toBeDefined();
     });
 
-    it("includes documentation URL", () => {
-      helpCommand({ json: true });
+    it("includes documentation URL", async () => {
+      await helpCommand({ json: true });
       const json = JSON.parse(output.join(""));
       expect(json.documentation).toBe("https://jeffreysprompts.com/docs");
     });
 
-    it("includes categorized commands", () => {
-      helpCommand({ json: true });
+    it("includes categorized commands", async () => {
+      await helpCommand({ json: true });
       const json = JSON.parse(output.join(""));
 
       expect(json.commands).toHaveProperty("listing_searching");
@@ -49,8 +61,8 @@ describe("helpCommand", () => {
       expect(json.commands).toHaveProperty("utilities");
     });
 
-    it("each command has name and description", () => {
-      helpCommand({ json: true });
+    it("each command has name and description", async () => {
+      await helpCommand({ json: true });
       const json = JSON.parse(output.join(""));
 
       for (const [_, commands] of Object.entries(json.commands)) {
@@ -63,8 +75,8 @@ describe("helpCommand", () => {
       }
     });
 
-    it("includes examples", () => {
-      helpCommand({ json: true });
+    it("includes examples", async () => {
+      await helpCommand({ json: true });
       const json = JSON.parse(output.join(""));
 
       expect(Array.isArray(json.examples)).toBe(true);
@@ -78,8 +90,8 @@ describe("helpCommand", () => {
   });
 
   describe("schema stability (golden test)", () => {
-    it("maintains stable JSON schema for agents", () => {
-      helpCommand({ json: true });
+    it("maintains stable JSON schema for agents", async () => {
+      await helpCommand({ json: true });
       const json = JSON.parse(output.join(""));
 
       // These top-level keys MUST exist

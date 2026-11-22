@@ -61,6 +61,9 @@ for platform_config in "${PLATFORMS[@]}"; do
   echo -e "${YELLOW}Building for $TARGET...${NC}"
 
   if bun build --compile --target="$TARGET" ./jfp.ts --outfile "$OUTPUT_PATH"; then
+    if [[ "$(uname -s)" == "Darwin" && "$TARGET" == bun-darwin-* ]] && command -v codesign >/dev/null 2>&1; then
+      codesign --force --sign - "$OUTPUT_PATH"
+    fi
     SIZE=$(du -h "$OUTPUT_PATH" | cut -f1)
     echo -e "${GREEN}  ✓ $OUTPUT_NAME ($SIZE)${NC}"
   else

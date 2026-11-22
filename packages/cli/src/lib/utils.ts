@@ -39,6 +39,11 @@ export function writeStdout(content: string): Promise<void> {
   });
 }
 
+export function writeJsonStdout(payload: unknown, pretty = false): Promise<void> {
+  const serialized = pretty ? JSON.stringify(payload, null, 2) : JSON.stringify(payload);
+  return writeStdout(serialized + "\n");
+}
+
 export function isSafeSkillId(id: string): boolean {
   return SAFE_SKILL_ID.test(id);
 }

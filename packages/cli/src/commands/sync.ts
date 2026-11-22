@@ -5,13 +5,12 @@
  * Requires authentication and premium subscription.
  */
 
-import { atomicWriteFileSync } from "../lib/utils";
+import { atomicWriteFileSync, shouldOutputJson, writeJsonStdout } from "../lib/utils";
 import chalk from "chalk";
 import boxen from "boxen";
 import ora from "ora";
 import { apiClient, isAuthError, isPermissionError } from "../lib/api-client";
 import { isLoggedIn, getCurrentUser } from "../lib/credentials";
-import { shouldOutputJson } from "../lib/utils";
 import {
   type SyncedPrompt,
   type SyncMeta,
@@ -53,12 +52,12 @@ function writeLibrary(prompts: SyncedPrompt[]): void {
   atomicWriteFileSync(getLibraryPath(), content);
 }
 
-function writeJson(payload: Record<string, unknown>): void {
-  console.log(JSON.stringify(payload, null, 2));
+function writeJson(payload: Record<string, unknown>): Promise<void> {
+  return writeJsonStdout(payload, true);
 }
 
-function writeJsonError(code: string, message: string, extra: Record<string, unknown> = {}): void {
-  writeJson({ error: true, code, message, ...extra });
+function writeJsonError(code: string, message: string, extra: Record<string, unknown> = {}): Promise<void> {
+  return writeJson({ error: true, code, message, ...extra });
 }
 
 function isProcessExitSignal(error: unknown): boolean {
@@ -138,10 +137,12 @@ function toSyncedPrompt(prompt: unknown): SyncedPrompt | null {
 function summarizePromptChanges(
   existing: SyncedPrompt[],
   incoming: SyncedPrompt[]
-): { changedPrompts: number; newPrompts: number } {
+): { changedPrompts: number; newPrompts: number; removedPrompts: number } {
   const existingById = new Map(existing.map((prompt) => [prompt.id, prompt]));
+  const incomingIds = new Set(incoming.map((prompt) => prompt.id));
   let changedCount = 0;
   let newCount = 0;
+  let removedCount = 0;
 
   for (const prompt of incoming) {
     const previous = existingById.get(prompt.id);
@@ -153,7 +154,14 @@ function summarizePromptChanges(
     }
   }
 
-  return { changedPrompts: changedCount, newPrompts: newCount };
+  for (const prompt of existing) {
+    if (!incomingIds.has(prompt.id)) {
+      removedCount += 1;
+      changedCount += 1;
+    }
+  }
+
+  return { changedPrompts: changedCount, newPrompts: newCount, removedPrompts: removedCount };
 }
 
 /**
@@ -166,7 +174,7 @@ async function showStatus(options: SyncOptions): Promise<void> {
   const loggedIn = await isLoggedIn();
 
   if (shouldOutputJson(options)) {
-    writeJson({
+    await writeJson({
       synced: meta !== null,
       lastSync: meta?.lastSync ?? null,
       promptCount: prompts.length,
@@ -229,7 +237,7 @@ export async function syncCommand(options: SyncOptions = {}): Promise<void> {
   const loggedIn = await isLoggedIn();
   if (!loggedIn) {
     if (shouldOutputJson(options)) {
-      writeJsonError("not_authenticated", "Please log in to sync your library", {
+      await writeJsonError("not_authenticated", "Please log in to sync your library", {
         hint: "Run 'jfp login' to sign in",
       });
     } else {
@@ -243,7 +251,7 @@ export async function syncCommand(options: SyncOptions = {}): Promise<void> {
   const user = await getCurrentUser();
   if (user && user.tier !== "premium") {
     if (shouldOutputJson(options)) {
-      writeJsonError("requires_premium", "Library sync requires a premium subscription", {
+      await writeJsonError("requires_premium", "Library sync requires a premium subscription", {
         tier: user.tier,
       });
     } else {
@@ -256,7 +264,7 @@ export async function syncCommand(options: SyncOptions = {}): Promise<void> {
   // Step 3: Acquire sync lock to prevent concurrent sync operations
   if (!acquireSyncLock()) {
     if (shouldOutputJson(options)) {
-      writeJsonError("sync_in_progress", "Another sync operation is in progress. Please wait and try again.");
+      await writeJsonError("sync_in_progress", "Another sync operation is in progress. Please wait and try again.");
     } else {
       console.error(chalk.yellow("Another sync operation is in progress. Please wait and try again."));
     }
@@ -282,7 +290,7 @@ export async function syncCommand(options: SyncOptions = {}): Promise<void> {
         if (isAuthError(response)) {
           releaseSyncLock();
           if (shouldOutputJson(options)) {
-            writeJsonError("session_expired", "Your session has expired. Please log in again.", {
+            await writeJsonError("session_expired", "Your session has expired. Please log in again.", {
               hint: "Run 'jfp login' to sign in",
             });
           } else {
@@ -296,7 +304,7 @@ export async function syncCommand(options: SyncOptions = {}): Promise<void> {
         if (isPermissionError(response)) {
           releaseSyncLock();
           if (shouldOutputJson(options)) {
-            writeJsonError("requires_premium", "Library sync requires a premium subscription");
+            await writeJsonError("requires_premium", "Library sync requires a premium subscription");
           } else {
             console.error(chalk.yellow("Library sync requires a premium subscription"));
             console.log(chalk.dim("Visit https://pro.jeffreysprompts.com/pricing to upgrade"));
@@ -307,7 +315,7 @@ export async function syncCommand(options: SyncOptions = {}): Promise<void> {
         // Other errors
         releaseSyncLock();
         if (shouldOutputJson(options)) {
-          writeJsonError("sync_failed", response.error || "Failed to sync library");
+          await writeJsonError("sync_failed", response.error || "Failed to sync library");
         } else {
           console.error(chalk.red("Failed to sync:"), response.error);
         }
@@ -319,7 +327,7 @@ export async function syncCommand(options: SyncOptions = {}): Promise<void> {
         spinner?.fail("Sync failed");
         releaseSyncLock();
         if (shouldOutputJson(options)) {
-          writeJsonError("invalid_sync_payload", "Sync response is missing prompts array.");
+          await writeJsonError("invalid_sync_payload", "Sync response is missing prompts array.");
         } else {
           console.error(chalk.red("Sync failed:"), "Sync response is missing prompts array.");
         }
@@ -336,7 +344,7 @@ export async function syncCommand(options: SyncOptions = {}): Promise<void> {
         spinner?.fail("Sync failed");
         releaseSyncLock();
         if (shouldOutputJson(options)) {
-          writeJsonError(
+          await writeJsonError(
             "invalid_sync_payload",
             `Sync response contains ${invalidCount} invalid prompt(s).`
           );
@@ -362,7 +370,7 @@ export async function syncCommand(options: SyncOptions = {}): Promise<void> {
         spinner?.fail("Sync failed");
         releaseSyncLock();
         if (shouldOutputJson(options)) {
-          writeJsonError("invalid_sync_payload", "Sync pagination exceeded the safety limit.");
+          await writeJsonError("invalid_sync_payload", "Sync pagination exceeded the safety limit.");
         } else {
           console.error(chalk.red("Sync failed:"), "Sync pagination exceeded the safety limit.");
         }
@@ -372,7 +380,7 @@ export async function syncCommand(options: SyncOptions = {}): Promise<void> {
     }
 
     const existingPrompts = readOfflineLibrary();
-    const { changedPrompts, newPrompts } = summarizePromptChanges(
+    const { changedPrompts, newPrompts, removedPrompts } = summarizePromptChanges(
       existingPrompts,
       incomingPrompts
     );
@@ -389,10 +397,11 @@ export async function syncCommand(options: SyncOptions = {}): Promise<void> {
     spinner?.succeed("Library synced");
 
     if (shouldOutputJson(options)) {
-      writeJson({
+      await writeJson({
         synced: true,
         changedPrompts,
         newPrompts,
+        removedPrompts,
         totalPrompts: incomingPrompts.length,
         expectedTotal: expectedTotal ?? incomingPrompts.length,
         force: options.force ?? false,
@@ -403,6 +412,12 @@ export async function syncCommand(options: SyncOptions = {}): Promise<void> {
         console.log(chalk.green(`\nDownloaded ${incomingPrompts.length} prompts to local library`));
       } else if (changedPrompts === 0) {
         console.log(chalk.dim("\nLibrary is already up to date"));
+      } else if (removedPrompts > 0) {
+        console.log(
+          chalk.green(
+            `\nSynced ${changedPrompts} changed prompts (${removedPrompts} removed, ${incomingPrompts.length} total)`
+          )
+        );
       } else {
         console.log(chalk.green(`\nSynced ${changedPrompts} changed prompts (${incomingPrompts.length} total)`));
       }
@@ -414,7 +429,7 @@ export async function syncCommand(options: SyncOptions = {}): Promise<void> {
     spinner?.fail("Sync failed");
     releaseSyncLock();
     if (shouldOutputJson(options)) {
-      writeJsonError("sync_failed", err instanceof Error ? err.message : "Unknown error");
+      await writeJsonError("sync_failed", err instanceof Error ? err.message : "Unknown error");
     } else {
       console.error(chalk.red("Sync failed:"), err instanceof Error ? err.message : err);
     }
@@ -443,7 +458,7 @@ export async function vaultSyncCompatCommand(
       : `The vault ${action} command is not available in this CLI build. Run 'jfp sync' to refresh your local prompt cache.`;
 
   if (shouldOutputJson(options)) {
-    writeJsonError("deprecated_command", message, { replacement: "jfp sync" });
+    await writeJsonError("deprecated_command", message, { replacement: "jfp sync" });
   } else {
     console.error(chalk.yellow(message));
   }

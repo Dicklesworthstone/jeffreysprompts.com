@@ -1,6 +1,6 @@
 {
   "name": "@jeffreysprompts/cli",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "private": true,
   "description": "CLI commands for JeffreysPrompts",
   "main": "./src/index.ts",
@@ -11,19 +11,19 @@
     "test:unit": "bun test __tests__/commands/list.test.ts __tests__/commands/search.test.ts __tests__/commands/suggest.test.ts __tests__/commands/render.test.ts"
   },
   "dependencies": {
-    "@inquirer/prompts": "^7.2.0",
+    "@inquirer/prompts": "^7.10.1",
     "@jeffreysprompts/core": "workspace:*",
-    "@modelcontextprotocol/sdk": "^1.25.2",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "boxen": "^8.0.1",
     "cac": "^6.7.14",
     "chalk": "^5.6.2",
     "cli-table3": "^0.6.5",
-    "open": "^11.0.0",
-    "ora": "^9.0.0",
-    "zod": "^4.3.5"
+    "open": "^11.0.4",
+    "ora": "^9.4.1",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "bun-types": "^1.3.5",
-    "typescript": "^5.7.0"
+    "bun-types": "^1.4.5",
+    "typescript": "^5.9.3"
   }
 }

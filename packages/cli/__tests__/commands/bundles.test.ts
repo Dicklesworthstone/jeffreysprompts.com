@@ -4,6 +4,7 @@ import { bundlesCommand, bundleShowCommand } from "../../src/commands/bundles";
 // Capture console output
 let consoleOutput: string[] = [];
 const originalLog = console.log;
+const originalWrite = process.stdout.write;
 const originalError = console.error;
 
 beforeEach(() => {
@@ -11,6 +12,16 @@ beforeEach(() => {
   console.log = (...args: unknown[]) => {
     consoleOutput.push(args.map(String).join(" "));
   };
+  process.stdout.write = ((
+    chunk: string | Uint8Array,
+    encodingOrCallback?: BufferEncoding | ((error?: Error | null) => void),
+    callback?: (error?: Error | null) => void
+  ) => {
+    consoleOutput.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString());
+    const done = typeof encodingOrCallback === "function" ? encodingOrCallback : callback;
+    done?.(null);
+    return true;
+  }) as typeof process.stdout.write;
   console.error = (...args: unknown[]) => {
     consoleOutput.push(args.map(String).join(" "));
   };
@@ -18,6 +29,7 @@ beforeEach(() => {
 
 afterEach(() => {
   console.log = originalLog;
+  process.stdout.write = originalWrite;
   console.error = originalError;
 });
 

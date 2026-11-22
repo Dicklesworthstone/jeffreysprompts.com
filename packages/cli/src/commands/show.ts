@@ -1,6 +1,6 @@
 import boxen from "boxen";
 import chalk from "chalk";
-import { shouldOutputJson } from "../lib/utils";
+import { shouldOutputJson, writeJsonStdout, writeStdout } from "../lib/utils";
 import { resolvePromptById } from "../lib/prompt-resolution";
 
 interface ShowOptions {
@@ -15,13 +15,13 @@ export async function showCommand(id: string, options: ShowOptions) {
     if (shouldOutputJson(options) && resolved.error === "not_found") {
       // NOTE: Error schema is { error: "not_found" } only - no message field
       // This is a stable API contract (see json-schema-golden.test.ts)
-      console.log(JSON.stringify({ error: "not_found" }));
+      await writeJsonStdout({ error: "not_found" });
     } else if (shouldOutputJson(options)) {
-      console.log(JSON.stringify({
+      await writeJsonStdout({
         error: true,
         code: resolved.error ?? "api_error",
         message: resolved.message ?? `Prompt unavailable: ${id}`,
-      }));
+      });
     } else {
       console.error(chalk.red(resolved.message ?? `Prompt unavailable: ${id}`));
     }
@@ -32,16 +32,16 @@ export async function showCommand(id: string, options: ShowOptions) {
   const prompt = resolved.prompt;
 
   if (shouldOutputJson(options)) {
-    console.log(JSON.stringify(prompt, null, 2));
+    await writeJsonStdout(prompt, true);
     return;
   }
 
   if (options.raw) {
-    console.log(prompt.content);
+    await writeStdout(prompt.content + "\n");
     return;
   }
 
-  console.log(
+  await writeStdout(
     boxen(
       `${chalk.bold.cyan(prompt.title)}
 ` +
@@ -63,6 +63,6 @@ export async function showCommand(id: string, options: ShowOptions) {
         borderStyle: "round",
         borderColor: "cyan",
       }
-    )
+    ) + "\n"
   );
 }

@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import { createHash } from "crypto";
-import { shouldOutputJson } from "../lib/utils";
+import { shouldOutputJson, writeJsonStdout, writeStdout } from "../lib/utils";
 import { loadRegistry } from "../lib/registry-loader";
 import type { Bundle } from "@jeffreysprompts/core/prompts/bundles";
 import type { Workflow } from "@jeffreysprompts/core/prompts/workflows";
@@ -52,12 +52,12 @@ interface CollectionDetail extends CollectionItem {
   }>;
 }
 
-function writeJson(payload: Record<string, unknown>): void {
-  console.log(JSON.stringify(payload, null, 2));
+function writeJson(payload: Record<string, unknown>): Promise<void> {
+  return writeJsonStdout(payload, true);
 }
 
-function writeJsonError(code: string, message: string, extra: Record<string, unknown> = {}): void {
-  writeJson({ error: true, code, message, ...extra });
+function writeJsonError(code: string, message: string, extra: Record<string, unknown> = {}): Promise<void> {
+  return writeJson({ error: true, code, message, ...extra });
 }
 
 function normalizeFormat(format: string | undefined): GraphFormat | null {
@@ -369,7 +369,7 @@ export async function graphExportCommand(options: GraphOptions): Promise<void> {
   const format = normalizeFormat(options.format);
   if (!format) {
     if (shouldOutputJson(options)) {
-      writeJsonError("invalid_format", `Unsupported format: ${options.format ?? ""}`, {
+      await writeJsonError("invalid_format", `Unsupported format: ${options.format ?? ""}`, {
         supported: ["json", "dot", "mermaid"],
       });
     } else {
@@ -489,7 +489,7 @@ export async function graphExportCommand(options: GraphOptions): Promise<void> {
 
   if (format === "json") {
     if (wantsJson) {
-      writeJson({
+      await writeJson({
         generatedAt: new Date().toISOString(),
         nodes,
         edges,
@@ -521,7 +521,7 @@ export async function graphExportCommand(options: GraphOptions): Promise<void> {
       : buildMermaidGraph(orderedNodes, orderedEdges);
 
   if (wantsJson) {
-    writeJson({
+    await writeJson({
       format,
       generatedAt: new Date().toISOString(),
       graph,
@@ -536,5 +536,5 @@ export async function graphExportCommand(options: GraphOptions): Promise<void> {
     return;
   }
 
-  console.log(graph);
+  await writeStdout(graph + "\n");
 }

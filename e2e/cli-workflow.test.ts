@@ -9,13 +9,13 @@
  */
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
 import { existsSync, rmSync, mkdirSync } from "fs";
-import { join } from "path";
+import { join, resolve } from "path";
 
 // ============================================================================
 // Test Configuration
 // ============================================================================
 
-const PROJECT_ROOT = "/data/projects/jeffreysprompts.com";
+const PROJECT_ROOT = resolve(import.meta.dir, "..");
 const TEST_PROMPT_ID = "idea-wizard"; // Known prompt for testing
 
 // Log levels for debugging
@@ -32,7 +32,7 @@ function log(step: string, message: string) {
 
 async function runCli(args: string): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   try {
-    const proc = Bun.spawn(["bun", `${PROJECT_ROOT}/jfp.ts`, ...args.split(" ")], {
+    const proc = Bun.spawn([process.execPath, `${PROJECT_ROOT}/jfp.ts`, ...args.split(" ")], {
       cwd: PROJECT_ROOT,
       env: { ...process.env, HOME: "/tmp/jfp-e2e-home" },
     });
@@ -94,7 +94,7 @@ describe("CLI E2E: Quick Start & Version", () => {
   it("no args shows quick-start help", async () => {
     log("no-args", "Running: jfp (no arguments)");
 
-    const proc = Bun.spawn(["bun", `${PROJECT_ROOT}/jfp.ts`], {
+    const proc = Bun.spawn([process.execPath, `${PROJECT_ROOT}/jfp.ts`], {
       cwd: PROJECT_ROOT,
       env: { ...process.env, HOME: "/tmp/jfp-e2e-home" },
     });
@@ -772,7 +772,7 @@ describe("CLI E2E: Invalid Input and Edge Case Handling", () => {
 
     // Use direct Bun.spawn to pass query with special chars as single arg
     try {
-      const proc = Bun.spawn(["bun", `${PROJECT_ROOT}/jfp.ts`, "search", "test & query", "--json"], {
+      const proc = Bun.spawn([process.execPath, `${PROJECT_ROOT}/jfp.ts`, "search", "test & query", "--json"], {
         cwd: PROJECT_ROOT,
         env: { ...process.env, HOME: "/tmp/jfp-e2e-home" },
       });
